@@ -6,7 +6,7 @@ using Game.Settings;
 
 namespace Kobbyist.ProgressionControls.Spike
 {
-    [FileLocation("Kobbyist.ProgressionControls.Spike")]
+    [FileLocation(Mod.SettingsAssetName)]
     [SettingsUIGroupOrder(kInterceptionGroup, kInjectionGroup, kDiagnosticsGroup)]
     [SettingsUIShowGroupName(kInterceptionGroup, kInjectionGroup, kDiagnosticsGroup)]
     public sealed class Setting : ModSetting

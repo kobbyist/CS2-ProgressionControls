@@ -11,11 +11,13 @@ namespace Kobbyist.ProgressionControls.Spike
 {
     public sealed class Mod : IMod
     {
-        private const string SettingsKey = "Kobbyist.ProgressionControls.Spike";
+        private const string LoggerName = "Kobbyist.ProgressionControls.Spike";
+        internal const string SettingsAssetName =
+            "Kobbyist_ProgressionControls_Spike";
         private static int s_PendingPopulationXp;
 
         public static readonly ILog Log = LogManager
-            .GetLogger(SettingsKey)
+            .GetLogger(LoggerName)
             .SetShowsErrorsInUI(false);
 
         internal static Setting Settings { get; private set; }
@@ -30,9 +32,11 @@ namespace Kobbyist.ProgressionControls.Spike
                 "en-US",
                 new LocaleEN(Settings));
             AssetDatabase.global.LoadSettings(
-                SettingsKey,
+                SettingsAssetName,
                 Settings,
                 new Setting(this));
+            Log.Info(
+                $"Loaded settings: interception={Settings.EnableQueueInterception}, multiplier={Settings.VanillaXpMultiplierPercent}%, batchLogging={Settings.LogNonEmptyBatches}");
 
             // This overload is the system's only registration. It anchors the
             // interceptor directly before the vanilla XP consumer.
