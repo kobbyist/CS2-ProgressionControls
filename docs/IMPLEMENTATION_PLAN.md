@@ -224,5 +224,6 @@ runs, saves, reloads, and uninstalls cleanly on the latest public game build.
 
 ## Immediate Next Task
 
-Implement Phase 0 only. Do not scaffold the full production UI until the XP hook,
-maximum-population behavior, and vanilla milestone side effects are proven.
+Complete Phase 0 cases P0-04 through P0-08. Do not scaffold the full production
+UI until disable/re-enable behavior, maximum-population behavior, native
+milestone side effects, city save/reload, and mod removal are proven.

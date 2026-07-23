@@ -1,6 +1,6 @@
 # ADR 0001: Test Native XP Queue Interception
 
-**Status:** Proposed — runtime verification required
+**Status:** Proposed — partial runtime verification passed
 **Date:** 2026-07-23
 **Game build:** 1.6.0f1
 
@@ -70,6 +70,17 @@ the native queue-processing boundary. No Harmony dependency is added by this
 spike.
 
 ## Evidence
+
+Runtime checks on 1.6.0f1 confirm:
+
+- 100% forwards queued XP without duplication;
+- 0% suppresses future queued XP;
+- 25% produces the cumulative scaled total while retaining fractional XP; and
+- mod settings persist independently of the city save.
+
+The remaining acceptance work is disable/re-enable behavior, native milestone
+side effects from explicit population XP, maximum-population semantics,
+city save/reload, and removal testing. This ADR therefore remains proposed.
 
 - `Game.Simulation.XPSystem` decompiled reference at commit
   `5b49a4fc0c572f2b5133df83083ebb4afe2f76a6`:

@@ -25,6 +25,23 @@ base-game XP to the city.
 | P0-07 | Save and reload after each mode. | No queued XP repeats, disappears, or applies twice. |
 | P0-08 | Disable/remove the spike and reload. | The city loads and future XP uses vanilla behavior. |
 
+## Results to date (1.6.0f1)
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| P0-01: 100% pass-through | Pass | Logged batches `7 -> 7`, `8 -> 8`, and `4 -> 4`; city XP matched the outputs. |
+| P0-02: 0% suppression | Pass | Starting at 70 XP, logged inputs `11`, `12`, `13`, and `6` all produced zero output; city XP remained 70. |
+| P0-03: 25% scaling | Pass after correction | A hospital and roads produced 158 raw XP. The corrected scaler awarded 39 XP with `50/100` XP retained, moving city XP from 51 to 90. |
+| Fractional accumulation regression | Pass | The exact earlier 19-event sequence totals 53 raw XP and now produces 13 XP with `25/100` retained; six focused automated tests pass. |
+| Settings persistence | Pass | Interception enabled, 25%, and batch logging survived a full process restart. Startup logged the restored values before simulation began. |
+
+The first P0-03 attempt exposed per-event integer truncation: 53 raw XP produced
+only 2 XP. The scaler now carries hundredths between events, so rounding applies
+to the cumulative stream rather than independently discarding each fraction.
+
+P0-04 through P0-08 remain open. The settings restart check does not satisfy
+P0-07, which requires city save/reload behavior under each progression mode.
+
 ## Evidence to retain
 
 - `Player.log` excerpts from load through each case
