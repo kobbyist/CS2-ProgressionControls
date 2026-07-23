@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game;
+using Game.City;
 using Game.Simulation;
 using Kobbyist.ProgressionControls.Core;
 using Unity.Entities;
@@ -30,6 +31,8 @@ namespace Kobbyist.ProgressionControls.Spike
             }
 
             var requestedPopulationXp = Mod.TakeRequestedPopulationXp();
+            var populationStateLogRequested =
+                Mod.TakeRequestedPopulationStateLog();
             var configurationChanged = m_VanillaXpScaler.Configure(
                 settings.EnableQueueInterception,
                 settings.VanillaXpMultiplierPercent);
@@ -37,6 +40,11 @@ namespace Kobbyist.ProgressionControls.Spike
             {
                 Mod.Log.Info(
                     $"XP scaling configured: enabled={m_VanillaXpScaler.Enabled}, multiplier={m_VanillaXpScaler.Percentage}%, fractional remainder reset");
+            }
+
+            if (populationStateLogRequested)
+            {
+                LogPopulationState();
             }
 
             if (!settings.EnableQueueInterception && requestedPopulationXp == 0)
@@ -91,6 +99,30 @@ namespace Kobbyist.ProgressionControls.Spike
                 Mod.Log.Info(
                     $"Intercepted XP batch: count={pending.Count}, input={inputTotal}, output={outputTotal}, multiplier={m_VanillaXpScaler.Percentage}%, remainder={m_VanillaXpScaler.RemainderHundredths}/100 XP");
             }
+        }
+
+        private void LogPopulationState()
+        {
+            var city = m_CitySystem.City;
+            if (city == Entity.Null)
+            {
+                Mod.Log.Warn(
+                    "Skipped population state log because no city is active");
+                return;
+            }
+
+            if (!EntityManager.HasComponent<Population>(city) ||
+                !EntityManager.HasComponent<XP>(city))
+            {
+                Mod.Log.Warn(
+                    "Skipped population state log because required city components are unavailable");
+                return;
+            }
+
+            var population = EntityManager.GetComponentData<Population>(city);
+            var xp = EntityManager.GetComponentData<XP>(city);
+            Mod.Log.Info(
+                $"Population state: current={population.m_Population}, maximum={xp.m_MaximumPopulation}, xp={xp.m_XP}");
         }
     }
 }

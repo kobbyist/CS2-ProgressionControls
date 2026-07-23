@@ -14,6 +14,7 @@ namespace Kobbyist.ProgressionControls.Spike
         private const string LoggerName = "Kobbyist.ProgressionControls.Spike";
         internal const string SettingsAssetName =
             "Kobbyist_ProgressionControls_Spike";
+        private static int s_PendingPopulationStateLog;
         private static int s_PendingPopulationXp;
 
         public static readonly ILog Log = LogManager
@@ -55,6 +56,7 @@ namespace Kobbyist.ProgressionControls.Spike
             }
 
             Interlocked.Exchange(ref s_PendingPopulationXp, 0);
+            Interlocked.Exchange(ref s_PendingPopulationStateLog, 0);
         }
 
         internal static void RequestPopulationXp(int amount)
@@ -67,6 +69,18 @@ namespace Kobbyist.ProgressionControls.Spike
         internal static int TakeRequestedPopulationXp()
         {
             return Interlocked.Exchange(ref s_PendingPopulationXp, 0);
+        }
+
+        internal static void RequestPopulationStateLog()
+        {
+            Interlocked.Exchange(ref s_PendingPopulationStateLog, 1);
+        }
+
+        internal static bool TakeRequestedPopulationStateLog()
+        {
+            return Interlocked.Exchange(
+                ref s_PendingPopulationStateLog,
+                0) != 0;
         }
     }
 }

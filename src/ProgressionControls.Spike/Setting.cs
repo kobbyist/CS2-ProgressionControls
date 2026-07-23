@@ -50,6 +50,19 @@ namespace Kobbyist.ProgressionControls.Spike
         [SettingsUISection(kSection, kDiagnosticsGroup)]
         public bool LogNonEmptyBatches { get; set; }
 
+        [SettingsUIButton]
+        [SettingsUISection(kSection, kDiagnosticsGroup)]
+        public bool LogPopulationState
+        {
+            set
+            {
+                if (value)
+                {
+                    Mod.RequestPopulationStateLog();
+                }
+            }
+        }
+
         public override void SetDefaults()
         {
             EnableQueueInterception = false;
@@ -90,6 +103,8 @@ namespace Kobbyist.ProgressionControls.Spike
                 { m_Setting.GetOptionWarningLocaleID(nameof(Setting.InjectPopulationXp)), "Run this only in a disposable test city. The injected XP becomes normal city state and is not automatically removed." },
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.LogNonEmptyBatches)), "Log non-empty XP batches" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.LogNonEmptyBatches)), "Writes one aggregate log entry for each intercepted batch that contains XP." },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.LogPopulationState)), "Log population state" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.LogPopulationState)), "Writes current population, vanilla historical maximum population, and current XP to the diagnostic log without changing the city." },
             };
         }
 

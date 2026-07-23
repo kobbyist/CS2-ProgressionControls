@@ -156,6 +156,17 @@
   - `System.Int32 m_Reward`
   - `System.Int32 m_XpRequried`
 
+### `Game.City.Population`
+
+- Status: found
+- Assembly: `Game`
+- Base type: `System.ValueType`
+- Declared fields:
+  - `System.Int32 m_AverageHappiness`
+  - `System.Int32 m_AverageHealth`
+  - `System.Int32 m_Population`
+  - `System.Int32 m_PopulationWithMoveIn`
+
 ### `Game.City.XP`
 
 - Status: found
