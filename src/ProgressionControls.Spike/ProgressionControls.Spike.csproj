@@ -47,9 +47,6 @@
     <Reference Include="Unity.Entities">
       <Private>false</Private>
     </Reference>
-    <Reference Include="Unity.Jobs">
-      <Private>false</Private>
-    </Reference>
     <Reference Include="Unity.Mathematics">
       <Private>false</Private>
     </Reference>
@@ -65,6 +62,10 @@
     <Reference Update="System.Data">
       <Private>false</Private>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ProgressionControls.Core\ProgressionControls.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

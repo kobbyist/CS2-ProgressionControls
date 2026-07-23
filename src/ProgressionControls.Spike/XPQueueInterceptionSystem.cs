@@ -1,7 +1,7 @@
-using System;
 using System.Collections.Generic;
 using Game;
 using Game.Simulation;
+using Kobbyist.ProgressionControls.Core;
 using Unity.Entities;
 using Unity.Jobs;
 
@@ -9,6 +9,8 @@ namespace Kobbyist.ProgressionControls.Spike
 {
     public partial class XPQueueInterceptionSystem : GameSystemBase
     {
+        private readonly VanillaXpScaler m_VanillaXpScaler =
+            new VanillaXpScaler();
         private CitySystem m_CitySystem;
         private XPSystem m_XPSystem;
 
@@ -22,10 +24,19 @@ namespace Kobbyist.ProgressionControls.Spike
         protected override void OnUpdate()
         {
             var settings = Mod.Settings;
-            var requestedPopulationXp = Mod.TakeRequestedPopulationXp();
             if (settings == null)
             {
                 return;
+            }
+
+            var requestedPopulationXp = Mod.TakeRequestedPopulationXp();
+            var configurationChanged = m_VanillaXpScaler.Configure(
+                settings.EnableQueueInterception,
+                settings.VanillaXpMultiplierPercent);
+            if (configurationChanged)
+            {
+                Mod.Log.Info(
+                    $"XP scaling configured: enabled={m_VanillaXpScaler.Enabled}, multiplier={m_VanillaXpScaler.Percentage}%, fractional remainder reset");
             }
 
             if (!settings.EnableQueueInterception && requestedPopulationXp == 0)
@@ -45,9 +56,7 @@ namespace Kobbyist.ProgressionControls.Spike
                 inputTotal += gain.amount;
                 if (settings.EnableQueueInterception)
                 {
-                    gain.amount = ScaleAmount(
-                        gain.amount,
-                        settings.VanillaXpMultiplierPercent);
+                    gain.amount = m_VanillaXpScaler.Scale(gain.amount);
                 }
 
                 outputTotal += gain.amount;
@@ -73,21 +82,15 @@ namespace Kobbyist.ProgressionControls.Spike
             }
             else if (requestedPopulationXp > 0)
             {
-                Mod.Log.Warn("Skipped explicit population XP test because no city is active");
+                Mod.Log.Warn(
+                    "Skipped explicit population XP test because no city is active");
             }
 
             if (settings.LogNonEmptyBatches && pending.Count > 0)
             {
                 Mod.Log.Info(
-                    $"Intercepted XP batch: count={pending.Count}, input={inputTotal}, output={outputTotal}, multiplier={settings.VanillaXpMultiplierPercent}%");
+                    $"Intercepted XP batch: count={pending.Count}, input={inputTotal}, output={outputTotal}, multiplier={m_VanillaXpScaler.Percentage}%, remainder={m_VanillaXpScaler.RemainderHundredths}/100 XP");
             }
-        }
-
-        private static int ScaleAmount(int amount, int percentage)
-        {
-            var boundedPercentage = Math.Max(0, Math.Min(100, percentage));
-            var scaled = (long)amount * boundedPercentage / 100L;
-            return (int)Math.Max(int.MinValue, Math.Min(int.MaxValue, scaled));
         }
     }
 }
