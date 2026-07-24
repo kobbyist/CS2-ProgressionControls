@@ -83,6 +83,10 @@ machine-specific paths in ignored local configuration.
 - Local package is discovered by CS2.
 - Settings and localization register and unregister cleanly.
 
+Verified on 1.6.0f1: the private production package loaded once, exposed its
+localized enabled-by-default setting, and executed `OnDispose` without related
+errors. Phase 1 is complete.
+
 ## Phase 2 — Domain Core
 
 Implement without CS2, Unity, ECS, Harmony, UI, or filesystem dependencies.
@@ -230,5 +234,5 @@ runs, saves, reloads, and uninstalls cleanly on the latest public game build.
 
 ## Immediate Next Task
 
-Begin the Phase 1 production scaffold, reusing the verified queue adapter while
-excluding all spike-only diagnostics and injection controls.
+Implement the Phase 2 population progression rules and their edge-case tests in
+the pure core project.
