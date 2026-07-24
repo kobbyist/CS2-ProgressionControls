@@ -162,6 +162,12 @@ and schema version outside the city save. The session ID plus frame identifies
 the exact save checkpoint, so loading an older save cannot consume newer
 external progression state.
 
+After one-time city initialization, disabled mode returns before population
+cadence evaluation or XP queue access and does not capture external
+checkpoints. Re-enabling clears fractional carry
+and establishes a no-award baseline from the greatest of current population,
+the base-game population high-water mark, and the stored mod high-water mark.
+
 ### Exit gate
 
 - New and existing cities establish the correct baseline.

@@ -108,6 +108,37 @@ namespace Kobbyist.ProgressionControls.Core
                 m_FractionalXp);
         }
 
+        public PopulationObservationResult Rebaseline(
+            int currentPopulation,
+            int knownMaximumPopulation,
+            ProgressionConfiguration configuration)
+        {
+            if (currentPopulation < 0 ||
+                knownMaximumPopulation < 0 ||
+                configuration == null)
+            {
+                return Rejected();
+            }
+
+            m_Initialized = true;
+            m_MaximumPopulation = Math.Max(
+                m_MaximumPopulation,
+                Math.Max(
+                    currentPopulation,
+                    knownMaximumPopulation));
+            m_FractionalXp = 0m;
+            m_ConfiguredRate = configuration.XpPerResident;
+            m_HasConfiguredRate = true;
+            m_PreviousPopulationXpActive =
+                configuration.PopulationXpEnabled;
+
+            return Accepted(
+                establishedBaseline: true,
+                awardedXp: 0,
+                newRecordDelta: 0,
+                currentPopulation);
+        }
+
         public PopulationObservationResult Observe(
             int currentPopulation,
             bool customProgressionEnabled,

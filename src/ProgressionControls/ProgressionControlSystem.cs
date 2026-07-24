@@ -122,39 +122,54 @@ namespace Kobbyist.ProgressionControls
             var settings = Mod.Settings;
             var customProgressionEnabled =
                 settings.EnableCustomProgression;
+            if (!customProgressionEnabled)
+            {
+                if (m_LastCustomProgressionEnabled)
+                {
+                    m_LastCustomProgressionEnabled = false;
+                    m_VanillaXpScaler.Configure(
+                        enabled: false,
+                        percentage: 100);
+                    m_PendingPopulationXp = 0;
+                    m_PendingVanillaXp.Clear();
+                    Mod.Log.Info(
+                        "Progression integration disabled; population observation and XP interception are dormant");
+                }
+
+                return;
+            }
+
             var currentFrame =
                 m_SimulationSystem.frameIndex;
             var evaluationRequired =
                 ConfigurePopulationEvaluationCadence(
                     settings.PopulationEvaluationCadence);
-            if (customProgressionEnabled !=
-                m_LastCustomProgressionEnabled)
+            if (!m_LastCustomProgressionEnabled)
             {
-                evaluationRequired = true;
-                m_LastCustomProgressionEnabled =
-                    customProgressionEnabled;
+                if (!TryRebaselineAfterEnable())
+                {
+                    return;
+                }
+
+                m_LastCustomProgressionEnabled = true;
+                evaluationRequired = false;
+                m_NextPopulationEvaluationFrame =
+                    currentFrame +
+                    (uint)m_PopulationEvaluationInterval;
             }
 
             if (evaluationRequired ||
                 IsPopulationEvaluationDue(currentFrame))
             {
-                EvaluatePopulation(customProgressionEnabled);
+                EvaluatePopulation();
                 m_NextPopulationEvaluationFrame =
                     currentFrame +
                     (uint)m_PopulationEvaluationInterval;
             }
 
             m_VanillaXpScaler.Configure(
-                customProgressionEnabled,
-                customProgressionEnabled
-                    ? m_Configuration.VanillaXpPercentage
-                    : 100);
-
-            if (!customProgressionEnabled)
-            {
-                m_PendingPopulationXp = 0;
-                return;
-            }
+                enabled: true,
+                percentage: m_Configuration.VanillaXpPercentage);
 
             ProcessXpQueue();
         }
@@ -261,19 +276,30 @@ namespace Kobbyist.ProgressionControls
                     $"Established progression baseline at population {baseline}");
             }
 
-            ConfigurePopulationEvaluationCadence(
-                settings.PopulationEvaluationCadence);
             m_LastCustomProgressionEnabled =
                 customProgressionEnabled;
-            m_NextPopulationEvaluationFrame =
-                simulationFrame +
-                (uint)m_PopulationEvaluationInterval;
+            if (customProgressionEnabled)
+            {
+                ConfigurePopulationEvaluationCadence(
+                    settings.PopulationEvaluationCadence);
+                m_NextPopulationEvaluationFrame =
+                    simulationFrame +
+                    (uint)m_PopulationEvaluationInterval;
+            }
             m_HasActiveCity = true;
             m_InitializationDelayLogged = false;
             m_InitializationPending = false;
 
-            Mod.Log.Info(
-                $"Progression integration active: target={ProgressionConfiguration.DefaultMegalopolisPopulationTarget}, rate={m_Configuration.XpPerResident}, vanilla={m_Configuration.VanillaXpPercentage}%, populationChecks={m_PopulationEvaluationsPerDay}/day");
+            if (customProgressionEnabled)
+            {
+                Mod.Log.Info(
+                    $"Progression integration active: target={ProgressionConfiguration.DefaultMegalopolisPopulationTarget}, rate={m_Configuration.XpPerResident}, vanilla={m_Configuration.VanillaXpPercentage}%, populationChecks={m_PopulationEvaluationsPerDay}/day");
+            }
+            else
+            {
+                Mod.Log.Info(
+                    "Progression integration loaded dormant because custom progression is disabled");
+            }
             return true;
         }
 
@@ -328,8 +354,7 @@ namespace Kobbyist.ProgressionControls
             return xpRequirement > 0;
         }
 
-        private void EvaluatePopulation(
-            bool customProgressionEnabled)
+        private void EvaluatePopulation()
         {
             var city = m_CitySystem.City;
             if (city == Entity.Null ||
@@ -344,7 +369,7 @@ namespace Kobbyist.ProgressionControls
                     .m_Population;
             var result = m_PopulationTracker.Observe(
                 currentPopulation,
-                customProgressionEnabled,
+                customProgressionEnabled: true,
                 m_Configuration);
 
             if (!result.Accepted)
@@ -360,6 +385,45 @@ namespace Kobbyist.ProgressionControls
                 Mod.Log.Info(
                     $"Population XP queued: residents={result.NewRecordDelta}, xp={result.AwardedXp}, maximum={result.MaximumPopulation}");
             }
+        }
+
+        private bool TryRebaselineAfterEnable()
+        {
+            var city = m_CitySystem.City;
+            if (city == Entity.Null ||
+                m_PopulationTracker == null ||
+                !EntityManager.HasComponent<Population>(city) ||
+                !EntityManager.HasComponent<XP>(city))
+            {
+                Mod.Log.Warn(
+                    "Progression integration could not re-enable because the active city baseline is unavailable");
+                return false;
+            }
+
+            var currentPopulation =
+                EntityManager.GetComponentData<Population>(city)
+                    .m_Population;
+            var vanillaMaximumPopulation =
+                EntityManager.GetComponentData<XP>(city)
+                    .m_MaximumPopulation;
+            var result = m_PopulationTracker.Rebaseline(
+                currentPopulation,
+                vanillaMaximumPopulation,
+                m_Configuration);
+            if (!result.Accepted)
+            {
+                Mod.Log.Warn(
+                    "Progression integration could not re-enable because the active city baseline is invalid");
+                return false;
+            }
+
+            m_PendingPopulationXp = 0;
+            m_VanillaXpScaler.Configure(
+                enabled: true,
+                percentage: m_Configuration.VanillaXpPercentage);
+            Mod.Log.Info(
+                $"Progression integration re-enabled at population {currentPopulation}, maximum={result.MaximumPopulation}; disabled-period growth will not award population XP");
+            return true;
         }
 
         private void ProcessXpQueue()
@@ -511,6 +575,8 @@ namespace Kobbyist.ProgressionControls
         {
             if (!m_HasActiveCity ||
                 m_PopulationTracker == null ||
+                Mod.Settings == null ||
+                !Mod.Settings.EnableCustomProgression ||
                 m_CityId == Guid.Empty ||
                 GameManager.instance.isGameLoading)
             {

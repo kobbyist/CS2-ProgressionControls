@@ -70,9 +70,12 @@ reason.
 - It can be enabled or disabled in the mod Options.
 - Disabling it stops population XP and restores 100% vanilla XP for future
   events.
+- While disabled, the mod performs no recurring population observations, XP
+  queue interception, or external progression checkpoint writes.
 - Growth while disabled receives no population XP.
-- Re-enabling uses the greater of the stored population record or current
-  population as its baseline, with no retroactive award.
+- Re-enabling uses the greatest of the stored population record, current
+  population, or verified base-game maximum-population record as its baseline,
+  with no retroactive award.
 - Rate, target, multiplier, and preset changes affect future XP only.
 - Existing XP, milestones, rewards, and unlocks are never recalculated.
 

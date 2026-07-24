@@ -100,6 +100,60 @@ public sealed class PopulationProgressionTrackerTests
     }
 
     [TestMethod]
+    public void RebaselineUsesHighestKnownRecordAndClearsFraction()
+    {
+        var tracker = Baseline(100, 0.25d);
+        tracker.Observe(101, true, Configuration(0.25d));
+        Assert.AreEqual(0.25m, tracker.FractionalXp);
+
+        var result = tracker.Rebaseline(
+            currentPopulation: 90,
+            knownMaximumPopulation: 120,
+            configuration: Configuration(1d));
+
+        Assert.IsTrue(result.Accepted);
+        Assert.IsTrue(result.EstablishedBaseline);
+        Assert.AreEqual(0L, result.AwardedXp);
+        Assert.AreEqual(120, result.MaximumPopulation);
+        Assert.AreEqual(30, result.PopulationToResume);
+        Assert.AreEqual(0m, tracker.FractionalXp);
+
+        var preserved = tracker.Rebaseline(
+            currentPopulation: 100,
+            knownMaximumPopulation: 110,
+            configuration: Configuration(1d));
+
+        Assert.AreEqual(120, preserved.MaximumPopulation);
+
+        var belowRecord = tracker.Observe(
+            119,
+            true,
+            Configuration(1d));
+        var newRecord = tracker.Observe(
+            121,
+            true,
+            Configuration(1d));
+
+        Assert.AreEqual(0L, belowRecord.AwardedXp);
+        Assert.AreEqual(1L, newRecord.AwardedXp);
+    }
+
+    [TestMethod]
+    public void RebaselineRejectsInvalidPopulationWithoutChangingState()
+    {
+        var tracker = Baseline(100, 1d);
+
+        var result = tracker.Rebaseline(
+            currentPopulation: 101,
+            knownMaximumPopulation: -1,
+            configuration: Configuration(1d));
+
+        Assert.IsFalse(result.Accepted);
+        Assert.AreEqual(100, tracker.MaximumPopulation);
+        Assert.AreEqual(0m, tracker.FractionalXp);
+    }
+
+    [TestMethod]
     public void RateChangeIsProspectiveAndClearsOldFraction()
     {
         var tracker = Baseline(100, 0.25d);
