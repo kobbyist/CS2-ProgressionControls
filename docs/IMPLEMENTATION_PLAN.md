@@ -171,6 +171,12 @@ external progression state.
 - Save/reload produces no duplicate award.
 - Removing the mod leaves the save loadable.
 
+Cadence, existing-city checkpoint restoration, fractional population awards,
+live cadence changes, settings persistence, and duplicate-free reload behavior
+have passed on 1.6.0f1. See
+[phase-3-runtime-checklist.md](./phase-3-runtime-checklist.md). The remaining
+exit checks are listed there.
+
 ## Phase 4 — Compact Widget
 
 ### C# binding model
@@ -244,5 +250,5 @@ runs, saves, reloads, and uninstalls cleanly on the latest public game build.
 
 ## Immediate Next Task
 
-Implement Phase 3 state persistence and population/XP adapters around the
-verified domain core and native XP queue boundary.
+Complete the remaining Phase 3 runtime exit checks, then begin the compact
+read-only widget.
