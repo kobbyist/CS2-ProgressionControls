@@ -18,9 +18,12 @@ namespace Kobbyist.ProgressionControls
 {
     public partial class ProgressionControlSystem : GameSystemBase
     {
-        private const int PopulationEvaluationsPerDay = 16;
-        private const int PopulationEvaluationInterval =
-            TimeSystem.kTicksPerDay / PopulationEvaluationsPerDay;
+        private const int DefaultPopulationEvaluationsPerDay =
+            (int)PopulationEvaluationCadence.Responsive;
+        private const int MinimumPopulationEvaluationInterval = 16;
+        private const int InitializationWarningInterval =
+            TimeSystem.kTicksPerDay /
+            (int)PopulationEvaluationCadence.Low;
 
         private readonly List<XPGain> m_PendingVanillaXp =
             new List<XPGain>();
@@ -36,13 +39,18 @@ namespace Kobbyist.ProgressionControls
         private ProgressionStateStore m_StateStore;
         private ProgressionStateSnapshot m_PendingSaveSnapshot;
         private Guid m_CityId;
+        private int m_PopulationEvaluationInterval;
+        private int m_PopulationEvaluationsPerDay;
         private uint m_InitializationStartedFrame;
         private uint m_NextPopulationEvaluationFrame;
         private long m_PendingPopulationXp;
         private bool m_HasActiveCity;
         private bool m_InitializationDelayLogged;
+        private bool m_HasPopulationEvaluationCadence;
         private bool m_InitializationPending;
         private bool m_LastCustomProgressionEnabled;
+
+        private PopulationEvaluationCadence m_LastPopulationEvaluationCadence;
 
         protected override void OnCreate()
         {
@@ -111,25 +119,29 @@ namespace Kobbyist.ProgressionControls
                 return;
             }
 
+            var settings = Mod.Settings;
             var customProgressionEnabled =
-                Mod.Settings.EnableCustomProgression;
+                settings.EnableCustomProgression;
+            var currentFrame =
+                m_SimulationSystem.frameIndex;
+            var evaluationRequired =
+                ConfigurePopulationEvaluationCadence(
+                    settings.PopulationEvaluationCadence);
             if (customProgressionEnabled !=
                 m_LastCustomProgressionEnabled)
             {
-                EvaluatePopulation(customProgressionEnabled);
+                evaluationRequired = true;
                 m_LastCustomProgressionEnabled =
                     customProgressionEnabled;
-                m_NextPopulationEvaluationFrame =
-                    m_SimulationSystem.frameIndex +
-                    PopulationEvaluationInterval;
             }
-            else if (IsPopulationEvaluationDue(
-                m_SimulationSystem.frameIndex))
+
+            if (evaluationRequired ||
+                IsPopulationEvaluationDue(currentFrame))
             {
                 EvaluatePopulation(customProgressionEnabled);
                 m_NextPopulationEvaluationFrame =
-                    m_SimulationSystem.frameIndex +
-                    PopulationEvaluationInterval;
+                    currentFrame +
+                    (uint)m_PopulationEvaluationInterval;
             }
 
             m_VanillaXpScaler.Configure(
@@ -149,6 +161,12 @@ namespace Kobbyist.ProgressionControls
 
         private bool TryInitializeActiveCity()
         {
+            var settings = Mod.Settings;
+            if (settings == null)
+            {
+                return false;
+            }
+
             var city = m_CitySystem.City;
             if (city == Entity.Null ||
                 !EntityManager.HasComponent<Population>(city) ||
@@ -182,8 +200,7 @@ namespace Kobbyist.ProgressionControls
             var baseGameXp =
                 EntityManager.GetComponentData<XP>(city);
             var customProgressionEnabled =
-                Mod.Settings != null &&
-                Mod.Settings.EnableCustomProgression;
+                settings.EnableCustomProgression;
             var simulationFrame = m_SimulationSystem.frameIndex;
 
             ProgressionStateSnapshot persisted = null;
@@ -244,16 +261,19 @@ namespace Kobbyist.ProgressionControls
                     $"Established progression baseline at population {baseline}");
             }
 
+            ConfigurePopulationEvaluationCadence(
+                settings.PopulationEvaluationCadence);
             m_LastCustomProgressionEnabled =
                 customProgressionEnabled;
             m_NextPopulationEvaluationFrame =
-                simulationFrame + PopulationEvaluationInterval;
+                simulationFrame +
+                (uint)m_PopulationEvaluationInterval;
             m_HasActiveCity = true;
             m_InitializationDelayLogged = false;
             m_InitializationPending = false;
 
             Mod.Log.Info(
-                $"Progression integration active: target={ProgressionConfiguration.DefaultMegalopolisPopulationTarget}, rate={m_Configuration.XpPerResident}, vanilla={m_Configuration.VanillaXpPercentage}%");
+                $"Progression integration active: target={ProgressionConfiguration.DefaultMegalopolisPopulationTarget}, rate={m_Configuration.XpPerResident}, vanilla={m_Configuration.VanillaXpPercentage}%, populationChecks={m_PopulationEvaluationsPerDay}/day");
             return true;
         }
 
@@ -264,6 +284,9 @@ namespace Kobbyist.ProgressionControls
             m_PopulationTracker = null;
             m_PendingSaveSnapshot = null;
             m_CityId = Guid.Empty;
+            m_PopulationEvaluationInterval = 0;
+            m_PopulationEvaluationsPerDay = 0;
+            m_HasPopulationEvaluationCadence = false;
             m_InitializationStartedFrame = 0;
             m_InitializationDelayLogged = false;
             m_InitializationPending = false;
@@ -386,6 +409,47 @@ namespace Kobbyist.ProgressionControls
             }
         }
 
+        private bool ConfigurePopulationEvaluationCadence(
+            PopulationEvaluationCadence requestedCadence)
+        {
+            if (m_HasPopulationEvaluationCadence &&
+                m_LastPopulationEvaluationCadence ==
+                    requestedCadence)
+            {
+                return false;
+            }
+
+            m_HasPopulationEvaluationCadence = true;
+            m_LastPopulationEvaluationCadence =
+                requestedCadence;
+
+            var evaluationsPerDay = (int)requestedCadence;
+            if (!EvaluationInterval.TryCalculate(
+                TimeSystem.kTicksPerDay,
+                evaluationsPerDay,
+                MinimumPopulationEvaluationInterval,
+                out var interval))
+            {
+                evaluationsPerDay =
+                    DefaultPopulationEvaluationsPerDay;
+                EvaluationInterval.TryCalculate(
+                    TimeSystem.kTicksPerDay,
+                    evaluationsPerDay,
+                    MinimumPopulationEvaluationInterval,
+                    out interval);
+                Mod.Log.Warn(
+                    $"Invalid population evaluation cadence {requestedCadence}; using {evaluationsPerDay}/day");
+            }
+
+            m_PopulationEvaluationsPerDay =
+                evaluationsPerDay;
+            m_PopulationEvaluationInterval =
+                interval;
+            Mod.Log.Info(
+                $"Population evaluation cadence configured: {evaluationsPerDay}/day, interval={interval} frames");
+            return true;
+        }
+
         private bool IsPopulationEvaluationDue(
             uint currentFrame)
         {
@@ -400,7 +464,7 @@ namespace Kobbyist.ProgressionControls
                 unchecked(
                     (int)(m_SimulationSystem.frameIndex -
                         m_InitializationStartedFrame)) <
-                    PopulationEvaluationInterval)
+                    InitializationWarningInterval)
             {
                 return;
             }

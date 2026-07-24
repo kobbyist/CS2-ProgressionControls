@@ -6,13 +6,24 @@ using Game.Settings;
 
 namespace Kobbyist.ProgressionControls
 {
+    public enum PopulationEvaluationCadence
+    {
+        Low = 16,
+        Moderate = 64,
+        Balanced = 256,
+        Fast = 1024,
+        Responsive = 4096,
+        Immediate = 16384,
+    }
+
     [FileLocation(Mod.SettingsAssetName)]
-    [SettingsUIGroupOrder(kGeneralGroup)]
-    [SettingsUIShowGroupName(kGeneralGroup)]
+    [SettingsUIGroupOrder(kGeneralGroup, kAdvancedGroup)]
+    [SettingsUIShowGroupName(kGeneralGroup, kAdvancedGroup)]
     public sealed class Setting : ModSetting
     {
         public const string kSection = "Main";
         public const string kGeneralGroup = "General";
+        public const string kAdvancedGroup = "Advanced";
 
         public Setting(IMod mod)
             : base(mod)
@@ -23,9 +34,15 @@ namespace Kobbyist.ProgressionControls
         [SettingsUISection(kSection, kGeneralGroup)]
         public bool EnableCustomProgression { get; set; }
 
+        [SettingsUISection(kSection, kAdvancedGroup)]
+        [SettingsUIAdvanced]
+        public PopulationEvaluationCadence PopulationEvaluationCadence { get; set; }
+
         public override void SetDefaults()
         {
             EnableCustomProgression = true;
+            PopulationEvaluationCadence =
+                PopulationEvaluationCadence.Responsive;
         }
     }
 
@@ -49,6 +66,15 @@ namespace Kobbyist.ProgressionControls
                 { m_Setting.GetOptionGroupLocaleID(Setting.kGeneralGroup), "Progression" },
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.EnableCustomProgression)), "Enable custom progression" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.EnableCustomProgression)), "Enables Progression Controls for future milestone XP. Existing city XP is never recalculated." },
+                { m_Setting.GetOptionGroupLocaleID(Setting.kAdvancedGroup), "Advanced controls" },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.PopulationEvaluationCadence)), "Population update responsiveness" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.PopulationEvaluationCadence)), "Controls how quickly new population records award XP. Higher values reduce delay with a small increase in CPU work; total XP is unchanged." },
+                { m_Setting.GetEnumValueLocaleID(PopulationEvaluationCadence.Low), "Low (16/day)" },
+                { m_Setting.GetEnumValueLocaleID(PopulationEvaluationCadence.Moderate), "Moderate (64/day)" },
+                { m_Setting.GetEnumValueLocaleID(PopulationEvaluationCadence.Balanced), "Balanced (256/day)" },
+                { m_Setting.GetEnumValueLocaleID(PopulationEvaluationCadence.Fast), "Fast (1,024/day)" },
+                { m_Setting.GetEnumValueLocaleID(PopulationEvaluationCadence.Responsive), "Responsive (4,096/day)" },
+                { m_Setting.GetEnumValueLocaleID(PopulationEvaluationCadence.Immediate), "Immediate (16,384/day)" },
             };
         }
 
