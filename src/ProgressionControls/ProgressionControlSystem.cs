@@ -36,9 +36,12 @@ namespace Kobbyist.ProgressionControls
         private ProgressionStateStore m_StateStore;
         private ProgressionStateSnapshot m_PendingSaveSnapshot;
         private Guid m_CityId;
+        private uint m_InitializationStartedFrame;
         private uint m_NextPopulationEvaluationFrame;
         private long m_PendingPopulationXp;
         private bool m_HasActiveCity;
+        private bool m_InitializationDelayLogged;
+        private bool m_InitializationPending;
         private bool m_LastCustomProgressionEnabled;
 
         protected override void OnCreate()
@@ -86,11 +89,21 @@ namespace Kobbyist.ProgressionControls
             Context serializationContext)
         {
             base.OnGameLoaded(serializationContext);
-            InitializeActiveCity();
+            ResetActiveCity();
+            m_InitializationStartedFrame =
+                m_SimulationSystem.frameIndex;
+            m_InitializationPending = true;
         }
 
         protected override void OnUpdate()
         {
+            if (m_InitializationPending &&
+                !TryInitializeActiveCity())
+            {
+                LogInitializationDelayIfNeeded();
+                return;
+            }
+
             if (!m_HasActiveCity ||
                 m_Configuration == null ||
                 Mod.Settings == null)
@@ -134,18 +147,14 @@ namespace Kobbyist.ProgressionControls
             ProcessXpQueue();
         }
 
-        private void InitializeActiveCity()
+        private bool TryInitializeActiveCity()
         {
-            ResetActiveCity();
-
             var city = m_CitySystem.City;
             if (city == Entity.Null ||
                 !EntityManager.HasComponent<Population>(city) ||
                 !EntityManager.HasComponent<XP>(city))
             {
-                Mod.Log.Warn(
-                    "Progression integration skipped because the active city components are unavailable");
-                return;
+                return false;
             }
 
             if (!TryGetMegalopolisXpRequirement(
@@ -153,20 +162,19 @@ namespace Kobbyist.ProgressionControls
                 !ProgressionConfiguration.TryFromPreset(
                     ProgressionPreset.PopulationHeavy,
                     megalopolisXpRequirement,
-                    out m_Configuration))
+                    out var configuration))
             {
-                Mod.Log.Error(
-                    "Progression integration failed open because the runtime Megalopolis XP requirement is unavailable");
-                return;
+                return false;
             }
 
-            m_CityId = Telemetry.GetCurrentSession();
-            if (m_CityId == Guid.Empty)
+            var cityId = Telemetry.GetCurrentSession();
+            if (cityId == Guid.Empty)
             {
-                Mod.Log.Error(
-                    "Progression integration failed open because the active city session identifier is empty");
-                return;
+                return false;
             }
+
+            m_Configuration = configuration;
+            m_CityId = cityId;
 
             var currentPopulation =
                 EntityManager.GetComponentData<Population>(city)
@@ -241,9 +249,12 @@ namespace Kobbyist.ProgressionControls
             m_NextPopulationEvaluationFrame =
                 simulationFrame + PopulationEvaluationInterval;
             m_HasActiveCity = true;
+            m_InitializationDelayLogged = false;
+            m_InitializationPending = false;
 
             Mod.Log.Info(
                 $"Progression integration active: target={ProgressionConfiguration.DefaultMegalopolisPopulationTarget}, rate={m_Configuration.XpPerResident}, vanilla={m_Configuration.VanillaXpPercentage}%");
+            return true;
         }
 
         private void ResetActiveCity()
@@ -253,6 +264,9 @@ namespace Kobbyist.ProgressionControls
             m_PopulationTracker = null;
             m_PendingSaveSnapshot = null;
             m_CityId = Guid.Empty;
+            m_InitializationStartedFrame = 0;
+            m_InitializationDelayLogged = false;
+            m_InitializationPending = false;
             m_VanillaXpScaler.Configure(
                 enabled: false,
                 percentage: 100);
@@ -378,6 +392,22 @@ namespace Kobbyist.ProgressionControls
             return unchecked(
                 (int)(currentFrame -
                     m_NextPopulationEvaluationFrame)) >= 0;
+        }
+
+        private void LogInitializationDelayIfNeeded()
+        {
+            if (m_InitializationDelayLogged ||
+                unchecked(
+                    (int)(m_SimulationSystem.frameIndex -
+                        m_InitializationStartedFrame)) <
+                    PopulationEvaluationInterval)
+            {
+                return;
+            }
+
+            m_InitializationDelayLogged = true;
+            Mod.Log.Warn(
+                "Progression integration is waiting for the active city session and will remain fail-open until it becomes available");
         }
 
         private void HandleGameSaveLoad(
