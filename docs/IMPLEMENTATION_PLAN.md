@@ -153,9 +153,12 @@ invalid inputs, and large XP totals. Phase 2 is complete.
 
 ### State
 
-Prefer the existing base-game maximum-population record. If additional state is
-required, store only the stable city key, maximum population, fractional
-remainder, and schema version outside the city save.
+Use the base-game maximum-population record as the safe first-run high-water
+baseline. Persist only the stable city session ID, serialized simulation frame,
+maximum observed population, population XP fraction, vanilla-scaling fraction,
+and schema version outside the city save. The session ID plus frame identifies
+the exact save checkpoint, so loading an older save cannot consume newer
+external progression state.
 
 ### Exit gate
 

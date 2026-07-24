@@ -19,6 +19,7 @@
 | Colossal.Core.dll | `0.0.0.0` | `0.0.0.0` | `c92d6f214c2edb66419b75bb663b06078f93066c819bfd02005886581338e2f2` |
 | Colossal.Logging.dll | `0.0.0.0` | `0.0.0.0` | `b076d59d6427cd90acf8b1ab731ee35a7612667e3a822d3211bcfa5c15021743` |
 | Colossal.Localization.dll | `0.0.0.0` | `0.0.0.0` | `54979aa458c25e5da40e40bcc25f9f4195207bb8e019660240892979c0557846` |
+| Colossal.PSI.Common.dll | `0.0.0.0` | `0.0.0.0` | `12463209f920d430ba8ab3d8921a1cf3605925d5bda3d2b6255642b0b055b061` |
 | Colossal.UI.Binding.dll | `0.0.0.0` | `0.0.0.0` | `9d27b3c0ae8fa0c1cefc50fe1926503c52f1b9d4d9dfe6e24f7fb4aee2446d2b` |
 
 ## API boundaries
@@ -92,6 +93,48 @@
   - `Unity.Collections.NativeQueue<Game.Simulation.XPGain> m_XPQueue`
   - `Unity.Collections.NativeQueue<Game.Simulation.XPMessage> m_XPMessages`
   - `Unity.Jobs.JobHandle m_QueueWriters`
+- Production queue methods verified:
+  - `Unity.Collections.NativeQueue<Game.Simulation.XPGain> GetQueue(Unity.Jobs.JobHandle& dependencies)`
+  - `System.Void AddQueueWriter(Unity.Jobs.JobHandle handle)`
+
+### Save-checkpoint identity and lifecycle
+
+Static metadata and IL inspection confirms:
+
+- `Game.PSI.Telemetry.GetCurrentSession()` is public, static, parameterless,
+  and returns `System.Guid`.
+- `Game.Assets.SaveInfo.sessionGuid` is a serialized `System.Guid`; save code
+  writes the current telemetry session and load code restores it.
+- `Game.SceneFlow.GameManager.GetSessionGuid(Purpose, Guid)` creates a new
+  identifier for `NewGame` and `NewMap`, while `LoadGame` preserves the saved
+  identifier.
+- `Game.Simulation.SimulationSystem.frameIndex` is a serialized `System.UInt32`.
+- `Game.SceneFlow.GameManager.onGameSaveLoad` supplies
+  `(saveName, previewUri, start, success)`, and `isGameLoading` is available to
+  distinguish load callbacks.
+- `Game.GameSystemBase` exposes `OnGamePreload(Purpose, GameMode)`,
+  `OnGameLoaded(Context)`, and `OnDestroy()`.
+
+A city session identifier is therefore stable across ordinary loads but is not
+enough to distinguish separate save checkpoints. Production external state is
+keyed by `{sessionGuid}/{simulationFrame}.json`, captured when saving starts,
+and written only after the save succeeds.
+
+### Data path and evaluation cadence
+
+- `Colossal.PSI.Environment.EnvPath.kUserDataPath` is a public static string.
+  Production state is rooted below
+  `ModsData/Kobbyist.ProgressionControls`.
+- `Game.Simulation.TimeSystem.kTicksPerDay` is `262144`; the production
+  population adapter uses an interval of `16384` frames, at most 16
+  observations per in-game day.
+
+### Public pattern evidence
+
+[City Watchdog at commit `c77cbd4ed8498c063a233a91486a72c9d5772f0f`](https://github.com/River-Mochi/CS2-CityWatchdog/tree/c77cbd4ed8498c063a233a91486a72c9d5772f0f)
+was reviewed as MIT-licensed pattern evidence for a bounded CS2 system querying
+`MilestoneData`. No source code was copied. Exact signatures and behavior above
+were verified against the installed 1.6.0f1 assemblies.
 
 ### `Game.Simulation.XPReason`
 

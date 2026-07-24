@@ -139,13 +139,15 @@ reliable while vanilla XP is scaled.
 
 If external per-city state is still required, it must be limited to:
 
-- stable city identifier;
+- stable city session identifier and serialized simulation frame;
 - maximum observed population;
-- fractional XP remainder; and
+- fractional population XP and vanilla-scaling remainders; and
 - schema version.
 
-Missing or invalid tracking state uses current population as a fresh baseline
-and never grants retroactive XP.
+Missing or invalid tracking state uses the greater of current population and
+the verified base-game maximum-population record as a fresh baseline and never
+grants retroactive XP. The serialized simulation frame distinguishes multiple
+save checkpoints that share one city session identifier.
 
 The MVP does not detect or arbitrate conflicts with other XP or milestone mods.
 Compatibility is the user’s responsibility, and support testing may require
@@ -162,7 +164,7 @@ disabling competing progression mods.
 | FR-05 | The Vanilla XP multiplier shall support every integer percentage from 0% to 100%. |
 | FR-06 | The initial configuration shall use Population Heavy with 25% Vanilla XP. |
 | FR-07 | Preset and setting changes shall affect future XP only. |
-| FR-08 | Existing cities shall use current population as the initial baseline. |
+| FR-08 | Existing cities shall use the greater of current population and the reliable base-game maximum-population record as the initial baseline. |
 | FR-09 | The three built-in presets shall be available as defined above. |
 | FR-10 | Invalid or non-finite settings shall be rejected or replaced with safe defaults. |
 | FR-11 | Vanilla milestone thresholds, rewards, tiers, and unlocks shall remain unchanged. |
@@ -206,6 +208,9 @@ The implementation consists of:
 Local 1.6.0f1 assembly verification confirms:
 
 - `Game.Modding.IMod.OnLoad(Game.UpdateSystem)` and `OnDispose()`;
+- `Game.PSI.Telemetry.GetCurrentSession()` and serialized
+  `Game.Assets.SaveInfo.sessionGuid`;
+- serialized `Game.Simulation.SimulationSystem.frameIndex`;
 - `Game.Simulation.XPGain` with amount and reason;
 - `Game.Simulation.XPMessage`;
 - `Game.Prefabs.XPParameterData` with population and happiness rates;
