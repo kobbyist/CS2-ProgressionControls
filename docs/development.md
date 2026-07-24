@@ -18,20 +18,34 @@ From the repository root:
 ```powershell
 $env:DOTNET_ROOT = 'C:\Program Files\Unity 2022.3.62f2\Editor\Data\NetCoreRuntime'
 $env:DOTNET_MULTILEVEL_LOOKUP = '0'
+dotnet build .\src\ProgressionControls\ProgressionControls.csproj --configuration Release
+```
+
+The official CS2 targets post-process the production assembly and deploy it to:
+
+`%CSII_LOCALMODSPATH%\Kobbyist.ProgressionControls`
+
+The Phase 0 spike is retained as verification evidence but is not part of the
+production package. Build it explicitly only when repeating the feasibility
+matrix:
+
+```powershell
+$env:DOTNET_ROOT = 'C:\Program Files\Unity 2022.3.62f2\Editor\Data\NetCoreRuntime'
+$env:DOTNET_MULTILEVEL_LOOKUP = '0'
 dotnet build .\src\ProgressionControls.Spike\ProgressionControls.Spike.csproj --configuration Release
 ```
 
-The official CS2 targets post-process the assembly and deploy the passive spike
-to:
+That command deploys to:
 
 `%CSII_LOCALMODSPATH%\Kobbyist.ProgressionControls.Spike`
 
 ## Compile-only verification
 
-Use this when validating C# signatures without post-processing or deployment:
+Use this when validating production C# signatures without post-processing or
+deployment:
 
 ```powershell
-dotnet build .\src\ProgressionControls.Spike\ProgressionControls.Spike.csproj `
+dotnet build .\src\ProgressionControls\ProgressionControls.csproj `
   --configuration Release `
   --no-restore `
   -p:ModPublisherCommand=Update
@@ -39,3 +53,10 @@ dotnet build .\src\ProgressionControls.Spike\ProgressionControls.Spike.csproj `
 
 The compile-only property uses the installed toolchain's existing `NeedBuild`
 gate; it does not alter the project file.
+
+## Core tests
+
+```powershell
+dotnet test .\tests\ProgressionControls.Core.Tests\ProgressionControls.Core.Tests.csproj `
+  --configuration Release
+```

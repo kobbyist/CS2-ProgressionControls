@@ -1,0 +1,11 @@
+<Publish>
+  <ModId Value="" />
+  <DisplayName Value="Progression Controls" />
+  <ShortDescription Value="Customize how population and vanilla XP contribute to milestone progression." />
+  <LongDescription>
+Progression Controls lets players slow milestone progression and make population growth the primary source of milestone XP.
+  </LongDescription>
+  <ModVersion Value="0.1.0" />
+  <GameVersion Value="1.6.*" />
+  <AccessLevel Value="Private" />
+</Publish>

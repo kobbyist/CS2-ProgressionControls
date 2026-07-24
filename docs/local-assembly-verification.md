@@ -16,6 +16,7 @@
 | Unity.Entities.dll | `0.0.0.0` | `0.0.0.0` | `2cbf58ed7edcb6f697e8f8134443789a17c0cec918364fdec01d184b76c2136b` |
 | Unity.Collections.dll | `0.0.0.0` | `0.0.0.0` | `146bfbd089ff31652efc34a586d1d5f405e22655f7da7c1b3c168093fffd2f04` |
 | UnityEngine.CoreModule.dll | `0.0.0.0` | `0.0.0.0` | `ecc287942d2dd74b3d04dc181471b5beff11e9ac450a31e1d7a131f0b66a9bfd` |
+| Colossal.Core.dll | `0.0.0.0` | `0.0.0.0` | `c92d6f214c2edb66419b75bb663b06078f93066c819bfd02005886581338e2f2` |
 | Colossal.Logging.dll | `0.0.0.0` | `0.0.0.0` | `b076d59d6427cd90acf8b1ab731ee35a7612667e3a822d3211bcfa5c15021743` |
 | Colossal.Localization.dll | `0.0.0.0` | `0.0.0.0` | `54979aa458c25e5da40e40bcc25f9f4195207bb8e019660240892979c0557846` |
 | Colossal.UI.Binding.dll | `0.0.0.0` | `0.0.0.0` | `9d27b3c0ae8fa0c1cefc50fe1926503c52f1b9d4d9dfe6e24f7fb4aee2446d2b` |
@@ -70,6 +71,14 @@
 - Status: found
 - Assembly: `Game`
 - Base type: `Game.GameSystemBase`
+
+### `Colossal.Localization.LocalizationManager`
+
+- Status: found
+- Assembly: `Colossal.Localization`
+- Production lifecycle methods verified:
+  - `System.Void AddSource(System.String localeId, Colossal.IDictionarySource source)`
+  - `System.Void RemoveSource(System.String localeId, Colossal.IDictionarySource source)`
 
 ### `Game.Simulation.XPSystem`
 
