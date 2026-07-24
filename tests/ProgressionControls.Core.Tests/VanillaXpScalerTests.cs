@@ -78,4 +78,28 @@ public sealed class VanillaXpScalerTests
         scaler.Configure(enabled: true, percentage: 110);
         Assert.AreEqual(100, scaler.Percentage);
     }
+
+    [TestMethod]
+    public void ValidRemainderCanBeRestored()
+    {
+        var scaler = new VanillaXpScaler();
+        scaler.Configure(enabled: true, percentage: 25);
+
+        Assert.IsTrue(scaler.TryRestoreRemainder(75));
+        Assert.AreEqual(75, scaler.RemainderHundredths);
+        Assert.AreEqual(1, scaler.Scale(1));
+        Assert.AreEqual(0, scaler.RemainderHundredths);
+    }
+
+    [TestMethod]
+    public void InvalidRemainderIsRejectedWithoutChangingState()
+    {
+        var scaler = new VanillaXpScaler();
+        scaler.Configure(enabled: true, percentage: 25);
+        Assert.IsTrue(scaler.TryRestoreRemainder(50));
+
+        Assert.IsFalse(scaler.TryRestoreRemainder(-1));
+        Assert.IsFalse(scaler.TryRestoreRemainder(100));
+        Assert.AreEqual(50, scaler.RemainderHundredths);
+    }
 }

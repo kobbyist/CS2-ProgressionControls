@@ -26,6 +26,18 @@
     <Reference Include="Colossal.Localization">
       <Private>false</Private>
     </Reference>
+    <Reference Include="Colossal.PSI.Common">
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Collections">
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Entities">
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
@@ -33,6 +45,9 @@
       <Private>false</Private>
     </Reference>
     <Reference Update="System.Core">
+      <Private>false</Private>
+    </Reference>
+    <Reference Update="System.Runtime.Serialization">
       <Private>false</Private>
     </Reference>
   </ItemGroup>

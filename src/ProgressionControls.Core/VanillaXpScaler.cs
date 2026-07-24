@@ -47,6 +47,18 @@ namespace Kobbyist.ProgressionControls.Core
                 Math.Min(int.MaxValue, scaled));
         }
 
+        public bool TryRestoreRemainder(int remainderHundredths)
+        {
+            if (remainderHundredths < 0 ||
+                remainderHundredths >= ScaleDivisor)
+            {
+                return false;
+            }
+
+            m_RemainderHundredths = remainderHundredths;
+            return true;
+        }
+
         public void Reset()
         {
             m_RemainderHundredths = 0;

@@ -4,6 +4,7 @@ using Colossal.Logging;
 using Game;
 using Game.Modding;
 using Game.SceneFlow;
+using Game.Simulation;
 
 namespace Kobbyist.ProgressionControls
 {
@@ -42,8 +43,12 @@ namespace Kobbyist.ProgressionControls
 
             Log.Info(
                 $"Loaded settings: enabled={Settings.EnableCustomProgression}");
-            Log.Info(
-                "Production scaffold loaded; progression systems are not registered yet");
+
+            // This is the system's only registration. Running immediately
+            // before XPSystem lets us transform vanilla gains, then append
+            // population XP for the native consumer to process unchanged.
+            updateSystem.UpdateBefore<ProgressionControlSystem, XPSystem>(
+                SystemUpdatePhase.ModificationEnd);
         }
 
         public void OnDispose()
