@@ -48,6 +48,12 @@ Proceed only when:
 If the gate fails, revise the affected SRS requirement before building the full
 mod.
 
+The runtime spike has satisfied this gate on 1.6.0f1. Queue interception scaled
+vanilla XP at 0%, 25%, and 100%; explicit queue submission triggered native
+milestone rewards; and save/reload behavior is understood. Removing the spike
+also left the save loadable and restored future vanilla XP. ADR 0001 is
+accepted.
+
 ## Phase 1 — Project Scaffold
 
 ### Structure
@@ -224,6 +230,5 @@ runs, saves, reloads, and uninstalls cleanly on the latest public game build.
 
 ## Immediate Next Task
 
-Complete Phase 0 cases P0-04 through P0-08. Do not scaffold the full production
-UI until disable/re-enable behavior, maximum-population behavior, native
-milestone side effects, city save/reload, and mod removal are proven.
+Begin the Phase 1 production scaffold, reusing the verified queue adapter while
+excluding all spike-only diagnostics and injection controls.

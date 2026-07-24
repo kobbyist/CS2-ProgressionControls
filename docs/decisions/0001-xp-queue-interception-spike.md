@@ -1,6 +1,6 @@
 # ADR 0001: Test Native XP Queue Interception
 
-**Status:** Proposed — partial runtime verification passed
+**Status:** Accepted
 **Date:** 2026-07-23
 **Game build:** 1.6.0f1
 
@@ -75,12 +75,22 @@ Runtime checks on 1.6.0f1 confirm:
 
 - 100% forwards queued XP without duplication;
 - 0% suppresses future queued XP;
-- 25% produces the cumulative scaled total while retaining fractional XP; and
-- mod settings persist independently of the city save.
+- 25% produces the cumulative scaled total while retaining fractional XP;
+- disabling interception restores vanilla future XP;
+- explicit XP submitted through the queue triggers native milestone rewards;
+- the base-game maximum-population record advances independently of suppressed
+  XP and survives reload;
+- native city XP and mod settings survive reload without replaying a queue; and
+- removing every loadable spike binary leaves the save loadable and restores
+  future vanilla XP processing.
 
-The remaining acceptance work is disable/re-enable behavior, native milestone
-side effects from explicit population XP, maximum-population semantics,
-city save/reload, and removal testing. This ADR therefore remains proposed.
+The spike's fractional accumulator is process-local. A controlled reload with
+`25/100` pending proved that the fraction resets while native integer XP remains
+correct. The production implementation must persist required fractional state
+externally per city.
+
+Use the verified Harmony-free interceptor immediately before `XPSystem` as the
+production integration boundary.
 
 - `Game.Simulation.XPSystem` decompiled reference at commit
   `5b49a4fc0c572f2b5133df83083ebb4afe2f76a6`:
