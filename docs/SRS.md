@@ -78,8 +78,9 @@ reason.
 
 ### 2.4 Existing cities
 
-The first time Progression Controls runs in an existing city, current population
-becomes the baseline. Installation or enablement does not grant retroactive XP.
+The first time Progression Controls runs in an existing city, the greater of
+current population and the reliable base-game maximum-population record becomes
+the baseline. Installation or enablement does not grant retroactive XP.
 
 ## 3. Settings and Presets
 
@@ -93,6 +94,7 @@ There are no per-city settings, saved user profiles, imports, or exports.
 | XP per new resident | Sets the population XP rate |
 | Megalopolis population target | Linked alternative to XP per resident |
 | Vanilla XP multiplier | Scales vanilla XP from 0% to 100% |
+| Population update responsiveness | Advanced dropdown controlling 16 to 16,384 observations per in-game day; defaults to 4,096 |
 | Show status widget | Shows or hides the in-game widget |
 | Reset widget position | Returns the widget to a visible default location |
 | Restore defaults | Restores the Population Heavy defaults |
@@ -171,12 +173,15 @@ disabling competing progression mods.
 | FR-12 | The compact widget shall provide the status fields defined above. |
 | FR-13 | The city save shall not require Progression Controls to load. |
 | FR-14 | All player-facing text shall use localization keys. |
+| FR-15 | Advanced controls shall offer validated population observation cadences from 16 to 16,384 per in-game day, defaulting to 4,096. |
 
 ## 7. Quality Requirements
 
-- **Performance:** Population evaluation runs outside UI rendering and no more
-  than 16 times per in-game day. Widget bindings update only when values change
-  or at a bounded presentation cadence.
+- **Performance:** Population evaluation runs outside UI rendering at the
+  selected validated cadence. The maximum cadence matches the vanilla city
+  population aggregation interval of 16 simulation frames; it never polls
+  faster than new aggregate data can become available. Widget bindings update
+  only when values change or at a bounded presentation cadence.
 - **Determinism:** Identical observations and settings produce identical XP,
   including fractional accumulation.
 - **Testability:** Population rules, target/rate conversion, validation, and

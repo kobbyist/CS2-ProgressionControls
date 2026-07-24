@@ -147,6 +147,8 @@ invalid inputs, and large XP totals. Phase 2 is complete.
 - XP per new resident
 - Linked Megalopolis population target
 - Vanilla XP multiplier; default 25%
+- Advanced population update responsiveness; 16 to 16,384 observations per
+  in-game day, default 4,096
 - Widget visibility
 - Reset widget position
 - Restore defaults

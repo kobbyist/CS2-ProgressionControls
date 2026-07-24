@@ -125,9 +125,15 @@ and written only after the save succeeds.
 - `Colossal.PSI.Environment.EnvPath.kUserDataPath` is a public static string.
   Production state is rooted below
   `ModsData/Kobbyist.ProgressionControls`.
-- `Game.Simulation.TimeSystem.kTicksPerDay` is `262144`; the production
-  population adapter uses an interval of `16384` frames, at most 16
-  observations per in-game day.
+- `Game.Simulation.TimeSystem.kTicksPerDay` is `262144`.
+- `Game.Simulation.CountHouseholdDataSystem.GetUpdateInterval(...)` returns
+  `16`; this is the locally verified city-population aggregation interval.
+- The advanced cadence choices divide the vanilla day exactly: 16, 64, 256,
+  1,024, 4,096, or 16,384 observations per day. The default 4,096/day runs
+  every 64 frames. The 16,384/day maximum runs every 16 frames and therefore
+  never samples faster than the vanilla population aggregate can update.
+- Changing cadence affects only observation latency and batch size. It does not
+  reset the population record, fractional XP, or total earned XP.
 
 ### Public pattern evidence
 
