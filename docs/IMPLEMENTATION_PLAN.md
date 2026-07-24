@@ -124,6 +124,11 @@ Implement without CS2, Unity, ECS, Harmony, UI, or filesystem dependencies.
 
 All domain tests pass without loading game assemblies.
 
+Verified with 32 passing tests: baseline establishment, record-only awards,
+decline and recovery, fractional restoration, prospective configuration
+changes, presets, linked target/rate conversion, zero and maximum rates,
+invalid inputs, and large XP totals. Phase 2 is complete.
+
 ## Phase 3 — Game Integration
 
 ### Systems and adapters
@@ -234,5 +239,5 @@ runs, saves, reloads, and uninstalls cleanly on the latest public game build.
 
 ## Immediate Next Task
 
-Implement the Phase 2 population progression rules and their edge-case tests in
-the pure core project.
+Implement Phase 3 state persistence and population/XP adapters around the
+verified domain core and native XP queue boundary.
