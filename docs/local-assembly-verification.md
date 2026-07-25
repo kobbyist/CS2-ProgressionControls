@@ -135,6 +135,21 @@ and written only after the save succeeds.
 - Changing cadence affects only observation latency and batch size. It does not
   reset the population record, fractional XP, or total earned XP.
 
+### Options UI input metadata
+
+The official
+[Options UI guide](https://cs2.paradoxwikis.com/Options_UI) was consulted on
+2026-07-25 for the public settings pattern. Exact 1.6.0f1 behavior was then
+verified from the installed `Game.dll` metadata:
+
+- `SettingsUITextInputAttribute` has a parameterless constructor.
+- `Game.UI.Menu.AutomaticSettings.GetWidgetType` selects the text-input widget
+  only for readable and writable `System.String` properties carrying that
+  attribute.
+- `SettingsUISliderAttribute` supports `min`, `max`, `step`, `unit`,
+  `scalarMultiplier`, `scaleDragVolume`, and `updateOnDragEnd`; the installed
+  game uses it with both `System.Int32` and `System.Single` properties.
+
 ### Public pattern evidence
 
 [City Watchdog at commit `c77cbd4ed8498c063a233a91486a72c9d5772f0f`](https://github.com/River-Mochi/CS2-CityWatchdog/tree/c77cbd4ed8498c063a233a91486a72c9d5772f0f)

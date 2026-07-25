@@ -94,9 +94,9 @@ There are no per-city settings, saved user profiles, imports, or exports.
 | --- | --- |
 | Enable custom progression | Enables or disables all custom rules |
 | Preset | Applies Vanilla, Population Heavy, or Population Only |
-| XP per new resident | Sets the population XP rate |
-| Megalopolis population target | Linked alternative to XP per resident |
-| Vanilla XP multiplier | Scales vanilla XP from 0% to 100% |
+| XP per new resident | Numeric text input that sets the population XP rate |
+| Megalopolis population target | Linked numeric text alternative to XP per resident |
+| Vanilla XP multiplier | Integer slider that scales vanilla XP from 0% to 100% |
 | Population update responsiveness | Advanced dropdown controlling 16 to 16,384 observations per in-game day; defaults to 4,096 |
 | Show status widget | Shows or hides the in-game widget |
 | Reset widget position | Returns the widget to a visible default location |

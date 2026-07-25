@@ -39,6 +39,7 @@ namespace Kobbyist.ProgressionControls
         private ProgressionStateStore m_StateStore;
         private ProgressionStateSnapshot m_PendingSaveSnapshot;
         private Guid m_CityId;
+        private int m_MegalopolisXpRequirement;
         private int m_PopulationEvaluationInterval;
         private int m_PopulationEvaluationsPerDay;
         private uint m_InitializationStartedFrame;
@@ -51,6 +52,7 @@ namespace Kobbyist.ProgressionControls
         private bool m_LastCustomProgressionEnabled;
 
         private PopulationEvaluationCadence m_LastPopulationEvaluationCadence;
+        private ProgressionSettingsState m_LastSettingsState;
 
         protected override void OnCreate()
         {
@@ -139,11 +141,15 @@ namespace Kobbyist.ProgressionControls
                 return;
             }
 
+            var configurationChanged =
+                RefreshConfigurationFromSettings(settings);
             var currentFrame =
                 m_SimulationSystem.frameIndex;
             var evaluationRequired =
                 ConfigurePopulationEvaluationCadence(
                     settings.PopulationEvaluationCadence);
+            evaluationRequired =
+                evaluationRequired || configurationChanged;
             if (!m_LastCustomProgressionEnabled)
             {
                 if (!TryRebaselineAfterEnable())
@@ -191,14 +197,17 @@ namespace Kobbyist.ProgressionControls
             }
 
             if (!TryGetMegalopolisXpRequirement(
-                out var megalopolisXpRequirement) ||
-                !ProgressionConfiguration.TryFromPreset(
-                    ProgressionPreset.PopulationHeavy,
-                    megalopolisXpRequirement,
-                    out var configuration))
+                out var megalopolisXpRequirement))
             {
                 return false;
             }
+
+            m_MegalopolisXpRequirement =
+                megalopolisXpRequirement;
+            var configuration =
+                ResolveInitialConfiguration(
+                    settings,
+                    megalopolisXpRequirement);
 
             var cityId = Telemetry.GetCurrentSession();
             if (cityId == Guid.Empty)
@@ -293,7 +302,7 @@ namespace Kobbyist.ProgressionControls
             if (customProgressionEnabled)
             {
                 Mod.Log.Info(
-                    $"Progression integration active: target={ProgressionConfiguration.DefaultMegalopolisPopulationTarget}, rate={m_Configuration.XpPerResident}, vanilla={m_Configuration.VanillaXpPercentage}%, populationChecks={m_PopulationEvaluationsPerDay}/day");
+                    $"Progression integration active: preset={m_Configuration.Preset}, target={m_LastSettingsState.MegalopolisPopulationTarget}, rate={m_Configuration.XpPerResident}, vanilla={m_Configuration.VanillaXpPercentage}%, populationChecks={m_PopulationEvaluationsPerDay}/day");
             }
             else
             {
@@ -310,6 +319,8 @@ namespace Kobbyist.ProgressionControls
             m_PopulationTracker = null;
             m_PendingSaveSnapshot = null;
             m_CityId = Guid.Empty;
+            m_MegalopolisXpRequirement = 0;
+            m_LastSettingsState = null;
             m_PopulationEvaluationInterval = 0;
             m_PopulationEvaluationsPerDay = 0;
             m_HasPopulationEvaluationCadence = false;
@@ -321,6 +332,133 @@ namespace Kobbyist.ProgressionControls
                 percentage: 100);
             m_PendingPopulationXp = 0;
             m_PendingVanillaXp.Clear();
+        }
+
+        private ProgressionConfiguration ResolveInitialConfiguration(
+            Setting settings,
+            int megalopolisXpRequirement)
+        {
+            var requested = ReadSettingsState(settings);
+            if (ProgressionSettingsResolver.TryResolveInitial(
+                requested,
+                megalopolisXpRequirement,
+                out var configuration,
+                out var normalized))
+            {
+                ApplyNormalizedSettings(
+                    settings,
+                    requested,
+                    normalized);
+                m_LastSettingsState = normalized;
+                return configuration;
+            }
+
+            ProgressionConfiguration.TryFromPreset(
+                ProgressionPreset.PopulationHeavy,
+                megalopolisXpRequirement,
+                out configuration);
+            normalized = ProgressionSettingsResolver.Normalize(
+                configuration,
+                megalopolisXpRequirement,
+                PopulationRateInputMode.MegalopolisTarget);
+            ApplyNormalizedSettings(
+                settings,
+                requested,
+                normalized);
+            m_LastSettingsState = normalized;
+            Mod.Log.Warn(
+                "Invalid progression settings were replaced with Population Heavy defaults");
+            return configuration;
+        }
+
+        private bool RefreshConfigurationFromSettings(
+            Setting settings)
+        {
+            var requested = ReadSettingsState(settings);
+            if (requested.Equals(m_LastSettingsState))
+            {
+                return false;
+            }
+
+            if (!ProgressionSettingsResolver.TryResolveChange(
+                m_LastSettingsState,
+                requested,
+                m_Configuration,
+                m_MegalopolisXpRequirement,
+                out var configuration,
+                out var normalized))
+            {
+                normalized = ProgressionSettingsResolver.Normalize(
+                    m_Configuration,
+                    m_MegalopolisXpRequirement,
+                    m_LastSettingsState.RateInputMode);
+                ApplyNormalizedSettings(
+                    settings,
+                    requested,
+                    normalized);
+                m_LastSettingsState = normalized;
+                Mod.Log.Warn(
+                    "Rejected invalid progression settings and restored the active values");
+                return false;
+            }
+
+            var configurationChanged =
+                configuration.Preset != m_Configuration.Preset ||
+                configuration.PopulationXpEnabled !=
+                    m_Configuration.PopulationXpEnabled ||
+                configuration.XpPerResident !=
+                    m_Configuration.XpPerResident ||
+                configuration.VanillaXpPercentage !=
+                    m_Configuration.VanillaXpPercentage;
+            m_Configuration = configuration;
+            ApplyNormalizedSettings(
+                settings,
+                requested,
+                normalized);
+            m_LastSettingsState = normalized;
+            if (configurationChanged)
+            {
+                Mod.Log.Info(
+                    $"Progression settings applied prospectively: preset={configuration.Preset}, target={normalized.MegalopolisPopulationTarget}, rate={configuration.XpPerResident}, vanilla={configuration.VanillaXpPercentage}%");
+            }
+
+            return configurationChanged;
+        }
+
+        private static ProgressionSettingsState ReadSettingsState(
+            Setting settings)
+        {
+            return new ProgressionSettingsState(
+                settings.Preset,
+                settings.PopulationXpEnabled,
+                settings.XpPerResident,
+                settings.MegalopolisPopulationTarget,
+                settings.VanillaXpPercentage,
+                settings.PopulationRateInputMode);
+        }
+
+        private static void ApplyNormalizedSettings(
+            Setting settings,
+            ProgressionSettingsState requested,
+            ProgressionSettingsState normalized)
+        {
+            if (requested.Equals(normalized))
+            {
+                return;
+            }
+
+            settings.Preset = normalized.Preset;
+            settings.PopulationXpEnabled =
+                normalized.PopulationXpEnabled;
+            settings.XpPerResident =
+                normalized.XpPerResident;
+            settings.MegalopolisPopulationTarget =
+                normalized.MegalopolisPopulationTarget;
+            settings.VanillaXpPercentage =
+                normalized.VanillaXpPercentage;
+            settings.PopulationRateInputMode =
+                normalized.RateInputMode;
+            settings.ApplyAndSave();
         }
 
         private bool TryGetMegalopolisXpRequirement(
