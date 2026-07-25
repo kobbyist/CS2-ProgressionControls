@@ -17,6 +17,17 @@
 | Checkpoint reload | Pass | State restored at frame `15442692`. The previous awards did not replay; population 532 queued only the expected 3 XP for the genuinely new resident, moving XP from 1,389 to 1,392. |
 | Lifecycle and errors | Pass | The mod disposed normally, reloaded once, and produced no related exception or error in the inspected runtime logs. |
 
+## Dormant disable and re-enable results
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Dormant startup | Pass | The disabled setting survived restart. State restored at frame `15443091`, the city loaded at population 532 and 1,392 XP, and no cadence or population XP entry was logged. |
+| Disabled population growth | Pass | Population grew from 532 to 535 while XP remained 1,392. The mod produced no population, cadence, queue, or checkpoint log activity. |
+| Vanilla pass-through | Pass | Placing a school while disabled awarded the full 300 vanilla XP, moving displayed XP from 1,392 to 1,692. |
+| Safe re-enable | Pass | Re-enabling while paused restored the 16-frame cadence and established a no-award baseline at population 535. Displayed XP remained 1,692. |
+| Post-enable growth | Pass | Population 535 to 542 queued 23 population XP in bounded batches. Displayed XP rose by 35 total; the remaining 12 XP came from scaled vanilla events. |
+| Checkpoint dormancy | Pass | No external checkpoint was written while disabled. Saving resumed after re-enable at frame `15446828`. |
+
 ## Static verification
 
 - Core tests: 46 passed.
@@ -29,6 +40,5 @@
 ## Remaining Phase 3 exit checks
 
 - Verify first-run baseline behavior in a new city.
-- Repeat enable, disable, and re-enable behavior with the production package.
 - Verify an in-game rate change affects future population only.
 - Remove the production package and confirm the save remains loadable.
