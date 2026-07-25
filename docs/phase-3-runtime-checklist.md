@@ -28,6 +28,13 @@
 | Post-enable growth | Pass | Population 535 to 542 queued 23 population XP in bounded batches. Displayed XP rose by 35 total; the remaining 12 XP came from scaled vanilla events. |
 | Checkpoint dormancy | Pass | No external checkpoint was written while disabled. Saving resumed after re-enable at frame `15446828`. |
 
+## New-city results
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| First-run baseline | Pass | A disposable new city loaded at population 0 and 0 XP. The mod established a zero baseline, configured the 16-frame cadence, and queued no load-time XP. |
+| First population growth | Pass | Population 0 to 3 queued 10 population XP as batches of 3 and 7. Displayed XP reached 111; the remaining 101 XP came from scaled vanilla setup events. |
+
 ## Static verification
 
 - Core tests: 46 passed.
@@ -39,6 +46,5 @@
 
 ## Remaining Phase 3 exit checks
 
-- Verify first-run baseline behavior in a new city.
 - Verify an in-game rate change affects future population only.
 - Remove the production package and confirm the save remains loadable.
