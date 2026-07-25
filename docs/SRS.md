@@ -93,7 +93,7 @@ There are no per-city settings, saved user profiles, imports, or exports.
 | Setting | Behavior |
 | --- | --- |
 | Enable custom progression | Enables or disables all custom rules |
-| Preset | Applies Vanilla, Population Heavy, or Population Only immediately; the right-side help panel explains each preset and advanced customization |
+| Preset | Applies Population Heavy or Population Only immediately; the right-side help panel explains each preset and advanced customization |
 | XP per new resident | Advanced numeric text input that sets the population XP rate |
 | Megalopolis population target | Advanced linked numeric text alternative to XP per resident |
 | Vanilla XP multiplier | Advanced integer slider that scales vanilla XP from 0% to 100% |
@@ -106,7 +106,6 @@ Built-in presets are immutable:
 
 | Preset | Population XP | Vanilla XP |
 | --- | --- | ---: |
-| Vanilla | Off | 100% |
 | Population Heavy | Default 200,000 target | 25% |
 | Population Only | Default 200,000 target | 0% |
 
@@ -146,8 +145,7 @@ If external per-city state is still required, it must be limited to:
 
 - stable city session identifier and serialized simulation frame;
 - maximum observed population;
-- fractional population XP and vanilla-scaling remainders; and
-- schema version.
+- fractional population XP and vanilla-scaling remainders.
 
 Missing or invalid tracking state uses the greater of current population and
 the verified base-game maximum-population record as a fresh baseline and never
@@ -192,8 +190,8 @@ disabling competing progression mods.
   Harmony, UI, localization, or filesystem dependencies.
 - **Failure safety:** Missing or invalid game data skips the affected award,
   emits a bounded diagnostic, and never guesses an XP value.
-- **Logging:** Log lifecycle, settings migration, rejected configuration,
-  adapter failures, and XP application without per-frame noise.
+- **Logging:** Log lifecycle, rejected configuration, adapter failures, and XP
+  application without per-frame noise.
 - **Localization:** Version 1 ships in English, with all text structured for
   later translation.
 - **Cleanup:** Systems, settings, bindings, UI hooks, event subscriptions,
@@ -267,7 +265,7 @@ The MVP is ready when:
 
 - population XP, decline/recovery, fractional XP, and every boundary are covered
   by unit tests;
-- presets, validation, and settings migration are tested;
+- presets and validation are tested;
 - new-city, existing-city, disable/re-enable, save/reload, and missing-mod
   scenarios pass;
 - vanilla, unlimited-money, and unlock-all modes are exercised;

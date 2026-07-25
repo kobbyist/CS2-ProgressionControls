@@ -39,7 +39,6 @@ namespace Kobbyist.ProgressionControls
 
     internal sealed class ProgressionStateStore
     {
-        private const int CurrentSchemaVersion = 1;
         private const string StateExtension = ".json";
 
         private readonly string m_RootPath;
@@ -133,7 +132,6 @@ namespace Kobbyist.ProgressionControls
                 Directory.CreateDirectory(directory);
                 var model = new StateFileModel
                 {
-                    SchemaVersion = CurrentSchemaVersion,
                     CityId = snapshot.CityId.ToString("D"),
                     SimulationFrame = snapshot.SimulationFrame,
                     MaximumPopulation =
@@ -213,7 +211,6 @@ namespace Kobbyist.ProgressionControls
         {
             snapshot = null;
             if (model == null ||
-                model.SchemaVersion != CurrentSchemaVersion ||
                 !Guid.TryParse(model.CityId, out var parsedCityId) ||
                 parsedCityId != expectedCityId ||
                 model.SimulationFrame != expectedSimulationFrame)
@@ -252,21 +249,18 @@ namespace Kobbyist.ProgressionControls
         private sealed class StateFileModel
         {
             [DataMember(Order = 1)]
-            public int SchemaVersion { get; set; }
-
-            [DataMember(Order = 2)]
             public string CityId { get; set; }
 
-            [DataMember(Order = 3)]
+            [DataMember(Order = 2)]
             public uint SimulationFrame { get; set; }
 
-            [DataMember(Order = 4)]
+            [DataMember(Order = 3)]
             public int MaximumPopulation { get; set; }
 
-            [DataMember(Order = 5)]
+            [DataMember(Order = 4)]
             public decimal PopulationFractionalXp { get; set; }
 
-            [DataMember(Order = 6)]
+            [DataMember(Order = 5)]
             public int VanillaRemainderHundredths { get; set; }
         }
     }

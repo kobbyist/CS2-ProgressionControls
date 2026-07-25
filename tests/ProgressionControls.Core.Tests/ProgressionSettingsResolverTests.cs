@@ -184,10 +184,10 @@ public sealed class ProgressionSettingsResolverTests
     }
 
     [TestMethod]
-    public void MultiplierEditPreservesPopulationRate()
+    public void MultiplierEditFromPresetPreservesPopulationRate()
     {
         ProgressionConfiguration.TryFromPreset(
-            ProgressionPreset.Vanilla,
+            ProgressionPreset.PopulationOnly,
             MegalopolisXp,
             out var current);
         var previous = ProgressionSettingsResolver.Normalize(

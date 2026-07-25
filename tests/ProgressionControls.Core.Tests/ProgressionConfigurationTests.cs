@@ -8,12 +8,10 @@ public sealed class ProgressionConfigurationTests
     private const int MegalopolisXp = 100000;
 
     [DataTestMethod]
-    [DataRow(ProgressionPreset.Vanilla, false, 100)]
-    [DataRow(ProgressionPreset.PopulationHeavy, true, 25)]
-    [DataRow(ProgressionPreset.PopulationOnly, true, 0)]
+    [DataRow(ProgressionPreset.PopulationHeavy, 25)]
+    [DataRow(ProgressionPreset.PopulationOnly, 0)]
     public void PresetsExposeExpectedPopulationAndVanillaRules(
         ProgressionPreset preset,
-        bool populationXpEnabled,
         int vanillaXpPercentage)
     {
         Assert.IsTrue(
@@ -23,9 +21,7 @@ public sealed class ProgressionConfigurationTests
                 out var configuration));
 
         Assert.AreEqual(preset, configuration.Preset);
-        Assert.AreEqual(
-            populationXpEnabled,
-            configuration.PopulationXpEnabled);
+        Assert.IsTrue(configuration.PopulationXpEnabled);
         Assert.AreEqual(
             vanillaXpPercentage,
             configuration.VanillaXpPercentage);

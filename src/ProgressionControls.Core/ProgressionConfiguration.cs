@@ -42,14 +42,6 @@ namespace Kobbyist.ProgressionControls.Core
 
             switch (preset)
             {
-                case ProgressionPreset.Vanilla:
-                    configuration = new ProgressionConfiguration(
-                        preset,
-                        populationXpEnabled: false,
-                        rate,
-                        vanillaXpPercentage: 100);
-                    return true;
-
                 case ProgressionPreset.PopulationHeavy:
                     configuration = new ProgressionConfiguration(
                         preset,

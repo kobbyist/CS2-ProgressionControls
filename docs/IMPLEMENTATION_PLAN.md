@@ -104,7 +104,6 @@ Implement without CS2, Unity, ECS, Harmony, UI, or filesystem dependencies.
 
 ### Presets
 
-- Vanilla
 - Population Heavy
 - Population Only
 - Custom state after manual edits
@@ -168,9 +167,9 @@ work.
 Use the base-game maximum-population record as the safe first-run high-water
 baseline. Persist only the stable city session ID, serialized simulation frame,
 maximum observed population, population XP fraction, vanilla-scaling fraction,
-and schema version outside the city save. The session ID plus frame identifies
-the exact save checkpoint, so loading an older save cannot consume newer
-external progression state.
+outside the city save. The session ID plus frame identifies the exact save
+checkpoint, so loading an older save cannot consume newer external progression
+state.
 
 After one-time city initialization, disabled mode returns before population
 cadence evaluation or XP queue access and does not capture external
@@ -232,7 +231,7 @@ Do not query ECS or calculate progression rules from React render code.
 - New city
 - Existing early-, mid-, and late-game cities
 - Population growth, decline, recovery, and new record
-- Vanilla, Population Heavy, Population Only, and Custom
+- Disabled, Population Heavy, Population Only, and Custom
 - Multiplier boundaries: 0%, 25%, and 100%
 - Enable, disable, and re-enable
 - Save, reload, remove mod, and load without mod
