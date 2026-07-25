@@ -46,5 +46,7 @@
 
 ## Remaining Phase 3 exit checks
 
+- Verify preset explanations, advanced-rule visibility, and immediate source-mix
+  updates in the Options UI.
 - Verify an in-game rate change affects future population only.
 - Remove the production package and confirm the save remains loadable.

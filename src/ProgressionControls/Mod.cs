@@ -41,8 +41,13 @@ namespace Kobbyist.ProgressionControls
                 Settings,
                 new Setting(this));
 
+            if (Settings.ReapplyPresetRules())
+            {
+                Settings.ApplyAndSave();
+            }
+
             Log.Info(
-                $"Loaded settings: enabled={Settings.EnableCustomProgression}");
+                $"Loaded settings: enabled={Settings.EnableCustomProgression}, preset={Settings.Preset}");
 
             // This is the system's only registration. Running immediately
             // before XPSystem lets us transform vanilla gains, then append

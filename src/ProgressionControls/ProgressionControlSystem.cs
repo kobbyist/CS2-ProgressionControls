@@ -202,6 +202,12 @@ namespace Kobbyist.ProgressionControls
                 return false;
             }
 
+            if (settings.SetMegalopolisXpRequirement(
+                megalopolisXpRequirement))
+            {
+                settings.ApplyAndSave();
+            }
+
             m_MegalopolisXpRequirement =
                 megalopolisXpRequirement;
             var configuration =

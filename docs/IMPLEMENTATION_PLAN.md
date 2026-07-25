@@ -155,7 +155,9 @@ invalid inputs, and large XP totals. Phase 2 is complete.
 
 The progression-rule controls are implemented with immutable preset selection,
 linked numeric text inputs for XP per resident and projected population target,
-and an integer 0% to 100% Vanilla XP slider. Manual edits normalize to Custom,
+and an integer 0% to 100% Vanilla XP slider. Presets immediately update their
+source mix and explain their behavior; individual rule controls are hidden
+until the player enables advanced options. Manual edits normalize to Custom,
 invalid values restore the active safe configuration, and changes establish a
 prospective population baseline. Widget controls remain Phase 4 work.
 
