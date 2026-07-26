@@ -19,13 +19,14 @@ namespace Kobbyist.ProgressionControls
     }
 
     [FileLocation(Mod.SettingsAssetName)]
-    [SettingsUIGroupOrder(kGeneralGroup, kRulesGroup, kAdvancedGroup)]
-    [SettingsUIShowGroupName(kGeneralGroup, kRulesGroup, kAdvancedGroup)]
+    [SettingsUIGroupOrder(kGeneralGroup, kRulesGroup, kWidgetGroup, kAdvancedGroup)]
+    [SettingsUIShowGroupName(kGeneralGroup, kRulesGroup, kWidgetGroup, kAdvancedGroup)]
     public sealed class Setting : ModSetting
     {
         public const string kSection = "Main";
         public const string kGeneralGroup = "General";
         public const string kRulesGroup = "Rules";
+        public const string kWidgetGroup = "Widget";
         public const string kAdvancedGroup = "Advanced";
 
         private string m_XpPerResident;
@@ -121,6 +122,32 @@ namespace Kobbyist.ProgressionControls
         [SettingsUIHidden]
         public bool PopulationXpEnabled { get; set; }
 
+        [SettingsUISection(kSection, kWidgetGroup)]
+        public bool ShowStatusWidget { get; set; }
+
+        [SettingsUIButton]
+        [SettingsUISection(kSection, kWidgetGroup)]
+        public bool ResetWidgetPosition
+        {
+            set
+            {
+                if (!value)
+                {
+                    return;
+                }
+
+                WidgetPositionX = 0;
+                WidgetPositionY = 0;
+                ApplyAndSave();
+            }
+        }
+
+        [SettingsUIHidden]
+        public int WidgetPositionX { get; set; }
+
+        [SettingsUIHidden]
+        public int WidgetPositionY { get; set; }
+
         [SettingsUIHidden]
         public PopulationRateInputMode PopulationRateInputMode { get; set; }
 
@@ -140,6 +167,9 @@ namespace Kobbyist.ProgressionControls
             Preset = ProgressionPreset.PopulationHeavy;
             PopulationEvaluationCadence =
                 PopulationEvaluationCadence.Responsive;
+            ShowStatusWidget = true;
+            WidgetPositionX = 0;
+            WidgetPositionY = 0;
         }
 
         internal bool ConsumeApplyCustomRulesRequest()
@@ -339,6 +369,11 @@ namespace Kobbyist.ProgressionControls
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.VanillaXpPercentage)), "Percentage of future vanilla XP retained. 0% makes population the only enabled source; 100% preserves vanilla XP. Click Apply custom rules to use the new value." },
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.ApplyCustomRules)), "Apply custom rules" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.ApplyCustomRules)), "Validates and applies all advanced XP rule values together. Until clicked, the running city continues using the last applied configuration." },
+                { m_Setting.GetOptionGroupLocaleID(Setting.kWidgetGroup), "Status widget" },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.ShowStatusWidget)), "Show status widget" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.ShowStatusWidget)), "Shows a compact read-only summary of the active progression state. When custom progression is disabled, the widget reports vanilla mode without observing population." },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.ResetWidgetPosition)), "Reset widget position" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.ResetWidgetPosition)), "Returns the status widget to its safe default position." },
                 { m_Setting.GetOptionGroupLocaleID(Setting.kAdvancedGroup), "Advanced controls" },
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.PopulationEvaluationCadence)), "Population update responsiveness" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.PopulationEvaluationCadence)), "Controls how quickly new population records award XP. Higher values reduce delay with a small increase in CPU work; total XP is unchanged." },

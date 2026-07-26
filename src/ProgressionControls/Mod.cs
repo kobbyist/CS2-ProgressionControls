@@ -54,6 +54,8 @@ namespace Kobbyist.ProgressionControls
             // population XP for the native consumer to process unchanged.
             updateSystem.UpdateBefore<ProgressionControlSystem, XPSystem>(
                 SystemUpdatePhase.ModificationEnd);
+            updateSystem.UpdateAt<ProgressionWidgetUISystem>(
+                SystemUpdatePhase.UIUpdate);
         }
 
         public void OnDispose()

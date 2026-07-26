@@ -45,6 +45,8 @@ namespace Kobbyist.ProgressionControls
         private uint m_InitializationStartedFrame;
         private uint m_NextPopulationEvaluationFrame;
         private long m_PendingPopulationXp;
+        private int m_LastObservedPopulation;
+        private long m_MostRecentPopulationXpAward;
         private bool m_HasActiveCity;
         private bool m_InitializationDelayLogged;
         private bool m_HasPopulationEvaluationCadence;
@@ -227,6 +229,7 @@ namespace Kobbyist.ProgressionControls
             var currentPopulation =
                 EntityManager.GetComponentData<Population>(city)
                     .m_Population;
+            m_LastObservedPopulation = currentPopulation;
             var baseGameXp =
                 EntityManager.GetComponentData<XP>(city);
             var customProgressionEnabled =
@@ -337,6 +340,8 @@ namespace Kobbyist.ProgressionControls
                 enabled: false,
                 percentage: 100);
             m_PendingPopulationXp = 0;
+            m_LastObservedPopulation = 0;
+            m_MostRecentPopulationXpAward = 0;
             m_PendingVanillaXp.Clear();
         }
 
@@ -509,6 +514,31 @@ namespace Kobbyist.ProgressionControls
             return xpRequirement > 0;
         }
 
+        internal ProgressionWidgetSnapshot GetWidgetSnapshot()
+        {
+            if (!m_HasActiveCity ||
+                m_PopulationTracker == null)
+            {
+                return ProgressionWidgetSnapshot.Empty;
+            }
+
+            var active =
+                Mod.Settings != null &&
+                Mod.Settings.EnableCustomProgression;
+            var historicalMaximum =
+                m_PopulationTracker.MaximumPopulation;
+            return new ProgressionWidgetSnapshot(
+                ready: true,
+                active,
+                m_LastObservedPopulation,
+                historicalMaximum,
+                Math.Max(
+                    0,
+                    historicalMaximum -
+                        m_LastObservedPopulation),
+                m_MostRecentPopulationXpAward);
+        }
+
         private void EvaluatePopulation()
         {
             var city = m_CitySystem.City;
@@ -522,6 +552,7 @@ namespace Kobbyist.ProgressionControls
             var currentPopulation =
                 EntityManager.GetComponentData<Population>(city)
                     .m_Population;
+            m_LastObservedPopulation = currentPopulation;
             var result = m_PopulationTracker.Observe(
                 currentPopulation,
                 customProgressionEnabled: true,
@@ -537,6 +568,7 @@ namespace Kobbyist.ProgressionControls
             if (result.AwardedXp > 0)
             {
                 m_PendingPopulationXp = result.AwardedXp;
+                m_MostRecentPopulationXpAward = result.AwardedXp;
                 Mod.Log.Info(
                     $"Population XP queued: residents={result.NewRecordDelta}, xp={result.AwardedXp}, maximum={result.MaximumPopulation}");
             }
@@ -558,6 +590,7 @@ namespace Kobbyist.ProgressionControls
             var currentPopulation =
                 EntityManager.GetComponentData<Population>(city)
                     .m_Population;
+            m_LastObservedPopulation = currentPopulation;
             var vanillaMaximumPopulation =
                 EntityManager.GetComponentData<XP>(city)
                     .m_MaximumPopulation;
