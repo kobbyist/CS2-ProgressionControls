@@ -54,6 +54,14 @@
 | Atomic application | Pass | Apply custom rules produced exactly one configuration change: Custom, target 100,000, rate 6.717, and 0% vanilla XP. Existing XP remained 117. |
 | Future-only award | Pass | Population subsequently rose from 5 to 7. The mod queued 13 XP (`2 × 6.717`, floored with 0.434 carried), moving XP from 117 to 130 with no vanilla contribution. |
 
-## Remaining Phase 3 exit checks
+## Removal safety results
 
-- Remove the production package and confirm the save remains loadable.
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Clean loader removal | Pass | All eight production package files were moved out of the loader path while settings and external checkpoints remained untouched. A fresh game process showed no Progression Controls mod-list or Options entry and produced no new mod `OnLoad`. |
+| Save independence | Pass | The active-mod save loaded without the production package at the exact saved population 7 and XP 130. Runtime inspection found no removal-related load or deserialization error. |
+| Vanilla continuation | Pass | With the mod absent, placing a short road awarded 8 vanilla XP, moving XP from 130 to 138 while population remained 7. |
+
+## Phase 3 outcome
+
+All Phase 3 game-integration exit checks pass on game build 1.6.0f1.
