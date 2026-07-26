@@ -165,6 +165,20 @@ Gameface-safe drag event handling. No source code or visual design was copied.
 Exact C# signatures and behavior above were verified against the installed
 1.6.0f1 assemblies.
 
+### `Colossal.IO.AssetDatabase.UIModuleAsset`
+
+- Status: verified after the first widget discovery test
+- A JavaScript bundle becomes a UI module only when its leading block comment
+  contains the exact `Cities: Skylines II UI Module` marker followed by `Id`,
+  `Author`, `Version`, and `Dependencies` metadata.
+- `Game.Modding.ModManager.InitializeUIModules` queries `UIModuleAsset` records,
+  registers their directories under the `ui-mods` host, and sends each
+  `couiPath` to the UI's active-module binding.
+- `mod.json` is useful build metadata but does not make an unmarked JavaScript
+  file discoverable.
+- The production webpack configuration preserves the required module banner
+  through minification.
+
 ### `Game.Simulation.XPReason`
 
 - Status: found

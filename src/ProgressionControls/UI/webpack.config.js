@@ -13,6 +13,15 @@ if (!userDataPath) {
 
 const outputPath = path.join(userDataPath, "Mods", mod.id);
 
+const moduleBanner = `
+ * Cities: Skylines II UI Module
+ *
+ * Id: ${mod.id}
+ * Author: ${mod.author}
+ * Version: ${mod.version}
+ * Dependencies: ${mod.dependencies.join(",")}
+`;
+
 class CopyManifestPlugin {
   apply(compiler) {
     compiler.hooks.afterEmit.tap("CopyManifestPlugin", () => {
@@ -79,7 +88,9 @@ module.exports = {
     minimize: true,
     minimizer: [
       new TerserPlugin({
-        extractComments: false
+        extractComments: {
+          banner: () => moduleBanner
+        }
       })
     ]
   },

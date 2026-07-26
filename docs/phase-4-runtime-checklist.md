@@ -5,6 +5,8 @@ Target runtime: Cities: Skylines II 1.6.0f1.
 ## Build evidence
 
 - [x] C# UI binding signatures verified against the installed assemblies.
+- [x] Required JavaScript module banner verified against the installed
+  `UIModuleAsset` parser.
 - [x] TypeScript strict check passes.
 - [x] Production webpack bundle succeeds.
 - [x] Full CS2 Release post-processing and deployment succeeds with 0 warnings
