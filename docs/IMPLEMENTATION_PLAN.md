@@ -230,8 +230,9 @@ runs, saves, reloads, and uninstalls cleanly on the latest public game build.
 
 ## Immediate Next Task
 
-Prepare concise player-facing release documentation and compatibility notes for
-the local 0.1.0 package, including the unsupported combination with other mods
-that alter milestone XP. Late-game and large-city coverage remains pending
-until a suitable save is available. Paradox Mods packaging remains deferred
-while development is local-only.
+The local 0.1.0 MVP implementation, player documentation, package verification,
+and available runtime matrix are complete. Late-game and large-city coverage
+remains pending until a suitable save is available. Paradox Mods packaging is
+deferred while development is local-only; before publishing, refresh the
+active game-version evidence, rerun affected checks, and verify the final
+listing metadata and assets.
