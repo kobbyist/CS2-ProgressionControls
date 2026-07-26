@@ -85,6 +85,39 @@ namespace Kobbyist.ProgressionControls
         [SettingsUIAdvanced]
         public int VanillaXpPercentage { get; set; }
 
+        [SettingsUIButton]
+        [SettingsUISection(kSection, kRulesGroup)]
+        [SettingsUIAdvanced]
+        public bool ApplyCustomRules
+        {
+            set
+            {
+                if (value)
+                {
+                    m_ApplyCustomRulesRequested = true;
+                }
+            }
+        }
+
+        [SettingsUIHidden]
+        public ProgressionPreset AppliedPreset { get; set; }
+
+        [SettingsUIHidden]
+        public bool AppliedPopulationXpEnabled { get; set; }
+
+        [SettingsUIHidden]
+        public string AppliedXpPerResident { get; set; }
+
+        [SettingsUIHidden]
+        public string AppliedMegalopolisPopulationTarget { get; set; }
+
+        [SettingsUIHidden]
+        public int AppliedVanillaXpPercentage { get; set; }
+
+        [SettingsUIHidden]
+        public PopulationRateInputMode
+            AppliedPopulationRateInputMode { get; set; }
+
         [SettingsUIHidden]
         public bool PopulationXpEnabled { get; set; }
 
@@ -98,6 +131,8 @@ namespace Kobbyist.ProgressionControls
         [SettingsUIAdvanced]
         public PopulationEvaluationCadence PopulationEvaluationCadence { get; set; }
 
+        private bool m_ApplyCustomRulesRequested;
+
         public override void SetDefaults()
         {
             EnableCustomProgression = true;
@@ -105,6 +140,17 @@ namespace Kobbyist.ProgressionControls
             Preset = ProgressionPreset.PopulationHeavy;
             PopulationEvaluationCadence =
                 PopulationEvaluationCadence.Responsive;
+        }
+
+        internal bool ConsumeApplyCustomRulesRequest()
+        {
+            if (!m_ApplyCustomRulesRequested)
+            {
+                return false;
+            }
+
+            m_ApplyCustomRulesRequested = false;
+            return true;
         }
 
         internal bool ReapplyPresetRules()
@@ -161,6 +207,21 @@ namespace Kobbyist.ProgressionControls
                     m_MegalopolisPopulationTarget,
                     target,
                     System.StringComparison.Ordinal) ||
+                AppliedPreset != preset ||
+                AppliedPopulationXpEnabled !=
+                    configuration.PopulationXpEnabled ||
+                !string.Equals(
+                    AppliedXpPerResident,
+                    rate,
+                    System.StringComparison.Ordinal) ||
+                !string.Equals(
+                    AppliedMegalopolisPopulationTarget,
+                    target,
+                    System.StringComparison.Ordinal) ||
+                AppliedVanillaXpPercentage !=
+                    configuration.VanillaXpPercentage ||
+                AppliedPopulationRateInputMode !=
+                    PopulationRateInputMode.MegalopolisTarget ||
                 VanillaXpPercentage !=
                     configuration.VanillaXpPercentage ||
                 PopulationXpEnabled !=
@@ -168,6 +229,8 @@ namespace Kobbyist.ProgressionControls
                 PopulationRateInputMode !=
                     PopulationRateInputMode.MegalopolisTarget;
 
+            m_Preset = preset;
+            AppliedPreset = preset;
             m_XpPerResident = rate;
             m_MegalopolisPopulationTarget = target;
             VanillaXpPercentage =
@@ -176,6 +239,67 @@ namespace Kobbyist.ProgressionControls
                 configuration.PopulationXpEnabled;
             PopulationRateInputMode =
                 PopulationRateInputMode.MegalopolisTarget;
+            AppliedXpPerResident = rate;
+            AppliedMegalopolisPopulationTarget = target;
+            AppliedVanillaXpPercentage =
+                configuration.VanillaXpPercentage;
+            AppliedPopulationXpEnabled =
+                configuration.PopulationXpEnabled;
+            AppliedPopulationRateInputMode =
+                PopulationRateInputMode.MegalopolisTarget;
+            return changed;
+        }
+
+        internal bool ApplyResolvedRules(
+            ProgressionSettingsState normalized)
+        {
+            var changed =
+                m_Preset != normalized.Preset ||
+                PopulationXpEnabled !=
+                    normalized.PopulationXpEnabled ||
+                !string.Equals(
+                    m_XpPerResident,
+                    normalized.XpPerResident,
+                    System.StringComparison.Ordinal) ||
+                !string.Equals(
+                    m_MegalopolisPopulationTarget,
+                    normalized.MegalopolisPopulationTarget,
+                    System.StringComparison.Ordinal) ||
+                VanillaXpPercentage !=
+                    normalized.VanillaXpPercentage ||
+                PopulationRateInputMode != normalized.RateInputMode ||
+                AppliedPreset != normalized.Preset ||
+                AppliedPopulationXpEnabled !=
+                    normalized.PopulationXpEnabled ||
+                !string.Equals(
+                    AppliedXpPerResident,
+                    normalized.XpPerResident,
+                    System.StringComparison.Ordinal) ||
+                !string.Equals(
+                    AppliedMegalopolisPopulationTarget,
+                    normalized.MegalopolisPopulationTarget,
+                    System.StringComparison.Ordinal) ||
+                AppliedVanillaXpPercentage !=
+                    normalized.VanillaXpPercentage ||
+                AppliedPopulationRateInputMode !=
+                    normalized.RateInputMode;
+
+            m_Preset = normalized.Preset;
+            PopulationXpEnabled = normalized.PopulationXpEnabled;
+            m_XpPerResident = normalized.XpPerResident;
+            m_MegalopolisPopulationTarget =
+                normalized.MegalopolisPopulationTarget;
+            VanillaXpPercentage = normalized.VanillaXpPercentage;
+            PopulationRateInputMode = normalized.RateInputMode;
+            AppliedPreset = normalized.Preset;
+            AppliedPopulationXpEnabled =
+                normalized.PopulationXpEnabled;
+            AppliedXpPerResident = normalized.XpPerResident;
+            AppliedMegalopolisPopulationTarget =
+                normalized.MegalopolisPopulationTarget;
+            AppliedVanillaXpPercentage =
+                normalized.VanillaXpPercentage;
+            AppliedPopulationRateInputMode = normalized.RateInputMode;
             return changed;
         }
     }
@@ -208,11 +332,13 @@ namespace Kobbyist.ProgressionControls
                 { m_Setting.GetEnumValueLocaleID(ProgressionPreset.PopulationOnly), "Population Only" },
                 { m_Setting.GetEnumValueLocaleID(ProgressionPreset.Custom), "Custom" },
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.XpPerResident)), "XP per new resident" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.XpPerResident)), "Population XP awarded per resident above the historical record. It is calculated after a city first loads. Use a period for decimals. Editing this recalculates the projected Megalopolis target and affects future growth only." },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.XpPerResident)), "Population XP awarded per resident above the historical record. It is calculated after a city first loads. Use a period for decimals. Click Apply custom rules to recalculate the projected Megalopolis target and use the new value for future growth." },
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.MegalopolisPopulationTarget)), "Megalopolis population target" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.MegalopolisPopulationTarget)), "Projected population needed to earn the runtime Megalopolis XP requirement from population alone. Editing this recalculates XP per resident and affects future growth only." },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.MegalopolisPopulationTarget)), "Projected population needed to earn the runtime Megalopolis XP requirement from population alone. Click Apply custom rules to recalculate XP per resident and use the new value for future growth." },
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.VanillaXpPercentage)), "Vanilla XP multiplier" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.VanillaXpPercentage)), "Percentage of future vanilla XP retained. 0% makes population the only enabled source; 100% preserves vanilla XP." },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.VanillaXpPercentage)), "Percentage of future vanilla XP retained. 0% makes population the only enabled source; 100% preserves vanilla XP. Click Apply custom rules to use the new value." },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.ApplyCustomRules)), "Apply custom rules" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.ApplyCustomRules)), "Validates and applies all advanced XP rule values together. Until clicked, the running city continues using the last applied configuration." },
                 { m_Setting.GetOptionGroupLocaleID(Setting.kAdvancedGroup), "Advanced controls" },
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.PopulationEvaluationCadence)), "Population update responsiveness" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.PopulationEvaluationCadence)), "Controls how quickly new population records award XP. Higher values reduce delay with a small increase in CPU work; total XP is unchanged." },

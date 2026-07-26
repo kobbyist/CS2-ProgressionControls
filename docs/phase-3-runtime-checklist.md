@@ -44,9 +44,15 @@
 - The Immediate 16,384/day cadence uses a 16-frame interval, matching the
   locally verified population aggregate update interval.
 
+## Custom-rule runtime test
+
+Editing the target from 200,000 to 100,000 while paused recalculated the displayed
+rate to 6.717 and left XP at 117, confirming there was no retroactive award.
+The test also exposed per-keystroke text application; atomic staged application
+was added and requires a clean runtime retest.
+
 ## Remaining Phase 3 exit checks
 
-- Verify preset explanations, advanced-rule visibility, and immediate source-mix
-  updates in the Options UI.
-- Verify an in-game rate change affects future population only.
+- Verify partial text input remains staged until Apply custom rules is clicked.
+- Verify the atomic rate change affects future population only.
 - Remove the production package and confirm the save remains loadable.

@@ -94,9 +94,10 @@ There are no per-city settings, saved user profiles, imports, or exports.
 | --- | --- |
 | Enable custom progression | Enables or disables all custom rules |
 | Preset | Applies Population Balanced, Population Heavy, or Population Only immediately; the right-side help panel explains each preset and advanced customization |
-| XP per new resident | Advanced numeric text input that sets the population XP rate |
-| Megalopolis population target | Advanced linked numeric text alternative to XP per resident |
-| Vanilla XP multiplier | Advanced integer slider that scales vanilla XP from 0% to 100% |
+| XP per new resident | Advanced numeric text input that stages the population XP rate |
+| Megalopolis population target | Advanced linked numeric text alternative that stages the population target |
+| Vanilla XP multiplier | Advanced integer slider that stages vanilla XP scaling from 0% to 100% |
+| Apply custom rules | Validates and atomically applies the three staged XP rule values |
 | Population update responsiveness | Advanced dropdown controlling 16 to 16,384 observations per in-game day; defaults to 4,096 |
 | Show status widget | Shows or hides the in-game widget |
 | Reset widget position | Returns the widget to a visible default location |
@@ -110,7 +111,9 @@ Built-in presets are immutable:
 | Population Heavy | Default 200,000 target | 25% |
 | Population Only | Default 200,000 target | 0% |
 
-Editing a preset value changes the displayed selection to **Custom**.
+Applying an advanced-rule edit changes the displayed selection to **Custom**.
+Partially typed or otherwise unsubmitted values never change the running
+configuration.
 
 ## 4. In-Game Widget
 
@@ -167,7 +170,7 @@ disabling competing progression mods.
 | FR-04 | The population rate and projected Megalopolis target shall be linked editable values. |
 | FR-05 | The Vanilla XP multiplier shall support every integer percentage from 0% to 100%. |
 | FR-06 | The initial configuration shall use Population Heavy with 25% Vanilla XP. |
-| FR-07 | Preset and setting changes shall affect future XP only. |
+| FR-07 | Presets shall apply immediately; advanced XP rule edits shall apply atomically on confirmation; both shall affect future XP only. |
 | FR-08 | Existing cities shall use the greater of current population and the reliable base-game maximum-population record as the initial baseline. |
 | FR-09 | The three built-in presets shall be available as defined above. |
 | FR-10 | Invalid or non-finite settings shall be rejected or replaced with safe defaults. |

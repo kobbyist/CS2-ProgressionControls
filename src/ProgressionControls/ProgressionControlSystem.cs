@@ -344,7 +344,7 @@ namespace Kobbyist.ProgressionControls
             Setting settings,
             int megalopolisXpRequirement)
         {
-            var requested = ReadSettingsState(settings);
+            var requested = ReadAppliedSettingsState(settings);
             if (ProgressionSettingsResolver.TryResolveInitial(
                 requested,
                 megalopolisXpRequirement,
@@ -380,7 +380,11 @@ namespace Kobbyist.ProgressionControls
         private bool RefreshConfigurationFromSettings(
             Setting settings)
         {
-            var requested = ReadSettingsState(settings);
+            var applyCustomRules =
+                settings.ConsumeApplyCustomRulesRequest();
+            var requested = applyCustomRules
+                ? ReadDraftSettingsState(settings)
+                : ReadAppliedSettingsState(settings);
             if (requested.Equals(m_LastSettingsState))
             {
                 return false;
@@ -431,7 +435,19 @@ namespace Kobbyist.ProgressionControls
             return configurationChanged;
         }
 
-        private static ProgressionSettingsState ReadSettingsState(
+        private static ProgressionSettingsState ReadAppliedSettingsState(
+            Setting settings)
+        {
+            return new ProgressionSettingsState(
+                settings.AppliedPreset,
+                settings.AppliedPopulationXpEnabled,
+                settings.AppliedXpPerResident,
+                settings.AppliedMegalopolisPopulationTarget,
+                settings.AppliedVanillaXpPercentage,
+                settings.AppliedPopulationRateInputMode);
+        }
+
+        private static ProgressionSettingsState ReadDraftSettingsState(
             Setting settings)
         {
             return new ProgressionSettingsState(
@@ -450,20 +466,15 @@ namespace Kobbyist.ProgressionControls
         {
             if (requested.Equals(normalized))
             {
-                return;
+                if (!settings.ApplyResolvedRules(normalized))
+                {
+                    return;
+                }
             }
-
-            settings.Preset = normalized.Preset;
-            settings.PopulationXpEnabled =
-                normalized.PopulationXpEnabled;
-            settings.XpPerResident =
-                normalized.XpPerResident;
-            settings.MegalopolisPopulationTarget =
-                normalized.MegalopolisPopulationTarget;
-            settings.VanillaXpPercentage =
-                normalized.VanillaXpPercentage;
-            settings.PopulationRateInputMode =
-                normalized.RateInputMode;
+            else
+            {
+                settings.ApplyResolvedRules(normalized);
+            }
             settings.ApplyAndSave();
         }
 

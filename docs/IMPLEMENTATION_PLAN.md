@@ -157,10 +157,12 @@ The progression-rule controls are implemented with immutable preset selection,
 linked numeric text inputs for XP per resident and projected population target,
 and an integer 0% to 100% Vanilla XP slider. Presets immediately update their
 source mix, while separate right-panel paragraphs explain each behavior and
-point players to Show Advanced for customization. Individual rule controls are
-hidden until the player enables advanced options. Manual edits normalize to
-Custom, invalid values restore the active safe configuration, and changes
-establish a prospective population baseline. Widget controls remain Phase 4
+point players to Show Advanced for customization. Individual rule controls and
+their Apply custom rules action are hidden until the player enables advanced
+options. Manual edits remain staged so partial text input cannot change the
+running city. Applying validates all three rule values together, normalizes the
+preset to Custom, restores the active safe configuration when invalid, and
+establishes a prospective population baseline. Widget controls remain Phase 4
 work.
 
 ### State
