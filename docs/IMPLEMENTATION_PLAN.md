@@ -185,11 +185,10 @@ the base-game population high-water mark, and the stored mod high-water mark.
 - Save/reload produces no duplicate award.
 - Removing the mod leaves the save loadable.
 
-Cadence, existing-city checkpoint restoration, fractional population awards,
-live cadence changes, settings persistence, and duplicate-free reload behavior
-have passed on 1.6.0f1. See
-[phase-3-runtime-checklist.md](./phase-3-runtime-checklist.md). The remaining
-exit checks are listed there.
+All Phase 3 game-integration exit checks pass on 1.6.0f1, including cadence,
+checkpoint restoration, dormant disable and re-enable, new-city behavior,
+atomic custom rules, and clean removal. Evidence is recorded in
+[phase-3-runtime-checklist.md](./phase-3-runtime-checklist.md).
 
 ## Phase 4 — Verification and Release
 
@@ -231,5 +230,5 @@ runs, saves, reloads, and uninstalls cleanly on the latest public game build.
 
 ## Immediate Next Task
 
-Complete the remaining Phase 3 runtime exit checks, then run the Phase 4
-verification and release matrix.
+Run the Phase 4 verification and release matrix, beginning with the remaining
+preset and multiplier combinations.
