@@ -18,6 +18,7 @@ integration checks. Phase 3 evidence remains in
 | New city, Population Balanced | Pass | A disposable city established a zero-population, zero-XP baseline. With Unlimited Money enabled, a 96 m road produced 1 XP at the 50% multiplier. |
 | New city, Population Only | Pass | After switching prospectively to Population Only, a second 96 m road left XP unchanged at 1. Population growth from 0 to 4 awarded 13 XP; growth from 4 to 6 awarded 7 XP. |
 | Fractional population XP carry | Pass | `4 * 3.3585 = 13.434`, so 13 XP was awarded and 0.434 retained. The next two residents produced `0.434 + (2 * 3.3585) = 7.151`, so 7 XP was awarded and 0.151 retained. Runtime logging reported the matching 13- and 7-XP queue submissions. |
+| Custom, 100% vanilla XP | Pass | Applying the advanced rules produced one prospective runtime change to Custom with rate 3.3585 and a 100% vanilla multiplier. At unchanged population 6, another 96 m road awarded the full 2 XP, moving the total from 21 to 23. |
 
 ## Built-in mode compatibility
 
