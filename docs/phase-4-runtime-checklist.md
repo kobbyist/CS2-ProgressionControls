@@ -40,6 +40,9 @@ integration checks. Phase 3 evidence remains in
 | Runtime log review | Pass | The final tested process logged one production load and a clean `OnDispose`; no Progression Controls warning, error, or exception was found in the inspected logs. |
 | Release metadata and license | Pass | Publishing metadata identifies version 0.1.0, game version 1.6.*, Private access, display text, and descriptions. The repository contains the MIT license with 2026 kobbyist copyright. |
 | Large-city applicability | Covered; separate runtime case waived | Population observation reads one city component at a fixed cadence and does not iterate citizens or buildings. Milestone discovery scans the fixed milestone set only during initialization. XP interception is linear in pending XP events, not city population. Domain tests cover an `int.MaxValue` population delta and a multi-`int` XP total. |
+| Paradox publisher metadata and assets | Pass | The installed 1.6.0f1 toolchain schema accepts the configured display text, `Code Mod` tag, version 0.1.0, game version 1.6.*, Private access, changelog, and 950x500 thumbnail. The official Publish, NewVersion, and Update profiles are present. |
+| Isolated publisher-content build | Pass | A fresh Release build to an isolated workspace path completed official post-processing and Windows, macOS, and Linux Burst output with 0 warnings and 0 errors. The deployed content includes the MIT license. |
+| Offline publisher-input audit | Pass | The staging validator produced a 12-file Private bundle, verified all embedded SHA-256 entries, and found no spike, widget, UI-module, or `mod.json` files. The archive SHA-256 is `f7da9779ded211448eb83b33ac2309045f3422e3c50b1be7d94b99e65462faee`. This bundle is audit evidence, not a Paradox-accepted substitute package. |
 
 ## Rebuilt local package smoke test
 
@@ -52,5 +55,5 @@ integration checks. Phase 3 evidence remains in
 ## Remaining release coverage
 
 - Existing late-game city, if a suitable save becomes available.
-- Paradox Mods package generation and publishing checks when development moves
-  beyond local-only testing.
+- First Private upload and installation through Paradox Mods, followed by the
+  startup, settings, save, and removal smoke checks.

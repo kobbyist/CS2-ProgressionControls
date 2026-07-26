@@ -61,4 +61,13 @@
     <None Include="$(ModTargetsFile)" Link="Properties\Mod.targets" />
   </ItemGroup>
 
+  <Target Name="DeployLicense" AfterTargets="DeployWIP">
+    <ItemGroup>
+      <LicenseFile Include="$(MSBuildProjectDirectory)\..\..\LICENSE" />
+    </ItemGroup>
+    <Copy
+      SourceFiles="@(LicenseFile)"
+      DestinationFolder="$(DeployDir)" />
+  </Target>
+
 </Project>

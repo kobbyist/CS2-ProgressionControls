@@ -232,8 +232,9 @@ runs, saves, reloads, and uninstalls cleanly on the latest public game build.
 ## Immediate Next Task
 
 The local 0.1.0 MVP implementation, player documentation, package verification,
-and available runtime matrix are complete. Late-game coverage remains pending
-until a suitable save is available. Paradox Mods packaging is deferred while
-development is local-only; before publishing, refresh the active game-version
-evidence, rerun affected checks, and verify the final listing metadata and
-assets.
+available runtime matrix, and offline Paradox publisher-input staging are
+complete. Late-game coverage remains pending until a suitable save is
+available. The next release step is a first **Private** Paradox Mods upload,
+followed by installation through Paradox Mods and the startup, settings, save,
+and removal smoke checks. Uploading requires separate approval because it
+authenticates and changes external state.

@@ -60,3 +60,10 @@ gate; it does not alter the project file.
 dotnet test .\tests\ProgressionControls.Core.Tests\ProgressionControls.Core.Tests.csproj `
   --configuration Release
 ```
+
+## Paradox Mods packaging
+
+Publishing metadata, official publish profiles, offline staging, and the
+approval boundary for publisher commands are documented in
+[paradox-packaging.md](./paradox-packaging.md). The staging script validates
+publisher inputs without authenticating or changing Paradox Mods state.

@@ -72,6 +72,7 @@ save and keyed to the exact save checkpoint.
 ## Development and verification
 
 - [Development commands](./docs/development.md)
+- [Paradox Mods packaging](./docs/paradox-packaging.md)
 - [Software requirements](./docs/SRS.md)
 - [Implementation plan](./docs/IMPLEMENTATION_PLAN.md)
 - [Runtime verification](./docs/phase-4-runtime-checklist.md)

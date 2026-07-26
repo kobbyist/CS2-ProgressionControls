@@ -1,11 +1,45 @@
 <Publish>
   <ModId Value="" />
   <DisplayName Value="Progression Controls" />
-  <ShortDescription Value="Customize how population and vanilla XP contribute to milestone progression." />
+  <ShortDescription Value="Make milestone progression slower and more population-driven." />
   <LongDescription>
-Progression Controls lets players slow milestone progression and make population growth the primary source of milestone XP.
+Progression Controls reshapes milestone XP without replacing the game's milestones, rewards, development points, loan limits, or unlocks.
+
+## Features
+
+- Award XP when the city reaches a new all-time population record.
+- Scale future vanilla XP from 0% to 100%.
+- Accumulate fractional population XP without losing progress to rounding.
+- Apply every change prospectively without recalculating existing XP.
+- Disable the mod to restore full vanilla XP and make it dormant.
+
+## Presets
+
+- **Population Balanced:** population XP plus 50% vanilla XP.
+- **Population Heavy:** population XP plus 25% vanilla XP.
+- **Population Only:** population XP with vanilla XP suppressed.
+
+Show Advanced exposes linked XP-per-resident and projected Megalopolis-target inputs, the vanilla XP multiplier, and population update responsiveness.
+
+## Save safety
+
+Progression Controls adds no required components to city saves. Earned XP and milestones remain normal game state, and cities continue loading after the mod is disabled or removed.
+
+## Compatibility
+
+Unlimited Money is supported. Unlock All bypasses milestone progression, so XP changes have no meaningful visible effect. Other mods that intercept XP or replace milestone behavior are unsupported.
   </LongDescription>
+  <Thumbnail Value="Properties/Thumbnail.png" />
+  <Tag Value="Code Mod" />
   <ModVersion Value="0.1.0" />
   <GameVersion Value="1.6.*" />
+  <ChangeLog>
+Initial private package:
+
+- Population Balanced, Population Heavy, Population Only, and Custom rules.
+- Population XP at new all-time population records.
+- Vanilla XP scaling from 0% to 100%.
+- Save-safe external checkpoints and dormant disable behavior.
+  </ChangeLog>
   <AccessLevel Value="Private" />
 </Publish>
