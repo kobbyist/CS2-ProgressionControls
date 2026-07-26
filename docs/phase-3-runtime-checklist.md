@@ -37,7 +37,7 @@
 
 ## Static verification
 
-- Core tests: 55 passed.
+- Core tests: 56 passed.
 - Production compile-only build: 0 warnings and 0 errors.
 - `TimeSystem.kTicksPerDay` is locally verified as 262,144.
 - The default 4,096/day cadence divides the day into 64-frame intervals.

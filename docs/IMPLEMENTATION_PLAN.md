@@ -104,6 +104,7 @@ Implement without CS2, Unity, ECS, Harmony, UI, or filesystem dependencies.
 
 ### Presets
 
+- Population Balanced
 - Population Heavy
 - Population Only
 - Custom state after manual edits
@@ -231,8 +232,8 @@ Do not query ECS or calculate progression rules from React render code.
 - New city
 - Existing early-, mid-, and late-game cities
 - Population growth, decline, recovery, and new record
-- Disabled, Population Heavy, Population Only, and Custom
-- Multiplier boundaries: 0%, 25%, and 100%
+- Disabled, Population Balanced, Population Heavy, Population Only, and Custom
+- Multiplier boundaries: 0%, 25%, 50%, and 100%
 - Enable, disable, and re-enable
 - Save, reload, remove mod, and load without mod
 - Unlimited Money and Unlock All

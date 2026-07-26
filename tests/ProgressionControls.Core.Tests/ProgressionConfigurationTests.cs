@@ -8,6 +8,7 @@ public sealed class ProgressionConfigurationTests
     private const int MegalopolisXp = 100000;
 
     [DataTestMethod]
+    [DataRow(ProgressionPreset.PopulationBalanced, 50)]
     [DataRow(ProgressionPreset.PopulationHeavy, 25)]
     [DataRow(ProgressionPreset.PopulationOnly, 0)]
     public void PresetsExposeExpectedPopulationAndVanillaRules(
