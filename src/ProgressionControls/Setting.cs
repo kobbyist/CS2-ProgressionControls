@@ -336,7 +336,7 @@ namespace Kobbyist.ProgressionControls
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.MegalopolisPopulationTarget)), "Megalopolis population target" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.MegalopolisPopulationTarget)), "Projected population needed to earn the runtime Megalopolis XP requirement from population alone. Click Apply custom rules to recalculate XP per resident and use the new value for future growth." },
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.VanillaXpPercentage)), "Vanilla XP multiplier" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.VanillaXpPercentage)), "Percentage of future vanilla XP retained. 0% makes population the only enabled source; 100% preserves vanilla XP. Click Apply custom rules to use the new value." },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.VanillaXpPercentage)), "Percentage of positive XP already in the game's shared queue retained when Progression Controls runs. This includes base-game XP and can affect XP from other mods depending on update order. This mod's population XP is added afterward and is not scaled again. Click Apply custom rules to use the new value." },
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.ApplyCustomRules)), "Apply custom rules" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.ApplyCustomRules)), "Validates and applies all advanced XP rule values together. Until clicked, the running city continues using the last applied configuration." },
                 { m_Setting.GetOptionGroupLocaleID(Setting.kAdvancedGroup), "Advanced controls" },

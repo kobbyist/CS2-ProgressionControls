@@ -49,12 +49,15 @@ if ([string]::IsNullOrWhiteSpace($ContentSource)) {
 }
 
 $contentSourcePath = [IO.Path]::GetFullPath($ContentSource)
-$requiredSourceFiles = @(
+$approvedSourceFiles = @(
     "Kobbyist.ProgressionControls.Core.dll",
+    "Kobbyist.ProgressionControls.Core.pdb",
     "Kobbyist.ProgressionControls.dll",
+    "Kobbyist.ProgressionControls.pdb",
     "Kobbyist.ProgressionControls_linux_x86_64.so",
     "Kobbyist.ProgressionControls_mac_x86_64.bundle",
     "Kobbyist.ProgressionControls_win_x86_64.dll",
+    "Kobbyist.ProgressionControls_win_x86_64.pdb",
     "LICENSE"
 )
 
@@ -67,7 +70,7 @@ foreach ($requiredPath in @(
     }
 }
 
-foreach ($relativePath in $requiredSourceFiles) {
+foreach ($relativePath in $approvedSourceFiles) {
     $requiredPath = Join-Path $contentSourcePath $relativePath
     if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
         throw "Required deployed file is missing: $requiredPath"
@@ -131,15 +134,22 @@ finally {
     $thumbnail.Dispose()
 }
 
-$forbiddenFiles = Get-ChildItem -LiteralPath $contentSourcePath -Recurse -File |
-    Where-Object {
-        $_.Name -match "Spike|Widget" -or
-        $_.Extension -in ".mjs", ".css" -or
-        $_.Name -eq "mod.json"
-    }
-if ($forbiddenFiles) {
-    $names = ($forbiddenFiles.FullName -join ", ")
-    throw "Forbidden production files found: $names"
+$nestedDirectories = @(
+    Get-ChildItem -LiteralPath $contentSourcePath -Directory)
+if ($nestedDirectories.Count -gt 0) {
+    $names = ($nestedDirectories.FullName -join ", ")
+    throw "Unexpected nested content directories found: $names"
+}
+
+$unexpectedFiles = @(
+    Get-ChildItem -LiteralPath $contentSourcePath -File |
+        Where-Object {
+            $approvedSourceFiles -cnotcontains $_.Name
+        }
+)
+if ($unexpectedFiles.Count -gt 0) {
+    $names = ($unexpectedFiles.FullName -join ", ")
+    throw "Unexpected deployed files found: $names"
 }
 
 $artifactRoot = Join-Path $repositoryRoot "artifacts\paradox"
@@ -167,9 +177,12 @@ Copy-Item -LiteralPath $configurationPath -Destination (
     Join-Path $propertiesStage "PublishConfiguration.xml")
 Copy-Item -LiteralPath $thumbnailPath -Destination (
     Join-Path $propertiesStage "Thumbnail.png")
-Copy-Item -Path (Join-Path $contentSourcePath "*") `
-    -Destination $contentStage `
-    -Recurse
+
+foreach ($relativePath in $approvedSourceFiles) {
+    Copy-Item `
+        -LiteralPath (Join-Path $contentSourcePath $relativePath) `
+        -Destination (Join-Path $contentStage $relativePath)
+}
 
 $hashLines = Get-ChildItem -LiteralPath $stageRoot -Recurse -File |
     Sort-Object FullName |

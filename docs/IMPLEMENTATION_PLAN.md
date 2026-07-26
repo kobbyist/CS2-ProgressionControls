@@ -234,7 +234,8 @@ runs, saves, reloads, and uninstalls cleanly on the latest public game build.
 The local 0.1.0 MVP implementation, player documentation, package verification,
 available runtime matrix, and offline Paradox publisher-input staging are
 complete. Late-game coverage remains pending until a suitable save is
-available. The next release step is a first **Private** Paradox Mods upload,
-followed by installation through Paradox Mods and the startup, settings, save,
-and removal smoke checks. Uploading requires separate approval because it
-authenticates and changes external state.
+available. The next release step is the focused post-hardening runtime smoke
+defined in `phase-4-runtime-checklist.md`. After that passes, perform a first
+**Private** Paradox Mods upload, followed by installation through Paradox Mods
+and the startup, settings, save, and removal smoke checks. Uploading requires
+separate approval because it authenticates and changes external state.

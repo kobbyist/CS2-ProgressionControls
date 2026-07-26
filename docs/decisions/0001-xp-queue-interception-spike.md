@@ -6,9 +6,10 @@
 
 ## Context
 
-Progression Controls must scale all future vanilla milestone XP while submitting
-custom population XP through the base game's progression pipeline. Directly
-editing `Game.City.XP.m_XP` can advance the numeric value, but bypassing the
+Progression Controls must apply a global multiplier to positive milestone XP
+already present in the shared queue while submitting custom population XP
+through the base game's progression pipeline. Directly editing
+`Game.City.XP.m_XP` can advance the numeric value, but bypassing the
 native XP consumer risks missing messages or milestone side effects.
 
 Public decompiled references identify `Game.Simulation.XPSystem` as the queue
@@ -33,9 +34,9 @@ On each armed update it will:
 
 1. obtain the native XP queue and its writer dependencies;
 2. complete the writer dependencies;
-3. drain queued vanilla gains in FIFO order;
+3. drain queued gains in FIFO order;
 4. scale and re-enqueue those gains in the same order;
-5. enqueue any explicit custom population XP after vanilla scaling; and
+5. enqueue any explicit custom population XP after shared-queue scaling; and
 6. allow the native `XPSystem` to consume the resulting queue.
 
 The two-type `UpdateBefore<Interceptor, XPSystem>` call is the interceptor's only
@@ -50,11 +51,24 @@ Options button action.
 
 - It uses public game methods instead of private-field reflection.
 - It preserves the vanilla XP consumer and its message flow.
-- It can scale all reasons without patching every producer.
+- It can scale all queued reasons without patching every producer.
 - It keeps custom population XP separate from the vanilla multiplier.
 - It can be removed without adding components to the city save.
 
+## Compatibility boundary
+
+`XPGain` contains a reason, amount, and entity but no producer identity.
+Progression Controls therefore cannot distinguish a base-game gain from an
+equivalent gain submitted by another mod. Positive gains queued before this
+system runs are scaled; gains another mod queues afterward may not be.
+
+The Vanilla XP multiplier is retained as player-facing shorthand. Other XP and
+milestone mods are unsupported, and no reason filter or Harmony patch is added
+to imply source separation the public boundary cannot provide.
+
 ## Runtime questions
+
+The spike used these exit questions:
 
 - Does the anchored system run after every vanilla writer and immediately before
   `XPSystem` on 1.6.0f1?
@@ -65,9 +79,8 @@ Options button action.
 - Does `Game.City.XP.m_MaximumPopulation` remain reliable when population XP is
   suppressed?
 
-If any answer is no, the next candidate is a narrowly isolated Harmony prefix on
-the native queue-processing boundary. No Harmony dependency is added by this
-spike.
+The evidence below resolved the questions in favor of the supported,
+Harmony-free queue boundary, so the Harmony contingency was retired.
 
 ## Evidence
 

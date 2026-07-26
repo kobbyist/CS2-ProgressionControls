@@ -26,14 +26,17 @@ The script never invokes ModPublisher. It validates:
 
 - required Private 0.1.0 listing metadata and the `Code Mod` tag;
 - the 950x500 thumbnail;
-- required managed and platform binaries;
+- an exact nine-file content allowlist: two managed DLLs, three PDBs, three
+  platform binaries, and the MIT license;
 - MIT license inclusion;
-- absence of spike, widget, UI-module, and `mod.json` files; and
+- absence of nested or unexpected content; and
 - SHA-256 hashes for every staged input.
 
 It writes an ignored staging directory and ZIP below `artifacts/paradox/`.
-This ZIP is an auditable copy of the publisher inputs, not a substitute format
-accepted by Paradox Mods.
+The resulting bundle contains 12 files including metadata, thumbnail, and the
+checksum manifest. Its PDBs are deliberate diagnostic symbols. This ZIP is an
+auditable copy of the publisher inputs, not a substitute format accepted by
+Paradox Mods.
 
 ## Commands that change Paradox Mods
 

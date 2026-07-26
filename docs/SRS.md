@@ -18,7 +18,7 @@ matter more. Progression Controls slows and reshapes XP earning by letting the
 player:
 
 - award configurable XP for population growth;
-- scale all vanilla XP from 0% to 100%;
+- scale positive XP already present in the shared game queue from 0% to 100%;
 - use population as the dominant or sole progression source.
 
 The MVP changes only how XP is earned. It does not change the 20 vanilla
@@ -53,10 +53,19 @@ These are linked values. Changing one recalculates the other.
 
 ### 2.2 Vanilla XP
 
-The MVP provides one global Vanilla XP multiplier from 0% to 100%.
+The MVP provides one global Vanilla XP multiplier from 0% to 100%. The label is
+player-facing shorthand for the verified shared XP queue boundary:
 
-- `0%` suppresses vanilla XP and enables population-only progression.
-- `100%` preserves normal vanilla XP.
+- every positive `XPGain` already queued when Progression Controls runs is
+  scaled;
+- the mod's population XP is appended after scaling and is not scaled again;
+- `XPGain` exposes reason, amount, and entity but no producer identity; and
+- another mod's XP may be scaled or unscaled depending on update order, so XP
+  and milestone mods are unsupported combinations.
+
+- `0%` suppresses positive gains already in the queue and enables
+  population-only progression for supported configurations.
+- `100%` preserves queued positive XP.
 - The default is `25%`.
 
 Post-MVP versions may expose a separate multiplier for every verified vanilla XP
@@ -66,8 +75,8 @@ reason.
 
 - Custom progression is enabled by default after installation.
 - It can be enabled or disabled in the mod Options.
-- Disabling it stops population XP and restores 100% vanilla XP for future
-  events.
+- Disabling it stops population XP and leaves future shared-queue gains
+  unscaled.
 - While disabled, the mod performs no recurring population observations, XP
   queue interception, or external progression checkpoint writes.
 - Growth while disabled receives no population XP.
@@ -148,7 +157,7 @@ disabling competing progression mods.
 | FR-02 | Population XP shall be awarded only for new historical population highs. |
 | FR-03 | Population decline shall not remove XP or revoke milestones. |
 | FR-04 | The population rate and projected Megalopolis target shall be linked editable values. |
-| FR-05 | The Vanilla XP multiplier shall support every integer percentage from 0% to 100%. |
+| FR-05 | The Vanilla XP multiplier shall support every integer percentage from 0% to 100% and scale every positive gain already present in the shared XP queue. |
 | FR-06 | The initial configuration shall use Population Heavy with 25% Vanilla XP. |
 | FR-07 | Presets shall apply immediately; advanced XP rule edits shall apply atomically on confirmation; both shall affect future XP only. |
 | FR-08 | Existing cities shall use the greater of current population and the reliable base-game maximum-population record as the initial baseline. |
@@ -189,7 +198,7 @@ The implementation consists of:
 1. **Domain core** — population delta, fractional XP, validation, presets, and
    target/rate conversion.
 2. **Game adapters** — current population, maximum population, milestone XP
-   requirements, vanilla XP events, and XP submission.
+   requirements, queued XP events, and XP submission.
 3. **Progression coordinator** — evaluates population and applies configured
    scaling on a controlled cadence.
 4. **Settings/state adapter** — global Options settings and minimal external
@@ -201,7 +210,7 @@ Local 1.6.0f1 assembly verification confirms:
 - `Game.PSI.Telemetry.GetCurrentSession()` and serialized
   `Game.Assets.SaveInfo.sessionGuid`;
 - serialized `Game.Simulation.SimulationSystem.frameIndex`;
-- `Game.Simulation.XPGain` with amount and reason;
+- `Game.Simulation.XPGain` with amount, reason, and entity;
 - `Game.Simulation.XPMessage`;
 - `Game.Prefabs.XPParameterData` with population and happiness rates;
 - `Game.Prefabs.MilestoneData.m_XpRequried`;
@@ -213,8 +222,10 @@ Local 1.6.0f1 assembly verification confirms:
 The [local assembly verification report](./local-assembly-verification.md)
 contains the exact signatures and assembly hashes.
 
-Runtime implementation must determine whether Vanilla XP can be scaled through
-a registered game system or requires a narrowly isolated Harmony patch.
+Runtime verification selected one Harmony-free system immediately before
+`XPSystem`. It transforms positive gains already in the shared queue, preserves
+their order and metadata, then appends custom population XP. Because the queue
+does not identify producers, other XP and milestone mods remain unsupported.
 
 ## 8. Post-MVP Roadmap
 

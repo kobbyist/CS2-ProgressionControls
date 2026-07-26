@@ -8,10 +8,10 @@ Progression Controls reshapes milestone XP without replacing the game's mileston
 ## Features
 
 - Award XP when the city reaches a new all-time population record.
-- Scale future vanilla XP from 0% to 100%.
+- Scale positive XP already queued for the game from 0% to 100%.
 - Accumulate fractional population XP without losing progress to rounding.
 - Apply every change prospectively without recalculating existing XP.
-- Disable the mod to restore full vanilla XP and make it dormant.
+- Disable the mod to leave future queued XP unscaled and make it dormant.
 
 ## Presets
 
@@ -27,7 +27,7 @@ Progression Controls adds no required components to city saves. Earned XP and mi
 
 ## Compatibility
 
-Unlimited Money is supported. Unlock All bypasses milestone progression, so XP changes have no meaningful visible effect. Other mods that intercept XP or replace milestone behavior are unsupported.
+Unlimited Money is supported. Unlock All bypasses milestone progression, so XP changes have no meaningful visible effect. Positive XP from another mod may be scaled when queued before Progression Controls, depending on update order. Other mods that add or intercept XP or replace milestone behavior are unsupported.
   </LongDescription>
   <Thumbnail Value="Properties/Thumbnail.png" />
   <Tag Value="Code Mod" />
@@ -38,7 +38,7 @@ Initial private package:
 
 - Population Balanced, Population Heavy, Population Only, and Custom rules.
 - Population XP at new all-time population records.
-- Vanilla XP scaling from 0% to 100%.
+- Shared-queue XP scaling from 0% to 100%.
 - Save-safe external checkpoints and dormant disable behavior.
   </ChangeLog>
   <AccessLevel Value="Private" />

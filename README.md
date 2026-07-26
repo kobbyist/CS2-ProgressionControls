@@ -9,7 +9,8 @@ target the latest public game version available at build time.
 ## What it changes
 
 - Awards milestone XP when the city reaches a new all-time population record.
-- Scales future vanilla XP from 0% to 100%.
+- Scales positive XP already queued for the game's milestone system from 0% to
+  100%.
 - Preserves the game's milestone thresholds, unlocks, development points,
   rewards, and loan limits.
 - Accumulates fractional population XP so rounding does not discard progress.
@@ -44,9 +45,13 @@ The main view contains the enable toggle and preset selector. Turn on
 XP per resident and the Megalopolis target are linked. Advanced XP rules are
 staged until **Apply custom rules** validates and applies them together.
 
-Turning off **Enable custom progression** restores full vanilla XP for future
-events and makes the mod dormant. Re-enabling establishes a safe population
-baseline and does not grant retroactive XP.
+**Vanilla XP multiplier** is player-facing shorthand for the shared XP queue.
+Progression Controls scales every positive gain already in that queue when it
+runs. Its own population XP is appended afterward and is not scaled again.
+
+Turning off **Enable custom progression** leaves future queued XP unscaled and
+makes the mod dormant. Re-enabling establishes a safe population baseline and
+does not grant retroactive XP.
 
 ## Save safety
 
@@ -65,9 +70,10 @@ save and keyed to the exact save checkpoint.
   progression, so milestone XP is unavailable and progression changes have no
   meaningful visible effect.
 - **City Watchdog:** Co-load smoke-tested; it is not a dependency.
-- **Other XP or milestone mods:** Unsupported. Disable mods that intercept XP,
-  rescale milestone progress, or replace milestone behavior before requesting
-  support.
+- **Other XP or milestone mods:** Unsupported. Their positive gains may be
+  scaled when queued before Progression Controls, or remain unscaled when
+  queued afterward. Disable mods that add or intercept XP, rescale milestone
+  progress, or replace milestone behavior before requesting support.
 
 ## Development and verification
 
