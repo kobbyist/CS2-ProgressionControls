@@ -40,11 +40,17 @@ integration checks. Phase 3 evidence remains in
 | Runtime log review | Pass | The final tested process logged one production load and a clean `OnDispose`; no Progression Controls warning, error, or exception was found in the inspected logs. |
 | Release metadata and license | Pass | Publishing metadata identifies version 0.1.0, game version 1.6.*, Private access, display text, and descriptions. The repository contains the MIT license with 2026 kobbyist copyright. |
 
+## Rebuilt local package smoke test
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Fresh production load | Pass | The rebuilt local package loaded its core and production assemblies once, loaded the generated Windows Burst library, and initialized without a related warning, error, or exception. |
+| Settings restoration | Pass | The Options entry restored Custom, XP per resident 3.3585, Megalopolis target 200,000, vanilla multiplier 100%, and the saved 4,096/day cadence. |
+| Existing-city checkpoint | Pass | The mod restored city `d23a583d9f664625b35450dcec120896` at frame `15451872` and activated the restored configuration without a load-time award. |
+
 ## Remaining release coverage
 
 - Existing late-game city, if a suitable save becomes available.
 - Large-city performance and progression behavior.
-- Final startup, settings, and log smoke test of the freshly rebuilt local
-  package.
 - Paradox Mods package generation and publishing checks when development moves
   beyond local-only testing.
