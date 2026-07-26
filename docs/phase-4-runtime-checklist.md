@@ -27,11 +27,24 @@ integration checks. Phase 3 evidence remains in
 | Unlimited Money | Pass | The mod established a normal baseline, scaled road XP at 50%, blocked road XP at 0%, and awarded population XP with fractional carry. The inspected mod log contained no related errors. |
 | Unlock All | Smoke pass | A disposable city with Unlimited Money and Unlock All loaded at population 0. Milestone XP was unavailable because Unlock All bypasses progression, so XP scaling is not observable in this mode. No load failure was observed. |
 
+## Static release verification
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Active game version | Pass | `SceneFlow.log` reports game version 1.6.0f1 and Unity 2022.3.71f1. The version was taken from the runtime log rather than the installation-folder name. |
+| Core tests | Pass | Release-mode test run completed with 56 passed, 0 failed, and 0 skipped. |
+| Production build and deployment | Pass | The official CS2 targets compiled, post-processed, built platform libraries, and deployed the local package with 0 warnings and 0 errors. |
+| Local assembly refresh | Pass | The metadata-only verifier reproduced game version 1.6.0f1, Unity 2022.3.71f1, and the same hashes recorded in the versioned report for every overlapping assembly. |
+| Deployed package | Pass | The local package contains the expected eight managed, debug, and platform files. The deployed production DLL is byte-identical to the successful build output. |
+| Production boundaries | Pass | Deployed metadata contains no Harmony dependency, `Colossal.UI.Binding` reference, widget/overlay system type, spike type, or UI module asset. Localization and settings cleanup remain symmetric in `OnDispose`. |
+| Runtime log review | Pass | The final tested process logged one production load and a clean `OnDispose`; no Progression Controls warning, error, or exception was found in the inspected logs. |
+| Release metadata and license | Pass | Publishing metadata identifies version 0.1.0, game version 1.6.*, Private access, display text, and descriptions. The repository contains the MIT license with 2026 kobbyist copyright. |
+
 ## Remaining release coverage
 
 - Existing late-game city, if a suitable save becomes available.
 - Large-city performance and progression behavior.
-- Remaining Phase 4 preset and multiplier combinations not already evidenced by
-  the Phase 3 checklist.
-- Final unit tests, production build, log review, local assembly refresh, and
-  package inspection against the latest public game build.
+- Final startup, settings, and log smoke test of the freshly rebuilt local
+  package.
+- Paradox Mods package generation and publishing checks when development moves
+  beyond local-only testing.

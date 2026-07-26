@@ -230,5 +230,7 @@ runs, saves, reloads, and uninstalls cleanly on the latest public game build.
 
 ## Immediate Next Task
 
-Run the Phase 4 verification and release matrix, beginning with the remaining
-preset and multiplier combinations.
+Launch the freshly rebuilt local package for a final startup, settings, and
+runtime-log smoke test. Late-game and large-city coverage remains pending until
+a suitable save is available. Paradox Mods packaging remains deferred while
+development is local-only.
