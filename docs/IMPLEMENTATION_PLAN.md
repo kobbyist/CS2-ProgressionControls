@@ -202,7 +202,8 @@ atomic custom rules, and clean removal. Evidence is recorded in
 - Enable, disable, and re-enable
 - Save, reload, remove mod, and load without mod
 - Unlimited Money and Unlock All
-- Small and large cities
+- Small-city runtime, city-size-independent update behavior, and large
+  population/XP values
 
 ### Release work
 
@@ -231,8 +232,8 @@ runs, saves, reloads, and uninstalls cleanly on the latest public game build.
 ## Immediate Next Task
 
 The local 0.1.0 MVP implementation, player documentation, package verification,
-and available runtime matrix are complete. Late-game and large-city coverage
-remains pending until a suitable save is available. Paradox Mods packaging is
-deferred while development is local-only; before publishing, refresh the
-active game-version evidence, rerun affected checks, and verify the final
-listing metadata and assets.
+and available runtime matrix are complete. Late-game coverage remains pending
+until a suitable save is available. Paradox Mods packaging is deferred while
+development is local-only; before publishing, refresh the active game-version
+evidence, rerun affected checks, and verify the final listing metadata and
+assets.

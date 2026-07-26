@@ -39,6 +39,7 @@ integration checks. Phase 3 evidence remains in
 | Production boundaries | Pass | Deployed metadata contains no Harmony dependency, `Colossal.UI.Binding` reference, widget/overlay system type, spike type, or UI module asset. Localization and settings cleanup remain symmetric in `OnDispose`. |
 | Runtime log review | Pass | The final tested process logged one production load and a clean `OnDispose`; no Progression Controls warning, error, or exception was found in the inspected logs. |
 | Release metadata and license | Pass | Publishing metadata identifies version 0.1.0, game version 1.6.*, Private access, display text, and descriptions. The repository contains the MIT license with 2026 kobbyist copyright. |
+| Large-city applicability | Covered; separate runtime case waived | Population observation reads one city component at a fixed cadence and does not iterate citizens or buildings. Milestone discovery scans the fixed milestone set only during initialization. XP interception is linear in pending XP events, not city population. Domain tests cover an `int.MaxValue` population delta and a multi-`int` XP total. |
 
 ## Rebuilt local package smoke test
 
@@ -51,6 +52,5 @@ integration checks. Phase 3 evidence remains in
 ## Remaining release coverage
 
 - Existing late-game city, if a suitable save becomes available.
-- Large-city performance and progression behavior.
 - Paradox Mods package generation and publishing checks when development moves
   beyond local-only testing.

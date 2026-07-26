@@ -164,7 +164,10 @@ disabling competing progression mods.
 - **Performance:** Population evaluation runs outside UI rendering at the
   selected validated cadence. The maximum cadence matches the vanilla city
   population aggregation interval of 16 simulation frames; it never polls
-  faster than new aggregate data can become available.
+  faster than new aggregate data can become available. Each observation reads
+  one city population component and does not iterate citizens or buildings.
+  XP interception makes one pass over pending XP events, so its variable work
+  depends on event count rather than city population.
 - **Determinism:** Identical observations and settings produce identical XP,
   including fractional accumulation.
 - **Testability:** Population rules, target/rate conversion, validation, and
@@ -252,7 +255,8 @@ The MVP is ready when:
   scenarios pass;
 - vanilla, unlimited-money, and unlock-all modes are exercised;
 - milestone rewards and unlocks remain game-native;
-- small- and large-city performance is measured;
+- the city-size-independent update path and large population/XP values are
+  verified;
 - local builds install and unload cleanly; and
 - the Paradox Mods package contains the required metadata, license, localization,
   and assets.
