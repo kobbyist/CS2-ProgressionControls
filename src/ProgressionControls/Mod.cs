@@ -1,3 +1,4 @@
+using System;
 using Colossal;
 using Colossal.IO.AssetDatabase;
 using Colossal.Logging;
@@ -23,56 +24,114 @@ namespace Kobbyist.ProgressionControls
         internal static Setting Settings { get; private set; }
 
         private IDictionarySource m_LocaleSource;
+        private bool m_LocaleRegistered;
+        private bool m_OptionsRegistered;
 
         public void OnLoad(UpdateSystem updateSystem)
         {
             Log.Info(nameof(OnLoad));
 
-            Settings = new Setting(this);
-            Settings.RegisterInOptionsUI();
-
-            m_LocaleSource = new LocaleEN(Settings);
-            GameManager.instance.localizationManager.AddSource(
-                LocaleId,
-                m_LocaleSource);
-
-            AssetDatabase.global.LoadSettings(
-                SettingsAssetName,
-                Settings,
-                new Setting(this));
-
-            if (Settings.ReapplyPresetRules())
+            try
             {
-                Settings.ApplyAndSave();
+                if (updateSystem == null)
+                {
+                    throw new ArgumentNullException(
+                        nameof(updateSystem));
+                }
+                if (GameManager.instance == null ||
+                    AssetDatabase.global == null ||
+                    GameManager.instance.localizationManager == null)
+                {
+                    throw new InvalidOperationException(
+                        "Required game services are unavailable");
+                }
+
+                var settings = new Setting(this);
+                Settings = settings;
+
+                AssetDatabase.global.LoadSettings(
+                    SettingsAssetName,
+                    settings,
+                    new Setting(this));
+
+                if (settings.ReapplyPresetRules())
+                {
+                    settings.ApplyAndSave();
+                }
+
+                m_LocaleSource = new LocaleEN(settings);
+                m_LocaleRegistered = true;
+                GameManager.instance.localizationManager.AddSource(
+                    LocaleId,
+                    m_LocaleSource);
+
+                m_OptionsRegistered = true;
+                settings.RegisterInOptionsUI();
+
+                Log.Info(
+                    $"Loaded settings: enabled={settings.EnableCustomProgression}, preset={settings.Preset}");
+
+                // This is the system's only registration. Running immediately
+                // before XPSystem lets us transform queued gains, then append
+                // population XP for the native consumer to process unchanged.
+                updateSystem.UpdateBefore<
+                    ProgressionControlSystem,
+                    XPSystem>(
+                    SystemUpdatePhase.ModificationEnd);
             }
-
-            Log.Info(
-                $"Loaded settings: enabled={Settings.EnableCustomProgression}, preset={Settings.Preset}");
-
-            // This is the system's only registration. Running immediately
-            // before XPSystem lets us transform vanilla gains, then append
-            // population XP for the native consumer to process unchanged.
-            updateSystem.UpdateBefore<ProgressionControlSystem, XPSystem>(
-                SystemUpdatePhase.ModificationEnd);
+            catch (Exception exception)
+            {
+                Log.Error(
+                    $"Progression Controls failed to load: {exception}");
+                CleanupRegistrations();
+                throw;
+            }
         }
 
         public void OnDispose()
         {
             Log.Info(nameof(OnDispose));
+            CleanupRegistrations();
+        }
 
-            if (m_LocaleSource != null)
+        private void CleanupRegistrations()
+        {
+            var settings = Settings;
+            if (m_OptionsRegistered && settings != null)
             {
-                GameManager.instance.localizationManager.RemoveSource(
-                    LocaleId,
-                    m_LocaleSource);
-                m_LocaleSource = null;
+                try
+                {
+                    settings.UnregisterInOptionsUI();
+                }
+                catch (Exception exception)
+                {
+                    Log.Warn(
+                        $"Failed to unregister the Options entry: {exception}");
+                }
+            }
+            m_OptionsRegistered = false;
+
+            if (m_LocaleRegistered &&
+                m_LocaleSource != null &&
+                GameManager.instance != null &&
+                GameManager.instance.localizationManager != null)
+            {
+                try
+                {
+                    GameManager.instance.localizationManager.RemoveSource(
+                        LocaleId,
+                        m_LocaleSource);
+                }
+                catch (Exception exception)
+                {
+                    Log.Warn(
+                        $"Failed to remove the locale source: {exception}");
+                }
             }
 
-            if (Settings != null)
-            {
-                Settings.UnregisterInOptionsUI();
-                Settings = null;
-            }
+            m_LocaleRegistered = false;
+            m_LocaleSource = null;
+            Settings = null;
         }
     }
 }

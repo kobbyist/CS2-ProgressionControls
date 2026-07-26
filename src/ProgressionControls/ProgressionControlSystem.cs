@@ -38,6 +38,7 @@ namespace Kobbyist.ProgressionControls
         private PopulationProgressionTracker m_PopulationTracker;
         private ProgressionStateStore m_StateStore;
         private ProgressionStateSnapshot m_PendingSaveSnapshot;
+        private GameMode m_GameMode;
         private Guid m_CityId;
         private int m_MegalopolisXpRequirement;
         private int m_PopulationEvaluationInterval;
@@ -92,6 +93,7 @@ namespace Kobbyist.ProgressionControls
             GameMode mode)
         {
             base.OnGamePreload(purpose, mode);
+            m_GameMode = mode;
             ResetActiveCity();
         }
 
@@ -100,6 +102,11 @@ namespace Kobbyist.ProgressionControls
         {
             base.OnGameLoaded(serializationContext);
             ResetActiveCity();
+            if (m_GameMode != GameMode.Game)
+            {
+                return;
+            }
+
             m_InitializationStartedFrame =
                 m_SimulationSystem.frameIndex;
             m_InitializationPending = true;
@@ -107,6 +114,11 @@ namespace Kobbyist.ProgressionControls
 
         protected override void OnUpdate()
         {
+            if (m_GameMode != GameMode.Game)
+            {
+                return;
+            }
+
             if (m_InitializationPending &&
                 !TryInitializeActiveCity())
             {
@@ -188,8 +200,7 @@ namespace Kobbyist.ProgressionControls
                 return false;
             }
 
-            var city = m_CitySystem.City;
-            if (city == Entity.Null ||
+            if (!TryGetActiveCity(out var city) ||
                 !EntityManager.HasComponent<Population>(city) ||
                 !EntityManager.HasComponent<XP>(city))
             {
@@ -382,10 +393,17 @@ namespace Kobbyist.ProgressionControls
         {
             var applyCustomRules =
                 settings.ConsumeApplyCustomRulesRequest();
+            if (!applyCustomRules &&
+                AppliedSettingsMatch(settings, m_LastSettingsState))
+            {
+                return false;
+            }
+
             var requested = applyCustomRules
                 ? ReadDraftSettingsState(settings)
                 : ReadAppliedSettingsState(settings);
-            if (requested.Equals(m_LastSettingsState))
+            if (m_LastSettingsState != null &&
+                requested.Equals(m_LastSettingsState))
             {
                 return false;
             }
@@ -433,6 +451,28 @@ namespace Kobbyist.ProgressionControls
             }
 
             return configurationChanged;
+        }
+
+        private static bool AppliedSettingsMatch(
+            Setting settings,
+            ProgressionSettingsState state)
+        {
+            return state != null &&
+                settings.AppliedPreset == state.Preset &&
+                settings.AppliedPopulationXpEnabled ==
+                    state.PopulationXpEnabled &&
+                string.Equals(
+                    settings.AppliedXpPerResident,
+                    state.XpPerResident,
+                    StringComparison.Ordinal) &&
+                string.Equals(
+                    settings.AppliedMegalopolisPopulationTarget,
+                    state.MegalopolisPopulationTarget,
+                    StringComparison.Ordinal) &&
+                settings.AppliedVanillaXpPercentage ==
+                    state.VanillaXpPercentage &&
+                settings.AppliedPopulationRateInputMode ==
+                    state.RateInputMode;
         }
 
         private static ProgressionSettingsState ReadAppliedSettingsState(
@@ -511,9 +551,8 @@ namespace Kobbyist.ProgressionControls
 
         private void EvaluatePopulation()
         {
-            var city = m_CitySystem.City;
-            if (city == Entity.Null ||
-                m_PopulationTracker == null ||
+            if (m_PopulationTracker == null ||
+                !TryGetActiveCity(out var city) ||
                 !EntityManager.HasComponent<Population>(city))
             {
                 return;
@@ -537,15 +576,12 @@ namespace Kobbyist.ProgressionControls
             if (result.AwardedXp > 0)
             {
                 m_PendingPopulationXp = result.AwardedXp;
-                Mod.Log.Info(
-                    $"Population XP queued: residents={result.NewRecordDelta}, xp={result.AwardedXp}, maximum={result.MaximumPopulation}");
             }
         }
 
         private bool TryRebaselineAfterEnable()
         {
-            var city = m_CitySystem.City;
-            if (city == Entity.Null ||
+            if (!TryGetActiveCity(out var city) ||
                 m_PopulationTracker == null ||
                 !EntityManager.HasComponent<Population>(city) ||
                 !EntityManager.HasComponent<XP>(city))
@@ -583,6 +619,12 @@ namespace Kobbyist.ProgressionControls
 
         private void ProcessXpQueue()
         {
+            if (!TryGetActiveCity(out var city))
+            {
+                m_PendingPopulationXp = 0;
+                return;
+            }
+
             var queue =
                 m_XPSystem.GetQueue(out JobHandle queueWriters);
             queueWriters.Complete();
@@ -604,13 +646,8 @@ namespace Kobbyist.ProgressionControls
                 queue.Enqueue(gain);
             }
 
-            var city = m_CitySystem.City;
             var remaining = m_PendingPopulationXp;
             m_PendingPopulationXp = 0;
-            if (city == Entity.Null)
-            {
-                return;
-            }
 
             while (remaining > 0)
             {
@@ -626,6 +663,25 @@ namespace Kobbyist.ProgressionControls
                     });
                 remaining -= chunk;
             }
+        }
+
+        private bool TryGetActiveCity(out Entity city)
+        {
+            city = Entity.Null;
+            if (m_GameMode != GameMode.Game)
+            {
+                return false;
+            }
+
+            var candidate = m_CitySystem.City;
+            if (candidate == Entity.Null ||
+                !EntityManager.Exists(candidate))
+            {
+                return false;
+            }
+
+            city = candidate;
+            return true;
         }
 
         private bool ConfigurePopulationEvaluationCadence(
