@@ -46,13 +46,14 @@
 
 ## Custom-rule runtime test
 
-Editing the target from 200,000 to 100,000 while paused recalculated the displayed
-rate to 6.717 and left XP at 117, confirming there was no retroactive award.
-The test also exposed per-keystroke text application; atomic staged application
-was added and requires a clean runtime retest.
+| Check | Result | Evidence |
+| --- | --- | --- |
+| First-launch rate initialization | Pass | After the development settings reset, XP per resident remained empty in the main menu because the runtime Megalopolis requirement was not yet available. Loading the city populated 3.3585 for the 200,000 target and persisted the requirement. |
+| Immediate preset application | Pass | Population Only applied prospectively as one configuration change with rate 3.3585 and 0% vanilla XP. |
+| Draft isolation | Pass | Replacing the 200,000 target with 100,000 while paused left XP at 117 and the displayed rate at 3.3585. No intermediate configuration change appeared in the runtime log. |
+| Atomic application | Pass | Apply custom rules produced exactly one configuration change: Custom, target 100,000, rate 6.717, and 0% vanilla XP. Existing XP remained 117. |
+| Future-only award | Pass | Population subsequently rose from 5 to 7. The mod queued 13 XP (`2 × 6.717`, floored with 0.434 carried), moving XP from 117 to 130 with no vanilla contribution. |
 
 ## Remaining Phase 3 exit checks
 
-- Verify partial text input remains staged until Apply custom rules is clicked.
-- Verify the atomic rate change affects future population only.
 - Remove the production package and confirm the save remains loadable.
