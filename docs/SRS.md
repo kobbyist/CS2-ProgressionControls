@@ -1,8 +1,8 @@
 # Progression Controls — Software Requirements Specification
 
 **Status:** MVP draft
-**Version:** 0.3
-**Date:** 2026-07-23
+**Version:** 0.4
+**Date:** 2026-07-26
 **Game:** Cities: Skylines II
 **Verified build:** 1.6.0f1
 **Support policy:** Latest public game version at build and release time
@@ -19,16 +19,14 @@ player:
 
 - award configurable XP for population growth;
 - scale all vanilla XP from 0% to 100%;
-- use population as the dominant or sole progression source; and
-- see how the active rules affect the city.
+- use population as the dominant or sole progression source.
 
 The MVP changes only how XP is earned. It does not change the 20 vanilla
 milestones, XP thresholds, rewards, development points, loan limits, or unlocks.
 
 [City Watchdog](https://github.com/River-Mochi/CS2-CityWatchdog) is a design
-reference for simple settings, compact live status, localization, and safe
-game-native behavior. Progression Controls is an original implementation and
-does not depend on City Watchdog.
+reference for simple settings, clear explanations, localization, and safe
+game-native behavior. Progression Controls is an original implementation.
 
 ## 2. MVP Behavior
 
@@ -99,8 +97,6 @@ There are no per-city settings, saved user profiles, imports, or exports.
 | Vanilla XP multiplier | Advanced integer slider that stages vanilla XP scaling from 0% to 100% |
 | Apply custom rules | Validates and atomically applies the three staged XP rule values |
 | Population update responsiveness | Advanced dropdown controlling 16 to 16,384 observations per in-game day; defaults to 4,096 |
-| Show status widget | Shows or hides the in-game widget |
-| Reset widget position | Returns the widget to a visible default location |
 | Restore defaults | Restores the Population Heavy defaults |
 
 Built-in presets are immutable:
@@ -115,23 +111,7 @@ Applying an advanced-rule edit changes the displayed selection to **Custom**.
 Partially typed or otherwise unsubmitted values never change the running
 configuration.
 
-## 4. In-Game Widget
-
-The MVP includes a compact read-only widget. Configuration remains in Options.
-
-The widget shows:
-
-- whether custom progression is active;
-- current population;
-- historical maximum population;
-- population remaining before XP earning resumes after a decline; and
-- the most recent population XP award.
-
-The widget is visible by default, draggable, and remembers one global position.
-It can be hidden without disabling progression. It must recover to the visible
-viewport after resolution or UI-scale changes.
-
-## 5. Save and Removal Safety
+## 4. Save and Removal Safety
 
 - The mod must not serialize custom components or required mod data into the
   city save.
@@ -160,7 +140,7 @@ The MVP does not detect or arbitrate conflicts with other XP or milestone mods.
 Compatibility is the user’s responsibility, and support testing may require
 disabling competing progression mods.
 
-## 6. Functional Requirements
+## 5. Functional Requirements
 
 | ID | Requirement |
 | --- | --- |
@@ -175,18 +155,16 @@ disabling competing progression mods.
 | FR-09 | The three built-in presets shall be available as defined above. |
 | FR-10 | Invalid or non-finite settings shall be rejected or replaced with safe defaults. |
 | FR-11 | Vanilla milestone thresholds, rewards, tiers, and unlocks shall remain unchanged. |
-| FR-12 | The compact widget shall provide the status fields defined above. |
-| FR-13 | The city save shall not require Progression Controls to load. |
-| FR-14 | All player-facing text shall use localization keys. |
-| FR-15 | Advanced controls shall offer validated population observation cadences from 16 to 16,384 per in-game day, defaulting to 4,096. |
+| FR-12 | The city save shall not require Progression Controls to load. |
+| FR-13 | All player-facing text shall use localization keys. |
+| FR-14 | Advanced controls shall offer validated population observation cadences from 16 to 16,384 per in-game day, defaulting to 4,096. |
 
-## 7. Quality Requirements
+## 6. Quality Requirements
 
 - **Performance:** Population evaluation runs outside UI rendering at the
   selected validated cadence. The maximum cadence matches the vanilla city
   population aggregation interval of 16 simulation frames; it never polls
-  faster than new aggregate data can become available. Widget bindings update
-  only when values change or at a bounded presentation cadence.
+  faster than new aggregate data can become available.
 - **Determinism:** Identical observations and settings produce identical XP,
   including fractional accumulation.
 - **Testability:** Population rules, target/rate conversion, validation, and
@@ -198,10 +176,10 @@ disabling competing progression mods.
   application without per-frame noise.
 - **Localization:** Version 1 ships in English, with all text structured for
   later translation.
-- **Cleanup:** Systems, settings, bindings, UI hooks, event subscriptions,
-  localization sources, and patches are unregistered or disposed on unload.
+- **Cleanup:** Systems, settings, event subscriptions, localization sources, and
+  patches are unregistered or disposed on unload.
 
-## 8. Architecture and Verified Game Boundaries
+## 7. Architecture and Verified Game Boundaries
 
 The implementation consists of:
 
@@ -213,7 +191,6 @@ The implementation consists of:
    scaling on a controlled cadence.
 4. **Settings/state adapter** — global Options settings and minimal external
    state when necessary.
-5. **UI bridge** — normalized read-only state for the React/TypeScript widget.
 
 Local 1.6.0f1 assembly verification confirms:
 
@@ -236,7 +213,7 @@ contains the exact signatures and assembly hashes.
 Runtime implementation must determine whether Vanilla XP can be scaled through
 a registered game system or requires a narrowly isolated Harmony patch.
 
-## 9. Post-MVP Roadmap
+## 8. Post-MVP Roadmap
 
 The first expansion should add individual controls for the game’s existing
 vanilla XP reasons.
@@ -253,7 +230,7 @@ Later candidates include new outcome-based factors such as:
 Total-population milestone target mode may also be added after the MVP
 population-growth model is stable.
 
-## 10. Out of Scope for MVP
+## 9. Out of Scope for MVP
 
 - Changing milestone thresholds, rewards, tiers, or unlock contents
 - XP or milestone regression
@@ -262,8 +239,9 @@ population-growth model is stable.
 - User-authored formulas or scripting
 - Automatic conflict detection
 - Automatic balancing based on player behavior
+- A custom in-game widget or overlay
 
-## 11. Acceptance
+## 10. Acceptance
 
 The MVP is ready when:
 
@@ -275,7 +253,6 @@ The MVP is ready when:
 - vanilla, unlimited-money, and unlock-all modes are exercised;
 - milestone rewards and unlocks remain game-native;
 - small- and large-city performance is measured;
-- the widget is verified at supported resolutions and UI scales;
 - local builds install and unload cleanly; and
 - the Paradox Mods package contains the required metadata, license, localization,
   and assets.

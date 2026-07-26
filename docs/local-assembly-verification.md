@@ -152,34 +152,10 @@ verified from the installed `Game.dll` metadata:
 
 ### Public pattern evidence
 
-The
-[stock UI template at commit `1d7c741d14e61c6e2e55b720d61f39a85a56f87f`](https://github.com/CitiesSkylinesModding/StockModTemplatesDiffer/tree/1d7c741d14e61c6e2e55b720d61f39a85a56f87f)
-from 2026-06-24 was reviewed under the Unlicense for the React 18, TypeScript
-4.8, webpack 5, CSS-module, ES-module output, and
-`moduleRegistry.append("Game", ...)` build pattern.
-
 [City Watchdog at commit `c77cbd4ed8498c063a233a91486a72c9d5772f0f`](https://github.com/River-Mochi/CS2-CityWatchdog/tree/c77cbd4ed8498c063a233a91486a72c9d5772f0f)
-from 2026-07-18 was reviewed as MIT-licensed pattern evidence for a bounded CS2
-system, `MilestoneData` queries, value bindings, trigger bindings, and
-Gameface-safe drag event handling. No source code or visual design was copied.
-Exact C# signatures and behavior above were verified against the installed
-1.6.0f1 assemblies.
-
-### `Colossal.IO.AssetDatabase.UIModuleAsset`
-
-- Status: verified after the first two widget discovery tests
-- `UIModuleAsset.kExtension` is exactly `.mjs`; ordinary `.js` bundles are not
-  registered as UI modules.
-- An `.mjs` bundle becomes a UI module only when its leading block comment
-  contains the exact `Cities: Skylines II UI Module` marker followed by `Id`,
-  `Author`, `Version`, and `Dependencies` metadata.
-- `Game.Modding.ModManager.InitializeUIModules` queries `UIModuleAsset` records,
-  registers their directories under the `ui-mods` host, and sends each
-  `couiPath` to the UI's active-module binding.
-- `mod.json` is useful build metadata but does not make an unmarked JavaScript
-  file discoverable.
-- The production webpack configuration preserves the required module banner
-  through minification.
+was reviewed as MIT-licensed pattern evidence for a bounded CS2 system querying
+`MilestoneData`. No source code was copied. Exact signatures and behavior above
+were verified against the installed 1.6.0f1 assemblies.
 
 ### `Game.Simulation.XPReason`
 

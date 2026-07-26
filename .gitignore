@@ -5,5 +5,3 @@ Library/
 *.user
 *.suo
 artifacts/
-node_modules/
-npm-debug.log*

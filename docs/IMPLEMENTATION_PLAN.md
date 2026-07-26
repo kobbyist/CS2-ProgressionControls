@@ -6,8 +6,8 @@
 
 ## Guiding Order
 
-Build the highest-risk game integration first, then the testable rules, then UI
-and packaging. Do not build the complete widget or settings surface until XP
+Build the highest-risk game integration first, then the testable rules, then
+settings and packaging. Do not build the complete settings surface until XP
 scaling and population XP can be proven in-game.
 
 ## Phase 0 — XP Feasibility Spike
@@ -61,7 +61,6 @@ accepted.
 - `src/ProgressionControls.Core` — pure progression rules
 - `src/ProgressionControls` — CS2 entrypoint, systems, settings, adapters
 - `tests/ProgressionControls.Core.Tests` — domain unit tests
-- `ui/` — React, TypeScript, and SCSS widget
 - `docs/` — SRS, implementation plan, verification, and decisions
 
 Use the current local CS2 toolchain template as the source of truth for target
@@ -149,8 +148,6 @@ invalid inputs, and large XP totals. Phase 2 is complete.
 - Vanilla XP multiplier; default 25%
 - Advanced population update responsiveness; 16 to 16,384 observations per
   in-game day, default 4,096
-- Widget visibility
-- Reset widget position
 - Restore defaults
 
 The progression-rule controls are implemented with immutable preset selection,
@@ -162,8 +159,7 @@ their Apply custom rules action are hidden until the player enables advanced
 options. Manual edits remain staged so partial text input cannot change the
 running city. Applying validates all three rule values together, normalizes the
 preset to Custom, restores the active safe configuration when invalid, and
-establishes a prospective population baseline. Widget controls remain Phase 4
-work.
+establishes a prospective population baseline.
 
 ### State
 
@@ -195,44 +191,7 @@ have passed on 1.6.0f1. See
 [phase-3-runtime-checklist.md](./phase-3-runtime-checklist.md). The remaining
 exit checks are listed there.
 
-## Phase 4 — Compact Widget
-
-Implementation status: the locally verified C# binding bridge, React widget,
-saved drag position, viewport clamping, localization, and integrated production
-build are complete. In-game visual and interaction checks remain; see
-[phase-4-runtime-checklist.md](./phase-4-runtime-checklist.md).
-
-### C# binding model
-
-Expose only normalized values:
-
-- enabled state;
-- current population;
-- historical maximum population;
-- population required to resume earning;
-- most recent population XP award; and
-- widget visibility and position.
-
-### React UI
-
-- Compact read-only Gameface widget
-- Visible by default
-- Draggable with a global saved position
-- Viewport clamping after resolution or UI-scale changes
-- Styling through CSS modules
-- English localization through CS2 localization APIs
-
-Do not query ECS or calculate progression rules from React render code.
-
-### Exit gate
-
-- Widget updates without visible polling jitter.
-- Dragging does not interfere with normal game controls.
-- Hidden widget adds no ongoing UI work.
-- Reset position recovers an off-screen widget.
-- Supported resolutions and UI scales pass visual checks.
-
-## Phase 5 — Verification and Release
+## Phase 4 — Verification and Release
 
 ### In-game matrix
 
@@ -268,10 +227,9 @@ runs, saves, reloads, and uninstalls cleanly on the latest public game build.
 | Vanilla maximum-population semantics change under scaling | Use minimal external per-city state |
 | Fractional XP duplicates after reload | Persist remainder atomically and test reload boundaries |
 | Game update changes XP types or order | Re-run local verification and block release until retested |
-| Widget causes render or binding overhead | Push normalized values only when changed |
 | Competing progression mods alter the same pipeline | Document as unsupported; do not arbitrate in MVP |
 
 ## Immediate Next Task
 
-Complete the remaining Phase 3 runtime exit checks, then begin the compact
-read-only widget.
+Complete the remaining Phase 3 runtime exit checks, then run the Phase 4
+verification and release matrix.
