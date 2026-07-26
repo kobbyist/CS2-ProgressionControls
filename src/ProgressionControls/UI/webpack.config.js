@@ -78,7 +78,7 @@ module.exports = {
   },
   output: {
     path: outputPath,
-    filename: "[name].js",
+    filename: "[name].mjs",
     library: {
       type: "module"
     },

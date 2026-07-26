@@ -167,8 +167,10 @@ Exact C# signatures and behavior above were verified against the installed
 
 ### `Colossal.IO.AssetDatabase.UIModuleAsset`
 
-- Status: verified after the first widget discovery test
-- A JavaScript bundle becomes a UI module only when its leading block comment
+- Status: verified after the first two widget discovery tests
+- `UIModuleAsset.kExtension` is exactly `.mjs`; ordinary `.js` bundles are not
+  registered as UI modules.
+- An `.mjs` bundle becomes a UI module only when its leading block comment
   contains the exact `Cities: Skylines II UI Module` marker followed by `Id`,
   `Author`, `Version`, and `Dependencies` metadata.
 - `Game.Modding.ModManager.InitializeUIModules` queries `UIModuleAsset` records,
