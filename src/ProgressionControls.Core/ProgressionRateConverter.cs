@@ -23,6 +23,11 @@ namespace Kobbyist.ProgressionControls.Core
             try
             {
                 var target = (decimal)populationTarget;
+                if (target <= 0m)
+                {
+                    return false;
+                }
+
                 var rate = megalopolisXpRequirement / target;
                 if (!IsValidRate(rate))
                 {
@@ -33,6 +38,10 @@ namespace Kobbyist.ProgressionControls.Core
                 return true;
             }
             catch (OverflowException)
+            {
+                return false;
+            }
+            catch (DivideByZeroException)
             {
                 return false;
             }
@@ -62,6 +71,11 @@ namespace Kobbyist.ProgressionControls.Core
                 populationTarget = 0m;
                 return false;
             }
+            catch (DivideByZeroException)
+            {
+                populationTarget = 0m;
+                return false;
+            }
         }
 
         public static bool TryConvertRate(
@@ -79,6 +93,11 @@ namespace Kobbyist.ProgressionControls.Core
             try
             {
                 var rate = (decimal)xpPerResident;
+                if (xpPerResident > 0d && rate == 0m)
+                {
+                    return false;
+                }
+
                 if (!IsValidRate(rate))
                 {
                     return false;

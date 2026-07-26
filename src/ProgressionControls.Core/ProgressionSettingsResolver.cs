@@ -81,8 +81,7 @@ namespace Kobbyist.ProgressionControls.Core
 
     public static class ProgressionSettingsResolver
     {
-        private const NumberStyles NumericStyles =
-            NumberStyles.Float | NumberStyles.AllowThousands;
+        private const NumberStyles NumericStyles = NumberStyles.Float;
 
         public static bool TryResolveInitial(
             ProgressionSettingsState requested,

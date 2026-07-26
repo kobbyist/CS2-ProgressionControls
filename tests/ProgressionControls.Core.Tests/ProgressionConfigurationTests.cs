@@ -169,6 +169,21 @@ public sealed class ProgressionConfigurationTests
                 out _));
     }
 
+    [DataTestMethod]
+    [DataRow(1e-28d)]
+    [DataRow(1e-29d)]
+    [DataRow(double.Epsilon)]
+    public void TinyPositiveTargetsAreRejectedWithoutThrowing(
+        double target)
+    {
+        Assert.IsFalse(
+            ProgressionRateConverter.TryRateFromTarget(
+                MegalopolisXp,
+                target,
+                out var rate));
+        Assert.AreEqual(0m, rate);
+    }
+
     [TestMethod]
     public void TinyRateTargetOverflowIsRejected()
     {
@@ -181,5 +196,15 @@ public sealed class ProgressionConfigurationTests
                 MegalopolisXp,
                 tinyRate,
                 out _));
+    }
+
+    [TestMethod]
+    public void PositiveRateBelowDecimalPrecisionIsRejected()
+    {
+        Assert.IsFalse(
+            ProgressionRateConverter.TryConvertRate(
+                1e-29d,
+                out var rate));
+        Assert.AreEqual(0m, rate);
     }
 }

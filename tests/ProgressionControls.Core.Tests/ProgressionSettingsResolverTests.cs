@@ -276,6 +276,126 @@ public sealed class ProgressionSettingsResolverTests
                 out _));
     }
 
+    [DataTestMethod]
+    [DataRow("0,5")]
+    [DataRow("1,5")]
+    [DataRow("1,234")]
+    public void AmbiguousRateSeparatorsAreRejected(string text)
+    {
+        var previous = DefaultState();
+        ProgressionConfiguration.TryFromPreset(
+            ProgressionPreset.PopulationHeavy,
+            MegalopolisXp,
+            out var current);
+        var requested = State(
+            previous.Preset,
+            previous.PopulationXpEnabled,
+            rate: text,
+            previous.MegalopolisPopulationTarget,
+            previous.VanillaXpPercentage,
+            PopulationRateInputMode.XpPerResident);
+
+        Assert.IsFalse(
+            ProgressionSettingsResolver.TryResolveChange(
+                previous,
+                requested,
+                current,
+                MegalopolisXp,
+                out _,
+                out _));
+    }
+
+    [DataTestMethod]
+    [DataRow("0,5")]
+    [DataRow("1,5")]
+    [DataRow("1,234")]
+    public void AmbiguousTargetSeparatorsAreRejected(string text)
+    {
+        var previous = DefaultState();
+        ProgressionConfiguration.TryFromPreset(
+            ProgressionPreset.PopulationHeavy,
+            MegalopolisXp,
+            out var current);
+        var requested = State(
+            previous.Preset,
+            previous.PopulationXpEnabled,
+            previous.XpPerResident,
+            target: text,
+            previous.VanillaXpPercentage,
+            PopulationRateInputMode.MegalopolisTarget);
+
+        Assert.IsFalse(
+            ProgressionSettingsResolver.TryResolveChange(
+                previous,
+                requested,
+                current,
+                MegalopolisXp,
+                out _,
+                out _));
+    }
+
+    [TestMethod]
+    public void PeriodDecimalRateIsAccepted()
+    {
+        var previous = DefaultState();
+        ProgressionConfiguration.TryFromPreset(
+            ProgressionPreset.PopulationHeavy,
+            MegalopolisXp,
+            out var current);
+        var requested = State(
+            previous.Preset,
+            previous.PopulationXpEnabled,
+            rate: "0.5",
+            previous.MegalopolisPopulationTarget,
+            previous.VanillaXpPercentage,
+            PopulationRateInputMode.XpPerResident);
+
+        Assert.IsTrue(
+            ProgressionSettingsResolver.TryResolveChange(
+                previous,
+                requested,
+                current,
+                MegalopolisXp,
+                out var configuration,
+                out _));
+        Assert.AreEqual(0.5m, configuration.XpPerResident);
+    }
+
+    [DataTestMethod]
+    [DataRow("2e5")]
+    [DataRow("1e-28")]
+    [DataRow("1e-29")]
+    public void ScientificTargetNotationIsHandledWithoutThrowing(
+        string text)
+    {
+        var previous = DefaultState();
+        ProgressionConfiguration.TryFromPreset(
+            ProgressionPreset.PopulationHeavy,
+            MegalopolisXp,
+            out var current);
+        var requested = State(
+            previous.Preset,
+            previous.PopulationXpEnabled,
+            previous.XpPerResident,
+            target: text,
+            previous.VanillaXpPercentage,
+            PopulationRateInputMode.MegalopolisTarget);
+
+        var resolved = ProgressionSettingsResolver.TryResolveChange(
+            previous,
+            requested,
+            current,
+            MegalopolisXp,
+            out var configuration,
+            out _);
+
+        Assert.AreEqual(text == "2e5", resolved);
+        if (resolved)
+        {
+            Assert.AreEqual(0.5m, configuration.XpPerResident);
+        }
+    }
+
     [TestMethod]
     public void InvalidPersistedCustomValuesAreRejected()
     {
