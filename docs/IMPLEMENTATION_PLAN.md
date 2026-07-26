@@ -197,6 +197,11 @@ exit checks are listed there.
 
 ## Phase 4 — Compact Widget
 
+Implementation status: the locally verified C# binding bridge, React widget,
+saved drag position, viewport clamping, localization, and integrated production
+build are complete. In-game visual and interaction checks remain; see
+[phase-4-runtime-checklist.md](./phase-4-runtime-checklist.md).
+
 ### C# binding model
 
 Expose only normalized values:

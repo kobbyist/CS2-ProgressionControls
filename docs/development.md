@@ -6,6 +6,8 @@
 - Unity 2022.3.62f2, matching the current local toolchain
 - .NET SDK 8 for compilation
 - .NET 6 runtime for the Colossal mod post-processor
+- Node.js 18 or newer
+- npm
 
 The matching Unity editor already supplies a usable .NET 6 runtime at:
 
@@ -20,6 +22,10 @@ $env:DOTNET_ROOT = 'C:\Program Files\Unity 2022.3.62f2\Editor\Data\NetCoreRuntim
 $env:DOTNET_MULTILEVEL_LOOKUP = '0'
 dotnet build .\src\ProgressionControls\ProgressionControls.csproj --configuration Release
 ```
+
+The first full build restores the locked UI dependencies with `npm ci`.
+Every full build then bundles the React widget and copies its JavaScript, CSS,
+and `mod.json` into the same local mod directory as the processed assemblies.
 
 The official CS2 targets post-process the production assembly and deploy it to:
 

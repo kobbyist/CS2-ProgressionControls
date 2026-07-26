@@ -64,4 +64,24 @@
     <None Include="$(ModTargetsFile)" Link="Properties\Mod.targets" />
   </ItemGroup>
 
+  <Target Name="NpmInstallIfNeeded"
+          AfterTargets="Build"
+          Condition="Exists('$(ProjectDir)UI\package-lock.json') AND '$(ModPublisherCommand)' != 'Update'"
+          Inputs="$(ProjectDir)UI\package-lock.json"
+          Outputs="$(ProjectDir)UI\node_modules\.install-stamp">
+    <Message Text="$(AssemblyName) UI: restoring npm dependencies" Importance="high" />
+    <Exec Command="npm ci" WorkingDirectory="$(ProjectDir)UI" />
+    <WriteLinesToFile File="$(ProjectDir)UI\node_modules\.install-stamp"
+                      Lines="installed"
+                      Overwrite="true" />
+  </Target>
+
+  <Target Name="BuildUI"
+          AfterTargets="Build"
+          DependsOnTargets="NpmInstallIfNeeded"
+          Condition="Exists('$(ProjectDir)UI\package.json') AND '$(ModPublisherCommand)' != 'Update'">
+    <Message Text="$(AssemblyName) UI: building widget bundle" Importance="high" />
+    <Exec Command="npm run build" WorkingDirectory="$(ProjectDir)UI" />
+  </Target>
+
 </Project>
