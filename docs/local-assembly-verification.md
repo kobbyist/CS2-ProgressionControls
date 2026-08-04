@@ -149,6 +149,10 @@ verified from the installed `Game.dll` metadata:
 - `SettingsUISliderAttribute` supports `min`, `max`, `step`, `unit`,
   `scalarMultiplier`, `scaleDragVolume`, and `updateOnDragEnd`; the installed
   game uses it with both `System.Int32` and `System.Single` properties.
+- `SettingsUICustomFormatAttribute` exposes `fractionDigits`,
+  `separateThousands`, `maxValueWithFraction`, and `signed`. Its constructor
+  defaults `fractionDigits` to zero, so float sliders require an explicit
+  precision attribute when their displayed values include fractional steps.
 
 ### Vanilla population XP reference
 

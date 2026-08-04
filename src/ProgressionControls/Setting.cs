@@ -63,6 +63,7 @@ namespace Kobbyist.ProgressionControls
             max = 10f,
             step = 0.25f,
             scalarMultiplier = 1f)]
+        [SettingsUICustomFormat(fractionDigits = 2)]
         [SettingsUISection(kSection, kRulesGroup)]
         [SettingsUIAdvanced]
         public float XpPerResident
