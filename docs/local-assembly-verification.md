@@ -139,20 +139,32 @@ and written only after the save succeeds.
 - Changing cadence affects only observation latency and batch size. It does not
   reset the population record, fractional XP, or total earned XP.
 
-### Options UI input metadata
+### Options UI slider metadata
 
 The official
 [Options UI guide](https://cs2.paradoxwikis.com/Options_UI) was consulted on
 2026-07-25 for the public settings pattern. Exact 1.6.0f1 behavior was then
 verified from the installed `Game.dll` metadata:
 
-- `SettingsUITextInputAttribute` has a parameterless constructor.
-- `Game.UI.Menu.AutomaticSettings.GetWidgetType` selects the text-input widget
-  only for readable and writable `System.String` properties carrying that
-  attribute.
 - `SettingsUISliderAttribute` supports `min`, `max`, `step`, `unit`,
   `scalarMultiplier`, `scaleDragVolume`, and `updateOnDragEnd`; the installed
   game uses it with both `System.Int32` and `System.Single` properties.
+
+### Vanilla population XP reference
+
+Public discovery used the
+[PrefabDumpMax repository](https://github.com/CitiesSkylinesModding/PrefabDumpMax)
+as provisional prefab evidence. Its 1.3.6f1 game-parameter dump reports
+`m_XPPerPopulation = 48`. No repository license was detected, so no source or
+content was copied into this project.
+
+Local 1.6.0f1 metadata and IL remain authoritative for the implementation:
+
+- `XPAccumulationSystem` divides population XP across
+  `kUpdatesPerDay = 32` update slots and floors each individual gain.
+- The nominal population rate is therefore `48 / 32 = 1.5` XP per new record
+  resident. Vanilla batching can award less for small population changes due
+  to per-update flooring; Progression Controls retains fractional XP instead.
 
 ### `Game.Simulation.XPReason`
 

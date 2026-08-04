@@ -34,15 +34,6 @@ $configurationPath = Join-Path `
 $thumbnailPath = Join-Path `
     $projectRoot `
     "Properties\Thumbnail.png"
-$screenshotRelativePaths = @(
-    "Properties/Screenshot-Settings.png"
-)
-$screenshotPaths = @(
-    $screenshotRelativePaths |
-        ForEach-Object {
-            Join-Path $projectRoot $_
-        }
-)
 $localModsPath = [Environment]::GetEnvironmentVariable(
     "CSII_LOCALMODSPATH",
     "User")
@@ -75,7 +66,6 @@ $requiredInputPaths = @(
     $thumbnailPath,
     $contentSourcePath
 )
-$requiredInputPaths += $screenshotPaths
 foreach ($requiredPath in $requiredInputPaths) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
         throw "Required packaging input is missing: $requiredPath"
@@ -123,18 +113,6 @@ foreach ($entry in $requiredMetadata.GetEnumerator()) {
             $entry.Key,
             $entry.Value)
     }
-}
-
-$configuredScreenshots = @(
-    $configuration.Publish.Screenshot |
-        ForEach-Object {
-            Get-PublishValue $_
-        }
-)
-if (($configuredScreenshots -join "`n") -cne
-        ($screenshotRelativePaths -join "`n")) {
-    throw ("Configured screenshots must equal: {0}." -f
-        ($screenshotRelativePaths -join ", "))
 }
 
 foreach ($field in @(
@@ -201,13 +179,6 @@ Copy-Item -LiteralPath $configurationPath -Destination (
     Join-Path $propertiesStage "PublishConfiguration.xml")
 Copy-Item -LiteralPath $thumbnailPath -Destination (
     Join-Path $propertiesStage "Thumbnail.png")
-foreach ($screenshotPath in $screenshotPaths) {
-    Copy-Item `
-        -LiteralPath $screenshotPath `
-        -Destination (Join-Path $propertiesStage (
-            Split-Path -Leaf $screenshotPath))
-}
-
 foreach ($relativePath in $approvedSourceFiles) {
     Copy-Item `
         -LiteralPath (Join-Path $contentSourcePath $relativePath) `

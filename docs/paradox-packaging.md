@@ -34,8 +34,8 @@ The script never invokes ModPublisher. It validates:
 - SHA-256 hashes for every staged input.
 
 It writes an ignored staging directory and ZIP below `artifacts/paradox/`.
-The resulting bundle contains 13 files including metadata, thumbnail, settings
-screenshot, and the checksum manifest. Its PDBs are deliberate diagnostic
+The resulting bundle contains 12 files: nine content files, metadata, the
+thumbnail, and the checksum manifest. Its PDBs are deliberate diagnostic
 symbols. This ZIP is an auditable copy of the publisher inputs, not a substitute
 format accepted by Paradox Mods.
 

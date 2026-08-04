@@ -16,11 +16,11 @@ Progression Controls reshapes milestone XP without replacing the game's mileston
 
 ## Presets
 
-- **Population Balanced:** population XP plus 50% vanilla XP.
-- **Population Heavy:** population XP plus 25% vanilla XP.
-- **Population Only:** population XP with vanilla XP suppressed.
+- **Population Balanced:** 1.5 XP per new record resident plus 50% vanilla XP.
+- **Population Heavy:** 1.5 XP per new record resident plus 25% vanilla XP.
+- **Population Only:** 1.5 XP per new record resident with vanilla XP suppressed.
 
-Show Advanced exposes linked XP-per-resident and projected Megalopolis-target inputs, the vanilla XP multiplier, population update responsiveness, and population XP notification frequency.
+Show Advanced exposes an XP-per-new-resident slider from 0 to 10 in 0.25 increments, the vanilla XP multiplier, population update responsiveness, and population XP notification frequency.
 
 ## Save safety
 
@@ -31,7 +31,6 @@ Progression Controls adds no required components to city saves. Earned XP and mi
 Unlimited Money is supported. Unlock All bypasses milestone progression, so XP changes have no meaningful visible effect. Positive XP from another mod may be scaled when queued before Progression Controls, depending on update order. Other mods that add or intercept XP or replace milestone behavior are unsupported.
   </LongDescription>
   <Thumbnail Value="Properties/Thumbnail.png" />
-  <Screenshot Value="Properties/Screenshot-Settings.png" />
   <Tag Value="Code Mod" />
   <ModVersion Value="0.1.0" />
   <GameVersion Value="1.6.*" />
