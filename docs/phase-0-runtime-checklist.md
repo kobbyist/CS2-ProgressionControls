@@ -1,5 +1,9 @@
 # Phase 0 Runtime Checklist
 
+**Historical evidence:** The disposable spike project was retired after this
+matrix passed and ADR 0001 was accepted. These steps and results document the
+verified discovery process; they are not current development commands.
+
 Use a disposable test city. The explicit injection test permanently adds normal
 base-game XP to the city.
 

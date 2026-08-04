@@ -115,6 +115,6 @@ production integration boundary.
 - Local hashes and signatures:
   [local-assembly-verification.md](../local-assembly-verification.md)
 
-The public repositories are orientation evidence only. The spike implementation
-is original and exact signatures are governed by the locally installed
-assemblies.
+The public repositories are orientation evidence only. The retired spike was
+an original implementation, and exact signatures are governed by the locally
+installed assemblies.
