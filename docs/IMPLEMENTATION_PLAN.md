@@ -31,7 +31,7 @@ scaling and population XP can be proven in-game.
 ### Deliverables
 
 - A minimal local-only spike mod.
-- A short architecture decision record documenting the chosen XP hook.
+- Documentation of the chosen XP hook and discovery evidence.
 - Runtime logs for each verification case.
 - Updated local assembly report if the active game build changes.
 
@@ -51,8 +51,19 @@ mod.
 The runtime spike has satisfied this gate on 1.6.0f1. Queue interception scaled
 vanilla XP at 0%, 25%, and 100%; explicit queue submission triggered native
 milestone rewards; and save/reload behavior is understood. Removing the spike
-also left the save loadable and restored future vanilla XP. ADR 0001 is
-accepted.
+also left the save loadable and restored future vanilla XP. The Harmony-free
+queue boundary is accepted.
+
+Phase 0 used these pinned public references for discovery only:
+
+- the `Game.Simulation.XPSystem` decompiled reference at roadmod commit
+  [`5b49a4fc0c572f2b5133df83083ebb4afe2f76a6`](https://github.com/bworthy89/roadmod/blob/5b49a4fc0c572f2b5133df83083ebb4afe2f76a6/New%20folder/Game.Simulation/XPSystem.cs);
+  and
+- the generated API catalog at Cities-Skylines-2-Modding-Guide commit
+  [`04c14691f4b766cc2cee0595be0b3c56542738be`](https://github.com/ps1ke/Cities-Skylines-2-Modding-Guide/blob/04c14691f4b766cc2cee0595be0b3c56542738be/Game/Simulation/XPSystem.md).
+
+No public source code was reused. Exact signatures and assembly hashes are
+governed by the [local verification report](./local-assembly-verification.md).
 
 ## Phase 1 — Project Scaffold
 
@@ -61,7 +72,7 @@ accepted.
 - `src/ProgressionControls.Core` — pure progression rules
 - `src/ProgressionControls` — CS2 entrypoint, systems, settings, adapters
 - `tests/ProgressionControls.Core.Tests` — domain unit tests
-- `docs/` — SRS, implementation plan, verification, and decisions
+- `docs/` — SRS, implementation plan, verification, and packaging
 
 Use the current local CS2 toolchain template as the source of truth for target
 framework, assembly references, packaging, and local deployment. Keep
