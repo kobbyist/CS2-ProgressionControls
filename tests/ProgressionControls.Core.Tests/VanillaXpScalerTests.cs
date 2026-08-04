@@ -73,10 +73,10 @@ public sealed class VanillaXpScalerTests
         var scaler = new VanillaXpScaler();
 
         scaler.Configure(enabled: true, percentage: -10);
-        Assert.AreEqual(0, scaler.Percentage);
+        Assert.AreEqual(0, scaler.Scale(53));
 
         scaler.Configure(enabled: true, percentage: 110);
-        Assert.AreEqual(100, scaler.Percentage);
+        Assert.AreEqual(53, scaler.Scale(53));
     }
 
     [TestMethod]

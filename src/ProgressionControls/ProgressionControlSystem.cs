@@ -279,7 +279,6 @@ namespace Kobbyist.ProgressionControls
                 PopulationProgressionTracker.TryRestore(
                     persisted.PopulationState,
                     m_Configuration,
-                    customProgressionEnabled,
                     out m_PopulationTracker))
             {
                 m_VanillaXpScaler.Configure(
@@ -321,7 +320,6 @@ namespace Kobbyist.ProgressionControls
                 PopulationProgressionTracker.TryRestore(
                     baselineState,
                     m_Configuration,
-                    customProgressionEnabled,
                     out m_PopulationTracker);
                 m_VanillaXpScaler.Configure(
                     customProgressionEnabled,
@@ -472,8 +470,6 @@ namespace Kobbyist.ProgressionControls
 
             var configurationChanged =
                 configuration.Preset != m_Configuration.Preset ||
-                configuration.PopulationXpEnabled !=
-                    m_Configuration.PopulationXpEnabled ||
                 configuration.XpPerResident !=
                     m_Configuration.XpPerResident ||
                 configuration.VanillaXpPercentage !=
@@ -499,8 +495,6 @@ namespace Kobbyist.ProgressionControls
         {
             return state != null &&
                 settings.AppliedPreset == state.Preset &&
-                settings.AppliedPopulationXpEnabled ==
-                    state.PopulationXpEnabled &&
                 string.Equals(
                     settings.AppliedXpPerResident,
                     state.XpPerResident,
@@ -520,7 +514,6 @@ namespace Kobbyist.ProgressionControls
         {
             return new ProgressionSettingsState(
                 settings.AppliedPreset,
-                settings.AppliedPopulationXpEnabled,
                 settings.AppliedXpPerResident,
                 settings.AppliedMegalopolisPopulationTarget,
                 settings.AppliedVanillaXpPercentage,
@@ -532,7 +525,6 @@ namespace Kobbyist.ProgressionControls
         {
             return new ProgressionSettingsState(
                 settings.Preset,
-                settings.PopulationXpEnabled,
                 settings.XpPerResident,
                 settings.MegalopolisPopulationTarget,
                 settings.VanillaXpPercentage,
@@ -603,7 +595,6 @@ namespace Kobbyist.ProgressionControls
                     .m_Population;
             var result = m_PopulationTracker.Observe(
                 currentPopulation,
-                customProgressionEnabled: true,
                 m_Configuration);
 
             if (!result.Accepted)

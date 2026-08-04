@@ -112,9 +112,6 @@ namespace Kobbyist.ProgressionControls
         public ProgressionPreset AppliedPreset { get; set; }
 
         [SettingsUIHidden]
-        public bool AppliedPopulationXpEnabled { get; set; }
-
-        [SettingsUIHidden]
         public string AppliedXpPerResident { get; set; }
 
         [SettingsUIHidden]
@@ -124,11 +121,11 @@ namespace Kobbyist.ProgressionControls
         public int AppliedVanillaXpPercentage { get; set; }
 
         [SettingsUIHidden]
-        public PopulationRateInputMode
-            AppliedPopulationRateInputMode { get; set; }
-
-        [SettingsUIHidden]
-        public bool PopulationXpEnabled { get; set; }
+        public PopulationRateInputMode AppliedPopulationRateInputMode
+        {
+            get;
+            set;
+        }
 
         [SettingsUIHidden]
         public PopulationRateInputMode PopulationRateInputMode { get; set; }
@@ -223,8 +220,6 @@ namespace Kobbyist.ProgressionControls
                     target,
                     System.StringComparison.Ordinal) ||
                 AppliedPreset != preset ||
-                AppliedPopulationXpEnabled !=
-                    configuration.PopulationXpEnabled ||
                 !string.Equals(
                     AppliedXpPerResident,
                     rate,
@@ -239,8 +234,6 @@ namespace Kobbyist.ProgressionControls
                     PopulationRateInputMode.MegalopolisTarget ||
                 VanillaXpPercentage !=
                     configuration.VanillaXpPercentage ||
-                PopulationXpEnabled !=
-                    configuration.PopulationXpEnabled ||
                 PopulationRateInputMode !=
                     PopulationRateInputMode.MegalopolisTarget;
 
@@ -250,16 +243,12 @@ namespace Kobbyist.ProgressionControls
             m_MegalopolisPopulationTarget = target;
             VanillaXpPercentage =
                 configuration.VanillaXpPercentage;
-            PopulationXpEnabled =
-                configuration.PopulationXpEnabled;
             PopulationRateInputMode =
                 PopulationRateInputMode.MegalopolisTarget;
             AppliedXpPerResident = rate;
             AppliedMegalopolisPopulationTarget = target;
             AppliedVanillaXpPercentage =
                 configuration.VanillaXpPercentage;
-            AppliedPopulationXpEnabled =
-                configuration.PopulationXpEnabled;
             AppliedPopulationRateInputMode =
                 PopulationRateInputMode.MegalopolisTarget;
             return changed;
@@ -270,8 +259,6 @@ namespace Kobbyist.ProgressionControls
         {
             var changed =
                 m_Preset != normalized.Preset ||
-                PopulationXpEnabled !=
-                    normalized.PopulationXpEnabled ||
                 !string.Equals(
                     m_XpPerResident,
                     normalized.XpPerResident,
@@ -284,8 +271,6 @@ namespace Kobbyist.ProgressionControls
                     normalized.VanillaXpPercentage ||
                 PopulationRateInputMode != normalized.RateInputMode ||
                 AppliedPreset != normalized.Preset ||
-                AppliedPopulationXpEnabled !=
-                    normalized.PopulationXpEnabled ||
                 !string.Equals(
                     AppliedXpPerResident,
                     normalized.XpPerResident,
@@ -300,15 +285,12 @@ namespace Kobbyist.ProgressionControls
                     normalized.RateInputMode;
 
             m_Preset = normalized.Preset;
-            PopulationXpEnabled = normalized.PopulationXpEnabled;
             m_XpPerResident = normalized.XpPerResident;
             m_MegalopolisPopulationTarget =
                 normalized.MegalopolisPopulationTarget;
             VanillaXpPercentage = normalized.VanillaXpPercentage;
             PopulationRateInputMode = normalized.RateInputMode;
             AppliedPreset = normalized.Preset;
-            AppliedPopulationXpEnabled =
-                normalized.PopulationXpEnabled;
             AppliedXpPerResident = normalized.XpPerResident;
             AppliedMegalopolisPopulationTarget =
                 normalized.MegalopolisPopulationTarget;

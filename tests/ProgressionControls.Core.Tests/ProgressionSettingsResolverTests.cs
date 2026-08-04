@@ -12,7 +12,6 @@ public sealed class ProgressionSettingsResolverTests
     {
         var requested = State(
             ProgressionPreset.PopulationHeavy,
-            populationXpEnabled: false,
             rate: "999",
             target: "12",
             vanillaXpPercentage: 80,
@@ -28,7 +27,6 @@ public sealed class ProgressionSettingsResolverTests
         Assert.AreEqual(
             ProgressionPreset.PopulationHeavy,
             configuration.Preset);
-        Assert.IsTrue(normalized.PopulationXpEnabled);
         Assert.AreEqual("0.5", normalized.XpPerResident);
         Assert.AreEqual(
             "200000",
@@ -44,7 +42,6 @@ public sealed class ProgressionSettingsResolverTests
     {
         var requested = State(
             ProgressionPreset.Custom,
-            populationXpEnabled: true,
             rate: "999",
             target: "250000",
             vanillaXpPercentage: 10,
@@ -75,7 +72,6 @@ public sealed class ProgressionSettingsResolverTests
             out var current);
         var requested = State(
             previous.Preset,
-            previous.PopulationXpEnabled,
             rate: "2",
             previous.MegalopolisPopulationTarget,
             previous.VanillaXpPercentage,
@@ -91,7 +87,6 @@ public sealed class ProgressionSettingsResolverTests
                 out var normalized));
 
         Assert.AreEqual(ProgressionPreset.Custom, configuration.Preset);
-        Assert.IsTrue(configuration.PopulationXpEnabled);
         Assert.AreEqual(2m, configuration.XpPerResident);
         Assert.AreEqual(
             "50000",
@@ -111,7 +106,6 @@ public sealed class ProgressionSettingsResolverTests
             out var current);
         var requested = State(
             previous.Preset,
-            previous.PopulationXpEnabled,
             previous.XpPerResident,
             target: "400000",
             previous.VanillaXpPercentage,
@@ -143,7 +137,6 @@ public sealed class ProgressionSettingsResolverTests
             out var current);
         var targetLast = State(
             previous.Preset,
-            previous.PopulationXpEnabled,
             rate: "2",
             target: "400000",
             previous.VanillaXpPercentage,
@@ -160,7 +153,6 @@ public sealed class ProgressionSettingsResolverTests
 
         var rateLast = State(
             previous.Preset,
-            previous.PopulationXpEnabled,
             rate: "2",
             target: "400000",
             previous.VanillaXpPercentage,
@@ -196,7 +188,6 @@ public sealed class ProgressionSettingsResolverTests
             PopulationRateInputMode.MegalopolisTarget);
         var requested = State(
             previous.Preset,
-            previous.PopulationXpEnabled,
             previous.XpPerResident,
             previous.MegalopolisPopulationTarget,
             vanillaXpPercentage: 40,
@@ -214,7 +205,6 @@ public sealed class ProgressionSettingsResolverTests
         Assert.AreEqual(ProgressionPreset.Custom, configuration.Preset);
         Assert.AreEqual(0.5m, configuration.XpPerResident);
         Assert.AreEqual(40, configuration.VanillaXpPercentage);
-        Assert.IsTrue(configuration.PopulationXpEnabled);
         Assert.AreEqual(40, normalized.VanillaXpPercentage);
     }
 
@@ -228,7 +218,6 @@ public sealed class ProgressionSettingsResolverTests
             out var current);
         var requested = State(
             ProgressionPreset.PopulationOnly,
-            previous.PopulationXpEnabled,
             previous.XpPerResident,
             previous.MegalopolisPopulationTarget,
             previous.VanillaXpPercentage,
@@ -260,7 +249,6 @@ public sealed class ProgressionSettingsResolverTests
             out var current);
         var requested = State(
             previous.Preset,
-            previous.PopulationXpEnabled,
             rate: "not-a-number",
             previous.MegalopolisPopulationTarget,
             previous.VanillaXpPercentage,
@@ -289,7 +277,6 @@ public sealed class ProgressionSettingsResolverTests
             out var current);
         var requested = State(
             previous.Preset,
-            previous.PopulationXpEnabled,
             rate: text,
             previous.MegalopolisPopulationTarget,
             previous.VanillaXpPercentage,
@@ -318,7 +305,6 @@ public sealed class ProgressionSettingsResolverTests
             out var current);
         var requested = State(
             previous.Preset,
-            previous.PopulationXpEnabled,
             previous.XpPerResident,
             target: text,
             previous.VanillaXpPercentage,
@@ -344,7 +330,6 @@ public sealed class ProgressionSettingsResolverTests
             out var current);
         var requested = State(
             previous.Preset,
-            previous.PopulationXpEnabled,
             rate: "0.5",
             previous.MegalopolisPopulationTarget,
             previous.VanillaXpPercentage,
@@ -375,7 +360,6 @@ public sealed class ProgressionSettingsResolverTests
             out var current);
         var requested = State(
             previous.Preset,
-            previous.PopulationXpEnabled,
             previous.XpPerResident,
             target: text,
             previous.VanillaXpPercentage,
@@ -401,7 +385,6 @@ public sealed class ProgressionSettingsResolverTests
     {
         var requested = State(
             ProgressionPreset.Custom,
-            populationXpEnabled: true,
             rate: "2",
             target: "0",
             vanillaXpPercentage: 25,
@@ -425,7 +408,6 @@ public sealed class ProgressionSettingsResolverTests
             out var current);
         var requested = State(
             previous.Preset,
-            previous.PopulationXpEnabled,
             rate: "0",
             previous.MegalopolisPopulationTarget,
             previous.VanillaXpPercentage,
@@ -463,7 +445,6 @@ public sealed class ProgressionSettingsResolverTests
 
     private static ProgressionSettingsState State(
         ProgressionPreset preset,
-        bool populationXpEnabled,
         string rate,
         string target,
         int vanillaXpPercentage,
@@ -471,7 +452,6 @@ public sealed class ProgressionSettingsResolverTests
     {
         return new ProgressionSettingsState(
             preset,
-            populationXpEnabled,
             rate,
             target,
             vanillaXpPercentage,

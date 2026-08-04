@@ -22,7 +22,6 @@ public sealed class ProgressionConfigurationTests
                 out var configuration));
 
         Assert.AreEqual(preset, configuration.Preset);
-        Assert.IsTrue(configuration.PopulationXpEnabled);
         Assert.AreEqual(
             vanillaXpPercentage,
             configuration.VanillaXpPercentage);
@@ -30,15 +29,11 @@ public sealed class ProgressionConfigurationTests
     }
 
     [TestMethod]
-    public void ManualEditChangesPresetToCustom()
+    public void CustomConfigurationUsesCustomPreset()
     {
-        ProgressionConfiguration.TryFromPreset(
-            ProgressionPreset.PopulationHeavy,
-            MegalopolisXp,
-            out var preset);
-
         Assert.IsTrue(
-            preset.TryWithVanillaXpPercentage(
+            ProgressionConfiguration.TryCreateCustom(
+                0.5d,
                 10,
                 out var custom));
 
@@ -49,15 +44,10 @@ public sealed class ProgressionConfigurationTests
     [TestMethod]
     public void TargetAndRateRoundTrip()
     {
-        ProgressionConfiguration.TryFromPreset(
-            ProgressionPreset.PopulationHeavy,
-            MegalopolisXp,
-            out var preset);
-
         Assert.IsTrue(
-            preset.TryWithMegalopolisTarget(
-                MegalopolisXp,
-                250000d,
+            ProgressionConfiguration.TryCreateCustom(
+                0.4d,
+                25,
                 out var custom));
         Assert.AreEqual(0.4m, custom.XpPerResident);
         Assert.IsTrue(
@@ -72,13 +62,11 @@ public sealed class ProgressionConfigurationTests
     {
         Assert.IsTrue(
             ProgressionConfiguration.TryCreateCustom(
-                true,
                 0.5d,
                 0,
                 out _));
         Assert.IsTrue(
             ProgressionConfiguration.TryCreateCustom(
-                true,
                 0.5d,
                 100,
                 out _));
@@ -93,7 +81,6 @@ public sealed class ProgressionConfigurationTests
     {
         Assert.IsFalse(
             ProgressionConfiguration.TryCreateCustom(
-                true,
                 rate,
                 25,
                 out _));
@@ -104,7 +91,6 @@ public sealed class ProgressionConfigurationTests
     {
         Assert.IsTrue(
             ProgressionConfiguration.TryCreateCustom(
-                true,
                 0d,
                 25,
                 out var configuration));
@@ -119,13 +105,11 @@ public sealed class ProgressionConfigurationTests
     {
         Assert.IsTrue(
             ProgressionConfiguration.TryCreateCustom(
-                true,
                 (double)int.MaxValue,
                 25,
                 out _));
         Assert.IsFalse(
             ProgressionConfiguration.TryCreateCustom(
-                true,
                 (double)int.MaxValue + 1d,
                 25,
                 out _));
@@ -138,7 +122,6 @@ public sealed class ProgressionConfigurationTests
     {
         Assert.IsFalse(
             ProgressionConfiguration.TryCreateCustom(
-                true,
                 0.5d,
                 percentage,
                 out _));

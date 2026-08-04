@@ -14,14 +14,12 @@ namespace Kobbyist.ProgressionControls.Core
     {
         public ProgressionSettingsState(
             ProgressionPreset preset,
-            bool populationXpEnabled,
             string xpPerResident,
             string megalopolisPopulationTarget,
             int vanillaXpPercentage,
             PopulationRateInputMode rateInputMode)
         {
             Preset = preset;
-            PopulationXpEnabled = populationXpEnabled;
             XpPerResident = xpPerResident ?? string.Empty;
             MegalopolisPopulationTarget =
                 megalopolisPopulationTarget ?? string.Empty;
@@ -30,8 +28,6 @@ namespace Kobbyist.ProgressionControls.Core
         }
 
         public ProgressionPreset Preset { get; }
-
-        public bool PopulationXpEnabled { get; }
 
         public string XpPerResident { get; }
 
@@ -45,7 +41,6 @@ namespace Kobbyist.ProgressionControls.Core
         {
             return other != null &&
                 Preset == other.Preset &&
-                PopulationXpEnabled == other.PopulationXpEnabled &&
                 string.Equals(
                     XpPerResident,
                     other.XpPerResident,
@@ -68,7 +63,6 @@ namespace Kobbyist.ProgressionControls.Core
             unchecked
             {
                 var hash = (int)Preset;
-                hash = hash * 397 ^ PopulationXpEnabled.GetHashCode();
                 hash = hash * 397 ^ XpPerResident.GetHashCode();
                 hash = hash * 397 ^
                     MegalopolisPopulationTarget.GetHashCode();
@@ -183,7 +177,6 @@ namespace Kobbyist.ProgressionControls.Core
                     requested.XpPerResident,
                     out var rate) ||
                     !ProgressionConfiguration.TryCreateCustom(
-                        populationXpEnabled: true,
                         rate,
                         requested.VanillaXpPercentage,
                         out configuration))
@@ -208,7 +201,6 @@ namespace Kobbyist.ProgressionControls.Core
                         target,
                         out var rate) ||
                     !ProgressionConfiguration.TryCreateCustom(
-                        populationXpEnabled: true,
                         (double)rate,
                         requested.VanillaXpPercentage,
                         out configuration))
@@ -227,26 +219,6 @@ namespace Kobbyist.ProgressionControls.Core
                 previous.VanillaXpPercentage)
             {
                 if (!ProgressionConfiguration.TryCreateCustom(
-                    populationXpEnabled: true,
-                    (double)currentConfiguration.XpPerResident,
-                    requested.VanillaXpPercentage,
-                    out configuration))
-                {
-                    return false;
-                }
-
-                normalized = Normalize(
-                    configuration,
-                    megalopolisXpRequirement,
-                    previous.RateInputMode);
-                return true;
-            }
-
-            if (requested.PopulationXpEnabled !=
-                previous.PopulationXpEnabled)
-            {
-                if (!ProgressionConfiguration.TryCreateCustom(
-                    requested.PopulationXpEnabled,
                     (double)currentConfiguration.XpPerResident,
                     requested.VanillaXpPercentage,
                     out configuration))
@@ -294,7 +266,6 @@ namespace Kobbyist.ProgressionControls.Core
 
             return new ProgressionSettingsState(
                 configuration.Preset,
-                configuration.PopulationXpEnabled,
                 configuration.XpPerResident.ToString(
                     "G29",
                     CultureInfo.InvariantCulture),
@@ -322,7 +293,6 @@ namespace Kobbyist.ProgressionControls.Core
                         requested.XpPerResident,
                         out var rate) &&
                     ProgressionConfiguration.TryCreateCustom(
-                        requested.PopulationXpEnabled,
                         rate,
                         requested.VanillaXpPercentage,
                         out configuration);
@@ -342,7 +312,6 @@ namespace Kobbyist.ProgressionControls.Core
             }
 
             return ProgressionConfiguration.TryCreateCustom(
-                requested.PopulationXpEnabled,
                 (double)targetRate,
                 requested.VanillaXpPercentage,
                 out configuration);

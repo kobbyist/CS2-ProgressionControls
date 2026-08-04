@@ -10,10 +10,6 @@ namespace Kobbyist.ProgressionControls.Core
         private int m_Percentage = 100;
         private int m_RemainderHundredths;
 
-        public bool Enabled => m_Enabled;
-
-        public int Percentage => m_Percentage;
-
         public int RemainderHundredths => m_RemainderHundredths;
 
         public bool Configure(bool enabled, int percentage)
@@ -57,11 +53,6 @@ namespace Kobbyist.ProgressionControls.Core
 
             m_RemainderHundredths = remainderHundredths;
             return true;
-        }
-
-        public void Reset()
-        {
-            m_RemainderHundredths = 0;
         }
     }
 }

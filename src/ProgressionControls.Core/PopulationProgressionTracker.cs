@@ -56,7 +56,6 @@ namespace Kobbyist.ProgressionControls.Core
     public sealed class PopulationProgressionTracker
     {
         private bool m_Initialized;
-        private bool m_PreviousPopulationXpActive;
         private bool m_HasConfiguredRate;
         private int m_MaximumPopulation;
         private decimal m_FractionalXp;
@@ -71,7 +70,6 @@ namespace Kobbyist.ProgressionControls.Core
         public static bool TryRestore(
             PopulationProgressionState state,
             ProgressionConfiguration configuration,
-            bool customProgressionEnabled,
             out PopulationProgressionTracker tracker)
         {
             tracker = null;
@@ -89,9 +87,6 @@ namespace Kobbyist.ProgressionControls.Core
                 m_FractionalXp = state.FractionalXp,
                 m_HasConfiguredRate = true,
                 m_ConfiguredRate = configuration.XpPerResident,
-                m_PreviousPopulationXpActive =
-                    customProgressionEnabled &&
-                    configuration.PopulationXpEnabled,
             };
             return true;
         }
@@ -129,8 +124,6 @@ namespace Kobbyist.ProgressionControls.Core
             m_FractionalXp = 0m;
             m_ConfiguredRate = configuration.XpPerResident;
             m_HasConfiguredRate = true;
-            m_PreviousPopulationXpActive =
-                configuration.PopulationXpEnabled;
 
             return Accepted(
                 establishedBaseline: true,
@@ -141,7 +134,6 @@ namespace Kobbyist.ProgressionControls.Core
 
         public PopulationObservationResult Observe(
             int currentPopulation,
-            bool customProgressionEnabled,
             ProgressionConfiguration configuration)
         {
             if (currentPopulation < 0 || configuration == null)
@@ -149,16 +141,11 @@ namespace Kobbyist.ProgressionControls.Core
                 return Rejected();
             }
 
-            var populationXpActive =
-                customProgressionEnabled &&
-                configuration.PopulationXpEnabled;
-
             if (!m_Initialized)
             {
                 EstablishBaseline(
                     currentPopulation,
-                    configuration.XpPerResident,
-                    populationXpActive);
+                    configuration.XpPerResident);
                 return Accepted(
                     establishedBaseline: true,
                     awardedXp: 0,
@@ -169,14 +156,11 @@ namespace Kobbyist.ProgressionControls.Core
             var rateChanged =
                 !m_HasConfiguredRate ||
                 m_ConfiguredRate != configuration.XpPerResident;
-            var activeChanged =
-                m_PreviousPopulationXpActive != populationXpActive;
 
-            if (rateChanged || activeChanged)
+            if (rateChanged)
             {
                 m_ConfiguredRate = configuration.XpPerResident;
                 m_HasConfiguredRate = true;
-                m_PreviousPopulationXpActive = populationXpActive;
                 m_FractionalXp = 0m;
                 m_MaximumPopulation = Math.Max(
                     m_MaximumPopulation,
@@ -184,18 +168,6 @@ namespace Kobbyist.ProgressionControls.Core
 
                 return Accepted(
                     establishedBaseline: true,
-                    awardedXp: 0,
-                    newRecordDelta: 0,
-                    currentPopulation);
-            }
-
-            if (!populationXpActive)
-            {
-                m_MaximumPopulation = Math.Max(
-                    m_MaximumPopulation,
-                    currentPopulation);
-                return Accepted(
-                    establishedBaseline: false,
                     awardedXp: 0,
                     newRecordDelta: 0,
                     currentPopulation);
@@ -228,15 +200,13 @@ namespace Kobbyist.ProgressionControls.Core
 
         private void EstablishBaseline(
             int currentPopulation,
-            decimal configuredRate,
-            bool populationXpActive)
+            decimal configuredRate)
         {
             m_Initialized = true;
             m_MaximumPopulation = currentPopulation;
             m_FractionalXp = 0m;
             m_ConfiguredRate = configuredRate;
             m_HasConfiguredRate = true;
-            m_PreviousPopulationXpActive = populationXpActive;
         }
 
         private PopulationObservationResult Accepted(
