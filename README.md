@@ -89,7 +89,6 @@ is stored outside the city save and keyed to the exact save checkpoint.
 - [Paradox Mods packaging](./docs/paradox-packaging.md)
 - [Software requirements](./docs/SRS.md)
 - [Implementation plan](./docs/IMPLEMENTATION_PLAN.md)
-- [Runtime verification](./docs/phase-4-runtime-checklist.md)
 - [Local assembly verification](./docs/local-assembly-verification.md)
 
 ## License

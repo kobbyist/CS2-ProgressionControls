@@ -25,9 +25,10 @@ The official CS2 targets post-process the production assembly and deploy it to:
 
 `%CSII_LOCALMODSPATH%\Kobbyist.ProgressionControls`
 
-The retired Phase 0 spike is preserved through its ADR and runtime checklist,
-not as a second deployable project. The production mod is the repository's only
-build target that references the CS2 toolchain.
+The retired Phase 0 spike is preserved through its ADR and the summarized
+evidence in the implementation plan, not as a second deployable project. The
+production mod is the repository's only build target that references the CS2
+toolchain.
 
 ## Compile-only verification
 

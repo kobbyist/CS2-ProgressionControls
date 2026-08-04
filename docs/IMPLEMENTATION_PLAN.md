@@ -190,8 +190,7 @@ the base-game population high-water mark, and the stored mod high-water mark.
 
 All Phase 3 game-integration exit checks pass on 1.6.0f1, including cadence,
 checkpoint restoration, dormant disable and re-enable, new-city behavior,
-atomic custom rules, and clean removal. Evidence is recorded in
-[phase-3-runtime-checklist.md](./phase-3-runtime-checklist.md).
+atomic custom rules, and clean removal.
 
 ## Phase 4 — Verification and Release
 
@@ -234,11 +233,18 @@ runs, saves, reloads, and uninstalls cleanly on the latest public game build.
 
 ## Remaining Release Work
 
-The local 0.1.0 MVP implementation, player documentation, package verification,
-available runtime matrix, and offline Paradox publisher-input staging are
-complete. Late-game coverage remains pending until a suitable save is
-available. The next release step is the focused post-hardening runtime smoke
-defined in `phase-4-runtime-checklist.md`. After that passes, perform a first
-**Private** Paradox Mods upload, followed by installation through Paradox Mods
-and the startup, settings, save, and removal smoke checks. Uploading requires
-separate approval because it authenticates and changes external state.
+The local 0.1.0 MVP implementation, player documentation, 79-test core suite,
+package verification, available runtime matrix, and offline Paradox
+publisher-input staging are complete. Runtime coverage includes new, early-,
+and mid-game cities; every preset; custom rules; save/reload; removal;
+Unlimited Money; Unlock All; notification batching; and clean disable and
+re-enable behavior. A separate late-game save is non-blocking because the
+runtime path has fixed city-size-independent work and the domain suite covers
+large population and XP values.
+
+Before public release, run one focused post-hardening smoke test covering main
+menu startup, invariant invalid numeric input, preset road and population XP,
+disable/re-enable, save/reload, and clean logs. Then make the first **Private**
+Paradox Mods upload and repeat the startup, settings, save, and removal smoke
+checks against the store-installed package. Uploading requires separate
+approval because it authenticates and changes external state.
