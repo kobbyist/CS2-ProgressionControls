@@ -51,14 +51,14 @@ integration checks. Phase 3 evidence remains in
 | Fresh production load | Pass | The rebuilt local package loaded its core and production assemblies once, loaded the generated Windows Burst library, and initialized without a related warning, error, or exception. |
 | Settings restoration | Pass | The Options entry restored Custom, XP per resident 3.3585, Megalopolis target 200,000, vanilla multiplier 100%, and the saved 4,096/day cadence. |
 | Existing-city checkpoint | Pass | The mod restored city `d23a583d9f664625b35450dcec120896` at frame `15451872` and activated the restored configuration without a load-time award. |
+| Population notification control | Pass | The Advanced setting appeared with Regular (16/day) as its default. Switching to Daily (1/day) let population rise from 817 to 821 while XP remained 2,299 and produced no notification. Switching to Frequent (64/day) released one 23-XP notification, crossed the 2,300 milestone, and left 22/3,500 at population 824. |
+| Pending batch checkpoint | Pass | At population 829 and 22/3,500, a manual checkpoint stored `PendingPopulationXp=17` and fractional carry `0.302`. Reload restored the exact batch without a load-time notification or XP change. After two more residents and a change to Frequent, one 107-XP notification released the restored batch plus growth through population 856; XP reached 129/3,500. |
+| Disable flush | Pass | With Daily selected, subsequent growth to population 871 left XP at 129/3,500 with no notification. Disabling custom progression emitted the expected single 51-XP notification, moved XP to 180/3,500, and logged that population observation and interception were dormant. |
+| Batching log audit | Pass | The runtime log confirmed 1/day and 64/day cadence changes, restored `pendingPopulationXp=17`, and contained no Progression Controls warning, error, or exception. No per-award Info messages were emitted. |
 
 ## Remaining release coverage
 
 - Existing late-game city, if a suitable save becomes available.
-- Population XP batching smoke: confirm responsive record detection with
-  Regular (16/day), one combined population XP notification per due window,
-  safe pending-XP restoration after save/reload, immediate frequency changes,
-  and a final pending batch when disabling the mod.
 - Post-hardening runtime smoke: confirm the main menu produces no city
   initialization warning; comma and underflow inputs are rejected without an
   exception; presets still govern road and population XP; disable/re-enable and
