@@ -138,11 +138,11 @@ configuration.
   progression.
 - Disabling or removing the mod requires no save conversion.
 
-The installed game exposes `Game.City.XP.m_MaximumPopulation`. The implementation
-should use this base-game high-water value if runtime testing confirms it remains
-reliable while vanilla XP is scaled.
+The implementation uses the installed game's
+`Game.City.XP.m_MaximumPopulation` as a high-water baseline. Runtime testing
+confirmed that it remains reliable while queued XP is scaled.
 
-If external per-city state is still required, it must be limited to:
+External per-city state is limited to:
 
 - stable city session identifier and serialized simulation frame;
 - maximum observed population;
@@ -195,12 +195,12 @@ disabling competing progression mods.
   Harmony, UI, localization, or filesystem dependencies.
 - **Failure safety:** Missing or invalid game data skips the affected award,
   emits a bounded diagnostic, and never guesses an XP value.
-- **Logging:** Log lifecycle, rejected configuration, adapter failures, and XP
-  application without per-frame noise.
+- **Logging:** Log lifecycle, configuration, save, warning, and error events
+  without per-frame or per-award noise.
 - **Localization:** Version 1 ships in English, with all text structured for
   later translation.
-- **Cleanup:** Systems, settings, event subscriptions, localization sources, and
-  patches are unregistered or disposed on unload.
+- **Cleanup:** Systems, settings, event subscriptions, and localization sources
+  are unregistered or disposed on unload.
 
 ## 7. Architecture and Verified Game Boundaries
 
@@ -212,8 +212,8 @@ The implementation consists of:
    requirements, queued XP events, and XP submission.
 3. **Progression coordinator** — evaluates population and applies configured
    scaling on a controlled cadence.
-4. **Settings/state adapter** — global Options settings and minimal external
-   state when necessary.
+4. **Settings/state adapter** — global Options settings and external
+   save-checkpoint state.
 
 Local 1.6.0f1 assembly verification confirms:
 

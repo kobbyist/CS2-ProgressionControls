@@ -3,6 +3,10 @@
 > Generated from installed assembly metadata without loading or executing game code.
 > This local evidence takes precedence over wiki and public-mod examples for exact signatures.
 
+This versioned report records evidence for a specific game build, not a
+workstation configuration. Installation paths are redacted. Regenerate and
+commit the report whenever the supported game build changes.
+
 - Generated at: `2026-07-23T14:21:32.9100802+00:00`
 - Managed directory: `(redacted; pass -IncludeManagedPath to include it)`
 - Reported CS2 game version: `1.6.0f1`

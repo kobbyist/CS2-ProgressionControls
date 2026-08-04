@@ -1,60 +1,59 @@
-# Progression Controls — Implementation Plan
+# Progression Controls — MVP Delivery Plan
 
-**Source:** [SRS.md](./SRS.md)
-**Current verified game build:** 1.6.0f1
-**Release target:** Latest public CS2 build at release time
+- **Source:** [SRS.md](./SRS.md)
+- **Current verified game build:** 1.6.0f1
+- **Release target:** Latest public CS2 build at release time
+- **Status:** Local 0.1.0 release candidate; Paradox Mods upload not yet performed
 
-## Guiding Order
+## Delivered MVP
 
-Build the highest-risk game integration first, then the testable rules, then
-settings and packaging. Do not build the complete settings surface until XP
-scaling and population XP can be proven in-game.
+The local release candidate implements:
 
-## Phase 0 — XP Feasibility Spike
+- population XP for new all-time population records;
+- deterministic fractional XP accumulation;
+- Population Balanced, Population Heavy, Population Only, and Custom rules;
+- shared-queue XP scaling from 0% to 100%;
+- linked XP-per-resident and projected Megalopolis-target inputs;
+- configurable population observation and XP-notification cadences;
+- prospective settings changes with atomic custom-rule validation;
+- save-checkpoint-aware external state without required city-save components;
+- dormant disable behavior and safe re-enable baselining;
+- English localization and game-native Options UI; and
+- exact publisher-content validation and offline audit staging.
 
-### Goals
+The MVP has no Harmony patch, custom widget or overlay, required save
+component, settings migration layer, or dependency on another mod.
 
-1. Confirm the runtime behavior and update ordering of the locally verified
-   `Game.Simulation.XPSystem`, which owns the `NativeQueue<XPGain>` and
-   `NativeQueue<XPMessage>`.
-2. Determine whether vanilla XP can be scaled through `XPSystem.GetQueue`,
-   registered writer dependencies, or another supported system boundary.
-3. If not, identify the narrowest stable Harmony patch point.
-4. Confirm how `Game.City.XP.m_MaximumPopulation` behaves when:
-   - population rises;
-   - population falls and later recovers;
-   - vanilla XP is scaled to zero; and
-   - a city is saved and reloaded.
-5. Confirm that adding XP through the chosen boundary triggers vanilla
-   milestones, rewards, development points, loan limits, and unlocks.
+## Verified architecture
 
-### Deliverables
+### XP queue integration
 
-- A minimal local-only spike mod.
-- Documentation of the chosen XP hook and discovery evidence.
-- Runtime logs for each verification case.
-- Updated local assembly report if the active game build changes.
+One game system runs immediately before `Game.Simulation.XPSystem`. It obtains
+the shared queue through `XPSystem.GetQueue`, completes registered writer
+dependencies, preserves FIFO order and gain metadata, and scales positive gains
+already present in the queue. Earned population XP is appended afterward, so it
+is not scaled again. The base game remains responsible for milestone progress,
+messages, rewards, development points, loan limits, and unlocks.
 
-### Exit gate
+`XPGain` has no producer identity. XP queued by another mod may therefore be
+scaled or left unchanged depending on update order. Other XP and milestone mods
+remain unsupported combinations.
 
-Proceed only when:
+### Population and state
 
-- vanilla XP can be scaled from 0% to 100%;
-- population XP can be submitted without manually implementing milestone
-  rewards;
-- no XP is double-counted; and
-- save/reload behavior is understood.
+The city population component is read at a validated fixed cadence. Population
+XP is awarded only above the greatest known historical record, never removed on
+decline, and released through bounded notification batches.
 
-If the gate fails, revise the affected SRS requirement before building the full
-mod.
+External state is limited to the city session identifier, save simulation
+frame, maximum observed population, fractional XP remainders, and pending
+population XP. It is keyed to the exact save checkpoint and stored outside the
+city save. Missing or invalid state establishes a no-award baseline.
 
-The runtime spike has satisfied this gate on 1.6.0f1. Queue interception scaled
-vanilla XP at 0%, 25%, and 100%; explicit queue submission triggered native
-milestone rewards; and save/reload behavior is understood. Removing the spike
-also left the save loadable and restored future vanilla XP. The Harmony-free
-queue boundary is accepted.
+### Discovery provenance
 
-Phase 0 used these pinned public references for discovery only:
+Initial integration discovery used these pinned public references as
+orientation only:
 
 - the `Game.Simulation.XPSystem` decompiled reference at roadmod commit
   [`5b49a4fc0c572f2b5133df83083ebb4afe2f76a6`](https://github.com/bworthy89/roadmod/blob/5b49a4fc0c572f2b5133df83083ebb4afe2f76a6/New%20folder/Game.Simulation/XPSystem.cs);
@@ -63,199 +62,44 @@ Phase 0 used these pinned public references for discovery only:
   [`04c14691f4b766cc2cee0595be0b3c56542738be`](https://github.com/ps1ke/Cities-Skylines-2-Modding-Guide/blob/04c14691f4b766cc2cee0595be0b3c56542738be/Game/Simulation/XPSystem.md).
 
 No public source code was reused. Exact signatures and assembly hashes are
-governed by the [local verification report](./local-assembly-verification.md).
+governed by the versioned
+[local verification report](./local-assembly-verification.md).
 
-## Phase 1 — Project Scaffold
+## Verification completed
 
-### Structure
+- 79 domain tests pass in Release configuration.
+- The isolated production build completes with zero warnings and errors.
+- Queue scaling is runtime-tested at 0%, 25%, 50%, and 100%.
+- Population growth, decline, recovery, fractional carry, batching, and
+  checkpoint restoration are runtime-tested.
+- New, early-, and mid-game cities establish safe baselines.
+- Disable, re-enable, save, reload, clean removal, and vanilla continuation are
+  runtime-tested.
+- Unlimited Money is supported; Unlock All loads safely but bypasses visible
+  milestone progression.
+- City Watchdog co-loads without conflict and is not a dependency.
+- Large-city applicability is covered by the fixed-work runtime path and large
+  population/XP domain tests.
+- Offline staging validates the exact nine-file publisher payload and creates a
+  12-file audit bundle with metadata, thumbnail, and checksums.
 
-- `src/ProgressionControls.Core` — pure progression rules
-- `src/ProgressionControls` — CS2 entrypoint, systems, settings, adapters
-- `tests/ProgressionControls.Core.Tests` — domain unit tests
-- `docs/` — SRS, implementation plan, verification, and packaging
+## Remaining release work
 
-Use the current local CS2 toolchain template as the source of truth for target
-framework, assembly references, packaging, and local deployment. Keep
-machine-specific paths in ignored local configuration.
+1. Re-run local assembly verification and the isolated Release build against
+   the latest public CS2 build available on release day.
+2. Run one focused runtime smoke covering main-menu startup, invalid invariant
+   numeric input, preset road and population XP, disable/re-enable, save/reload,
+   and clean logs.
+3. With explicit approval, create the first **Private** Paradox Mods listing.
+4. Install the store-hosted package and repeat startup, settings, save, and
+   removal smoke checks before changing its visibility.
 
-### Foundation work
+Publishing is intentionally separate from routine builds because the official
+publisher authenticates and changes external state.
 
-- Add `Kobbyist.ProgressionControls` mod identity.
-- Add MIT license and 2026 kobbyist copyright.
-- Implement `IMod.OnLoad` and `OnDispose`.
-- Add a unique logger.
-- Add English localization keys.
-- Establish local build, deploy, and test commands.
+## Post-MVP candidates
 
-### Exit gate
-
-- Empty mod loads and unloads without errors.
-- Local package is discovered by CS2.
-- Settings and localization register and unregister cleanly.
-
-Verified on 1.6.0f1: the private production package loaded once, exposed its
-localized enabled-by-default setting, and executed `OnDispose` without related
-errors. Phase 1 is complete.
-
-## Phase 2 — Domain Core
-
-Implement without CS2, Unity, ECS, Harmony, UI, or filesystem dependencies.
-
-### Rules
-
-- Historical-maximum population evaluation
-- No XP loss during population decline
-- XP only for population above the previous record
-- Fractional XP accumulation
-- XP-per-resident calculation
-- Megalopolis-target-to-rate conversion
-- Vanilla XP percentage validation
-- Prospective-only settings changes
-
-### Presets
-
-- Population Balanced
-- Population Heavy
-- Population Only
-- Custom state after manual edits
-
-### Tests
-
-- First observation establishes a baseline
-- Growth, decline, recovery, and new record
-- Very small and very large population deltas
-- Fractional remainder over repeated awards
-- Zero and boundary rates
-- Target/rate round trips
-- All preset values
-- Invalid and non-finite values
-
-### Exit gate
-
-All domain tests pass without loading game assemblies.
-
-Verified with 32 passing tests: baseline establishment, record-only awards,
-decline and recovery, fractional restoration, prospective configuration
-changes, presets, linked target/rate conversion, zero and maximum rates,
-invalid inputs, and large XP totals. Phase 2 is complete.
-
-## Phase 3 — Game Integration
-
-### Systems and adapters
-
-- Read current city population on a controlled cadence.
-- Read runtime Megalopolis XP requirement.
-- Read and validate the base-game maximum-population value.
-- Scale vanilla XP using the Phase 0 decision.
-- Submit custom population XP through the verified native boundary.
-- Preserve milestone processing entirely in the base game.
-
-### Settings
-
-- Enable custom progression; default on
-- Preset selector
-- XP per new resident
-- Linked Megalopolis population target
-- Vanilla XP multiplier; default 25%
-- Advanced population update responsiveness; 16 to 16,384 observations per
-  in-game day, default 4,096
-- Advanced population XP notification frequency; 1 to 256 awards per in-game
-  day, default 16
-- Restore defaults
-
-The progression-rule controls are implemented with immutable preset selection,
-linked numeric text inputs for XP per resident and projected population target,
-and an integer 0% to 100% Vanilla XP slider. Presets immediately update their
-source mix, while separate right-panel paragraphs explain each behavior and
-point players to Show Advanced for customization. Individual rule controls and
-their Apply custom rules action are hidden until the player enables advanced
-options. Manual edits remain staged so partial text input cannot change the
-running city. Applying validates all three rule values together, normalizes the
-preset to Custom, restores the active safe configuration when invalid, and
-establishes a prospective population baseline.
-
-### State
-
-Use the base-game maximum-population record as the safe first-run high-water
-baseline. Persist only the stable city session ID, serialized simulation frame,
-maximum observed population, population XP fraction, vanilla-scaling fraction,
-and earned population XP awaiting its next notification batch outside the city
-save. The session ID plus frame identifies the exact save checkpoint, so
-loading an older save cannot consume newer external progression
-state.
-
-After one-time city initialization, disabled mode returns before population
-cadence evaluation or XP queue access and does not capture external
-checkpoints. Re-enabling clears fractional carry
-and establishes a no-award baseline from the greatest of current population,
-the base-game population high-water mark, and the stored mod high-water mark.
-
-### Exit gate
-
-- New and existing cities establish the correct baseline.
-- Disabling restores future vanilla XP behavior.
-- Re-enabling grants no retroactive XP.
-- Rate changes affect future XP only.
-- Save/reload produces no duplicate award.
-- Removing the mod leaves the save loadable.
-
-All Phase 3 game-integration exit checks pass on 1.6.0f1, including cadence,
-checkpoint restoration, dormant disable and re-enable, new-city behavior,
-atomic custom rules, and clean removal.
-
-## Phase 4 — Verification and Release
-
-### In-game matrix
-
-- New city
-- Existing early-, mid-, and late-game cities
-- Population growth, decline, recovery, and new record
-- Disabled, Population Balanced, Population Heavy, Population Only, and Custom
-- Multiplier boundaries: 0%, 25%, 50%, and 100%
-- Enable, disable, and re-enable
-- Save, reload, remove mod, and load without mod
-- Unlimited Money and Unlock All
-- Small-city runtime, city-size-independent update behavior, and large
-  population/XP values
-
-### Release work
-
-- Run unit tests and build verification.
-- Review logs for repeated errors or per-frame noise.
-- Re-run assembly verification against the latest public build.
-- Produce local and Paradox Mods packages.
-- Verify metadata, dependencies, MIT license, localization, and assets.
-- Document competing XP/milestone mods as unsupported combinations.
-
-### Release gate
-
-Release only when the SRS acceptance criteria pass and the package installs,
-runs, saves, reloads, and uninstalls cleanly on the latest public game build.
-
-## Key Risks
-
-| Risk | Response |
-| --- | --- |
-| No supported global XP scaling hook | Use one isolated, documented Harmony patch |
-| Vanilla maximum-population semantics change under scaling | Use minimal external per-city state |
-| Fractional XP duplicates after reload | Persist remainder atomically and test reload boundaries |
-| Game update changes XP types or order | Re-run local verification and block release until retested |
-| Competing progression mods alter the same pipeline | Document as unsupported; do not arbitrate in MVP |
-
-## Remaining Release Work
-
-The local 0.1.0 MVP implementation, player documentation, 79-test core suite,
-package verification, available runtime matrix, and offline Paradox
-publisher-input staging are complete. Runtime coverage includes new, early-,
-and mid-game cities; every preset; custom rules; save/reload; removal;
-Unlimited Money; Unlock All; notification batching; and clean disable and
-re-enable behavior. A separate late-game save is non-blocking because the
-runtime path has fixed city-size-independent work and the domain suite covers
-large population and XP values.
-
-Before public release, run one focused post-hardening smoke test covering main
-menu startup, invariant invalid numeric input, preset road and population XP,
-disable/re-enable, save/reload, and clean logs. Then make the first **Private**
-Paradox Mods upload and repeat the startup, settings, save, and removal smoke
-checks against the store-installed package. Uploading requires separate
-approval because it authenticates and changes external state.
+The first expansion may add individual controls for verified vanilla XP reasons.
+Later candidates include employment, service coverage, traffic and transit,
+pollution, education, healthcare, and housing outcomes. Changes to milestone
+thresholds or rewards remain outside the current design.

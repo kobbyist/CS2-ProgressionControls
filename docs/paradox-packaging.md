@@ -9,7 +9,8 @@ no official offline/package-only command.
 With CS2 closed, build the production project first:
 
 ```powershell
-$env:DOTNET_ROOT = 'C:\Program Files\Unity 2022.3.62f2\Editor\Data\NetCoreRuntime'
+$unityEditorPath = '<matching Unity Editor directory>'
+$env:DOTNET_ROOT = Join-Path $unityEditorPath 'Data\NetCoreRuntime'
 $env:DOTNET_MULTILEVEL_LOOKUP = '0'
 dotnet build .\src\ProgressionControls\ProgressionControls.csproj `
   --configuration Release
