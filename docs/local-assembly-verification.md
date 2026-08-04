@@ -154,13 +154,6 @@ verified from the installed `Game.dll` metadata:
   `scalarMultiplier`, `scaleDragVolume`, and `updateOnDragEnd`; the installed
   game uses it with both `System.Int32` and `System.Single` properties.
 
-### Public pattern evidence
-
-[City Watchdog at commit `c77cbd4ed8498c063a233a91486a72c9d5772f0f`](https://github.com/River-Mochi/CS2-CityWatchdog/tree/c77cbd4ed8498c063a233a91486a72c9d5772f0f)
-was reviewed as MIT-licensed pattern evidence for a bounded CS2 system querying
-`MilestoneData`. No source code was copied. Exact signatures and behavior above
-were verified against the installed 1.6.0f1 assemblies.
-
 ### `Game.Simulation.XPReason`
 
 - Status: found

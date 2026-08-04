@@ -3,9 +3,6 @@
 Progression Controls makes Cities: Skylines II milestone progression slower and
 more population-driven without replacing the game's milestones or rewards.
 
-**Current status:** MVP 0.1.0 release candidate, verified on CS2 1.6.0f1.
-Release builds target the latest public game version available at build time.
-
 ## What it changes
 
 - Awards milestone XP when the city reaches a new all-time population record.
@@ -70,26 +67,6 @@ behavior.
 
 Minimal population-record, fractional-XP, and pending population-XP batch state
 is stored outside the city save and keyed to the exact save checkpoint.
-
-## Compatibility
-
-- **Unlimited Money:** Supported and runtime-tested.
-- **Unlock All:** The mod loads safely, but Unlock All bypasses milestone
-  progression, so milestone XP is unavailable and progression changes have no
-  meaningful visible effect.
-- **City Watchdog:** Co-load smoke-tested; it is not a dependency.
-- **Other XP or milestone mods:** Unsupported. Their positive gains may be
-  scaled when queued before Progression Controls, or remain unscaled when
-  queued afterward. Disable mods that add or intercept XP, rescale milestone
-  progress, or replace milestone behavior before requesting support.
-
-## Development and verification
-
-- [Development commands](./docs/development.md)
-- [Paradox Mods packaging](./docs/paradox-packaging.md)
-- [Software requirements](./docs/SRS.md)
-- [Implementation plan](./docs/IMPLEMENTATION_PLAN.md)
-- [Local assembly verification](./docs/local-assembly-verification.md)
 
 ## License
 
