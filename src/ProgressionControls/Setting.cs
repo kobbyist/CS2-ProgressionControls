@@ -1,4 +1,3 @@
-using System.Globalization;
 using Colossal.IO.AssetDatabase;
 using Game.Modding;
 using Game.Settings;
@@ -35,9 +34,9 @@ namespace Kobbyist.ProgressionControls
         public const string kRulesGroup = "Rules";
         public const string kAdvancedGroup = "Advanced";
 
-        private string m_XpPerResident;
+        private float m_XpPerResident;
         private ProgressionPreset m_Preset;
-        private string m_MegalopolisPopulationTarget;
+        private bool m_ApplyCustomRulesRequested;
 
         public Setting(IMod mod)
             : base(mod)
@@ -59,35 +58,24 @@ namespace Kobbyist.ProgressionControls
             }
         }
 
-        [SettingsUITextInput]
+        [SettingsUISlider(
+            min = 0f,
+            max = 10f,
+            step = 0.25f,
+            scalarMultiplier = 1f)]
         [SettingsUISection(kSection, kRulesGroup)]
         [SettingsUIAdvanced]
-        public string XpPerResident
+        public float XpPerResident
         {
             get => m_XpPerResident;
-            set
-            {
-                m_XpPerResident = value;
-                PopulationRateInputMode =
-                    PopulationRateInputMode.XpPerResident;
-            }
+            set => m_XpPerResident = value;
         }
 
-        [SettingsUITextInput]
-        [SettingsUISection(kSection, kRulesGroup)]
-        [SettingsUIAdvanced]
-        public string MegalopolisPopulationTarget
-        {
-            get => m_MegalopolisPopulationTarget;
-            set
-            {
-                m_MegalopolisPopulationTarget = value;
-                PopulationRateInputMode =
-                    PopulationRateInputMode.MegalopolisTarget;
-            }
-        }
-
-        [SettingsUISlider(min = 0, max = 100, step = 1, scalarMultiplier = 1)]
+        [SettingsUISlider(
+            min = 0,
+            max = 100,
+            step = 1,
+            scalarMultiplier = 1)]
         [SettingsUISection(kSection, kRulesGroup)]
         [SettingsUIAdvanced]
         public int VanillaXpPercentage { get; set; }
@@ -110,41 +98,30 @@ namespace Kobbyist.ProgressionControls
         public ProgressionPreset AppliedPreset { get; set; }
 
         [SettingsUIHidden]
-        public string AppliedXpPerResident { get; set; }
-
-        [SettingsUIHidden]
-        public string AppliedMegalopolisPopulationTarget { get; set; }
+        public float AppliedXpPerResident { get; set; }
 
         [SettingsUIHidden]
         public int AppliedVanillaXpPercentage { get; set; }
 
-        [SettingsUIHidden]
-        public PopulationRateInputMode AppliedPopulationRateInputMode
+        [SettingsUISection(kSection, kAdvancedGroup)]
+        [SettingsUIAdvanced]
+        public PopulationEvaluationCadence PopulationEvaluationCadence
         {
             get;
             set;
         }
 
-        [SettingsUIHidden]
-        public PopulationRateInputMode PopulationRateInputMode { get; set; }
-
-        [SettingsUIHidden]
-        public int MegalopolisXpRequirement { get; set; }
-
         [SettingsUISection(kSection, kAdvancedGroup)]
         [SettingsUIAdvanced]
-        public PopulationEvaluationCadence PopulationEvaluationCadence { get; set; }
-
-        [SettingsUISection(kSection, kAdvancedGroup)]
-        [SettingsUIAdvanced]
-        public PopulationXpAwardCadence PopulationXpAwardCadence { get; set; }
-
-        private bool m_ApplyCustomRulesRequested;
+        public PopulationXpAwardCadence PopulationXpAwardCadence
+        {
+            get;
+            set;
+        }
 
         public override void SetDefaults()
         {
             EnableCustomProgression = true;
-            MegalopolisXpRequirement = 0;
             Preset = ProgressionPreset.PopulationHeavy;
             PopulationEvaluationCadence =
                 PopulationEvaluationCadence.Responsive;
@@ -165,136 +142,77 @@ namespace Kobbyist.ProgressionControls
 
         internal bool ReapplyPresetRules()
         {
-            return ApplyPresetRules(Preset);
-        }
-
-        internal bool SetMegalopolisXpRequirement(int requirement)
-        {
-            if (requirement <= 0 ||
-                requirement == MegalopolisXpRequirement)
+            if (Preset != ProgressionPreset.Custom)
             {
-                return false;
+                return ApplyPresetRules(Preset);
             }
 
-            MegalopolisXpRequirement = requirement;
-            ApplyPresetRules(Preset);
-            return true;
+            var requested = new ProgressionSettingsState(
+                ProgressionPreset.Custom,
+                AppliedXpPerResident,
+                AppliedVanillaXpPercentage);
+            if (ProgressionSettingsResolver.TryResolveInitial(
+                requested,
+                out _,
+                out var normalized))
+            {
+                return ApplyResolvedRules(normalized);
+            }
+
+            return ApplyPresetRules(ProgressionPreset.PopulationHeavy);
         }
 
         private bool ApplyPresetRules(ProgressionPreset preset)
         {
-            if (preset == ProgressionPreset.Custom)
-            {
-                return false;
-            }
-
-            var effectiveRequirement =
-                MegalopolisXpRequirement > 0
-                    ? MegalopolisXpRequirement
-                    : 1;
             if (!ProgressionConfiguration.TryFromPreset(
                 preset,
-                effectiveRequirement,
                 out var configuration))
             {
                 return false;
             }
 
-            var rate = MegalopolisXpRequirement > 0
-                ? configuration.XpPerResident.ToString(
-                    "G29",
-                    CultureInfo.InvariantCulture)
-                : string.Empty;
-            var target = ProgressionConfiguration
-                .DefaultMegalopolisPopulationTarget
-                .ToString(CultureInfo.InvariantCulture);
+            var rate = (float)configuration.XpPerResident;
             var changed =
-                !string.Equals(
-                    m_XpPerResident,
-                    rate,
-                    System.StringComparison.Ordinal) ||
-                !string.Equals(
-                    m_MegalopolisPopulationTarget,
-                    target,
-                    System.StringComparison.Ordinal) ||
+                m_XpPerResident != rate ||
                 AppliedPreset != preset ||
-                !string.Equals(
-                    AppliedXpPerResident,
-                    rate,
-                    System.StringComparison.Ordinal) ||
-                !string.Equals(
-                    AppliedMegalopolisPopulationTarget,
-                    target,
-                    System.StringComparison.Ordinal) ||
+                AppliedXpPerResident != rate ||
                 AppliedVanillaXpPercentage !=
                     configuration.VanillaXpPercentage ||
-                AppliedPopulationRateInputMode !=
-                    PopulationRateInputMode.MegalopolisTarget ||
                 VanillaXpPercentage !=
-                    configuration.VanillaXpPercentage ||
-                PopulationRateInputMode !=
-                    PopulationRateInputMode.MegalopolisTarget;
+                    configuration.VanillaXpPercentage;
 
             m_Preset = preset;
             AppliedPreset = preset;
             m_XpPerResident = rate;
-            m_MegalopolisPopulationTarget = target;
             VanillaXpPercentage =
                 configuration.VanillaXpPercentage;
-            PopulationRateInputMode =
-                PopulationRateInputMode.MegalopolisTarget;
             AppliedXpPerResident = rate;
-            AppliedMegalopolisPopulationTarget = target;
             AppliedVanillaXpPercentage =
                 configuration.VanillaXpPercentage;
-            AppliedPopulationRateInputMode =
-                PopulationRateInputMode.MegalopolisTarget;
             return changed;
         }
 
         internal bool ApplyResolvedRules(
             ProgressionSettingsState normalized)
         {
+            var rate = (float)normalized.XpPerResident;
             var changed =
                 m_Preset != normalized.Preset ||
-                !string.Equals(
-                    m_XpPerResident,
-                    normalized.XpPerResident,
-                    System.StringComparison.Ordinal) ||
-                !string.Equals(
-                    m_MegalopolisPopulationTarget,
-                    normalized.MegalopolisPopulationTarget,
-                    System.StringComparison.Ordinal) ||
+                m_XpPerResident != rate ||
                 VanillaXpPercentage !=
                     normalized.VanillaXpPercentage ||
-                PopulationRateInputMode != normalized.RateInputMode ||
                 AppliedPreset != normalized.Preset ||
-                !string.Equals(
-                    AppliedXpPerResident,
-                    normalized.XpPerResident,
-                    System.StringComparison.Ordinal) ||
-                !string.Equals(
-                    AppliedMegalopolisPopulationTarget,
-                    normalized.MegalopolisPopulationTarget,
-                    System.StringComparison.Ordinal) ||
+                AppliedXpPerResident != rate ||
                 AppliedVanillaXpPercentage !=
-                    normalized.VanillaXpPercentage ||
-                AppliedPopulationRateInputMode !=
-                    normalized.RateInputMode;
+                    normalized.VanillaXpPercentage;
 
             m_Preset = normalized.Preset;
-            m_XpPerResident = normalized.XpPerResident;
-            m_MegalopolisPopulationTarget =
-                normalized.MegalopolisPopulationTarget;
+            m_XpPerResident = rate;
             VanillaXpPercentage = normalized.VanillaXpPercentage;
-            PopulationRateInputMode = normalized.RateInputMode;
             AppliedPreset = normalized.Preset;
-            AppliedXpPerResident = normalized.XpPerResident;
-            AppliedMegalopolisPopulationTarget =
-                normalized.MegalopolisPopulationTarget;
+            AppliedXpPerResident = rate;
             AppliedVanillaXpPercentage =
                 normalized.VanillaXpPercentage;
-            AppliedPopulationRateInputMode = normalized.RateInputMode;
             return changed;
         }
     }

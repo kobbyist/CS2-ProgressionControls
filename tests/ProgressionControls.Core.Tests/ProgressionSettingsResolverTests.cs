@@ -5,456 +5,194 @@ namespace ProgressionControls.Core.Tests;
 [TestClass]
 public sealed class ProgressionSettingsResolverTests
 {
-    private const int MegalopolisXp = 100000;
-
     [TestMethod]
-    public void BuiltInPresetOverridesStalePersistedValues()
+    public void BuiltInPresetOverridesPersistedRuleValues()
     {
         var requested = State(
             ProgressionPreset.PopulationHeavy,
-            rate: "999",
-            target: "12",
-            vanillaXpPercentage: 80,
-            PopulationRateInputMode.XpPerResident);
+            rate: 9.75d,
+            vanillaXpPercentage: 80);
 
         Assert.IsTrue(
             ProgressionSettingsResolver.TryResolveInitial(
                 requested,
-                MegalopolisXp,
                 out var configuration,
                 out var normalized));
 
         Assert.AreEqual(
             ProgressionPreset.PopulationHeavy,
             configuration.Preset);
-        Assert.AreEqual("0.5", normalized.XpPerResident);
-        Assert.AreEqual(
-            "200000",
-            normalized.MegalopolisPopulationTarget);
+        Assert.AreEqual(1.5m, configuration.XpPerResident);
+        Assert.AreEqual(1.5d, normalized.XpPerResident);
         Assert.AreEqual(25, normalized.VanillaXpPercentage);
-        Assert.AreEqual(
-            PopulationRateInputMode.MegalopolisTarget,
-            normalized.RateInputMode);
     }
 
     [TestMethod]
-    public void PersistedCustomTargetRestoresLinkedRate()
+    public void PersistedCustomRulesRestore()
     {
         var requested = State(
             ProgressionPreset.Custom,
-            rate: "999",
-            target: "250000",
-            vanillaXpPercentage: 10,
-            PopulationRateInputMode.MegalopolisTarget);
+            rate: 2.25d,
+            vanillaXpPercentage: 10);
 
         Assert.IsTrue(
             ProgressionSettingsResolver.TryResolveInitial(
                 requested,
-                MegalopolisXp,
                 out var configuration,
                 out var normalized));
 
-        Assert.AreEqual(0.4m, configuration.XpPerResident);
-        Assert.AreEqual("0.4", normalized.XpPerResident);
-        Assert.AreEqual(
-            "250000",
-            normalized.MegalopolisPopulationTarget);
-        Assert.AreEqual(10, configuration.VanillaXpPercentage);
+        Assert.AreEqual(ProgressionPreset.Custom, configuration.Preset);
+        Assert.AreEqual(2.25m, configuration.XpPerResident);
+        Assert.AreEqual(2.25d, normalized.XpPerResident);
+        Assert.AreEqual(10, normalized.VanillaXpPercentage);
     }
 
     [TestMethod]
-    public void RateEditCreatesPopulationEnabledCustomConfiguration()
+    public void InvalidPersistedCustomRulesAreRejected()
+    {
+        Assert.IsFalse(
+            ProgressionSettingsResolver.TryResolveInitial(
+                State(
+                    ProgressionPreset.Custom,
+                    rate: 2.1d,
+                    vanillaXpPercentage: 25),
+                out _,
+                out _));
+    }
+
+    [TestMethod]
+    public void RateEditCreatesCustomConfiguration()
     {
         var previous = DefaultState();
         ProgressionConfiguration.TryFromPreset(
             ProgressionPreset.PopulationHeavy,
-            MegalopolisXp,
             out var current);
         var requested = State(
             previous.Preset,
-            rate: "2",
-            previous.MegalopolisPopulationTarget,
-            previous.VanillaXpPercentage,
-            previous.RateInputMode);
+            rate: 2d,
+            previous.VanillaXpPercentage);
 
         Assert.IsTrue(
             ProgressionSettingsResolver.TryResolveChange(
                 previous,
                 requested,
                 current,
-                MegalopolisXp,
                 out var configuration,
                 out var normalized));
 
         Assert.AreEqual(ProgressionPreset.Custom, configuration.Preset);
         Assert.AreEqual(2m, configuration.XpPerResident);
-        Assert.AreEqual(
-            "50000",
-            normalized.MegalopolisPopulationTarget);
-        Assert.AreEqual(
-            PopulationRateInputMode.XpPerResident,
-            normalized.RateInputMode);
+        Assert.AreEqual(2d, normalized.XpPerResident);
     }
 
     [TestMethod]
-    public void TargetEditCreatesLinkedCustomConfiguration()
+    public void MultiplierEditCreatesCustomAndPreservesRate()
     {
         var previous = DefaultState();
         ProgressionConfiguration.TryFromPreset(
             ProgressionPreset.PopulationHeavy,
-            MegalopolisXp,
             out var current);
         var requested = State(
             previous.Preset,
             previous.XpPerResident,
-            target: "400000",
-            previous.VanillaXpPercentage,
-            previous.RateInputMode);
+            vanillaXpPercentage: 40);
 
         Assert.IsTrue(
             ProgressionSettingsResolver.TryResolveChange(
                 previous,
                 requested,
                 current,
-                MegalopolisXp,
-                out var configuration,
-                out var normalized));
-
-        Assert.AreEqual(0.25m, configuration.XpPerResident);
-        Assert.AreEqual("0.25", normalized.XpPerResident);
-        Assert.AreEqual(
-            PopulationRateInputMode.MegalopolisTarget,
-            normalized.RateInputMode);
-    }
-
-    [TestMethod]
-    public void LastEditedLinkedFieldWinsWhenBothValuesChanged()
-    {
-        var previous = DefaultState();
-        ProgressionConfiguration.TryFromPreset(
-            ProgressionPreset.PopulationHeavy,
-            MegalopolisXp,
-            out var current);
-        var targetLast = State(
-            previous.Preset,
-            rate: "2",
-            target: "400000",
-            previous.VanillaXpPercentage,
-            PopulationRateInputMode.MegalopolisTarget);
-
-        Assert.IsTrue(
-            ProgressionSettingsResolver.TryResolveChange(
-                previous,
-                targetLast,
-                current,
-                MegalopolisXp,
-                out var targetConfiguration,
-                out _));
-
-        var rateLast = State(
-            previous.Preset,
-            rate: "2",
-            target: "400000",
-            previous.VanillaXpPercentage,
-            PopulationRateInputMode.XpPerResident);
-
-        Assert.IsTrue(
-            ProgressionSettingsResolver.TryResolveChange(
-                previous,
-                rateLast,
-                current,
-                MegalopolisXp,
-                out var rateConfiguration,
-                out _));
-
-        Assert.AreEqual(
-            0.25m,
-            targetConfiguration.XpPerResident);
-        Assert.AreEqual(
-            2m,
-            rateConfiguration.XpPerResident);
-    }
-
-    [TestMethod]
-    public void MultiplierEditFromPresetPreservesPopulationRate()
-    {
-        ProgressionConfiguration.TryFromPreset(
-            ProgressionPreset.PopulationOnly,
-            MegalopolisXp,
-            out var current);
-        var previous = ProgressionSettingsResolver.Normalize(
-            current,
-            MegalopolisXp,
-            PopulationRateInputMode.MegalopolisTarget);
-        var requested = State(
-            previous.Preset,
-            previous.XpPerResident,
-            previous.MegalopolisPopulationTarget,
-            vanillaXpPercentage: 40,
-            previous.RateInputMode);
-
-        Assert.IsTrue(
-            ProgressionSettingsResolver.TryResolveChange(
-                previous,
-                requested,
-                current,
-                MegalopolisXp,
                 out var configuration,
                 out var normalized));
 
         Assert.AreEqual(ProgressionPreset.Custom, configuration.Preset);
-        Assert.AreEqual(0.5m, configuration.XpPerResident);
-        Assert.AreEqual(40, configuration.VanillaXpPercentage);
+        Assert.AreEqual(1.5m, configuration.XpPerResident);
         Assert.AreEqual(40, normalized.VanillaXpPercentage);
     }
 
     [TestMethod]
-    public void PresetSelectionAppliesImmutablePresetValues()
+    public void PresetSelectionRestoresPresetRateAndMultiplier()
     {
         var previous = DefaultState();
         ProgressionConfiguration.TryFromPreset(
             ProgressionPreset.PopulationHeavy,
-            MegalopolisXp,
             out var current);
         var requested = State(
             ProgressionPreset.PopulationOnly,
-            previous.XpPerResident,
-            previous.MegalopolisPopulationTarget,
-            previous.VanillaXpPercentage,
-            previous.RateInputMode);
+            rate: 8d,
+            vanillaXpPercentage: 70);
 
         Assert.IsTrue(
             ProgressionSettingsResolver.TryResolveChange(
                 previous,
                 requested,
                 current,
-                MegalopolisXp,
                 out var configuration,
                 out var normalized));
 
         Assert.AreEqual(
             ProgressionPreset.PopulationOnly,
             configuration.Preset);
-        Assert.AreEqual(0, configuration.VanillaXpPercentage);
+        Assert.AreEqual(1.5m, configuration.XpPerResident);
         Assert.AreEqual(0, normalized.VanillaXpPercentage);
     }
 
     [TestMethod]
-    public void InvalidManualRateIsRejected()
+    public void UnchangedRulesPreserveCurrentConfiguration()
     {
         var previous = DefaultState();
         ProgressionConfiguration.TryFromPreset(
             ProgressionPreset.PopulationHeavy,
-            MegalopolisXp,
             out var current);
-        var requested = State(
-            previous.Preset,
-            rate: "not-a-number",
-            previous.MegalopolisPopulationTarget,
-            previous.VanillaXpPercentage,
-            previous.RateInputMode);
-
-        Assert.IsFalse(
-            ProgressionSettingsResolver.TryResolveChange(
-                previous,
-                requested,
-                current,
-                MegalopolisXp,
-                out _,
-                out _));
-    }
-
-    [DataTestMethod]
-    [DataRow("0,5")]
-    [DataRow("1,5")]
-    [DataRow("1,234")]
-    public void AmbiguousRateSeparatorsAreRejected(string text)
-    {
-        var previous = DefaultState();
-        ProgressionConfiguration.TryFromPreset(
-            ProgressionPreset.PopulationHeavy,
-            MegalopolisXp,
-            out var current);
-        var requested = State(
-            previous.Preset,
-            rate: text,
-            previous.MegalopolisPopulationTarget,
-            previous.VanillaXpPercentage,
-            PopulationRateInputMode.XpPerResident);
-
-        Assert.IsFalse(
-            ProgressionSettingsResolver.TryResolveChange(
-                previous,
-                requested,
-                current,
-                MegalopolisXp,
-                out _,
-                out _));
-    }
-
-    [DataTestMethod]
-    [DataRow("0,5")]
-    [DataRow("1,5")]
-    [DataRow("1,234")]
-    public void AmbiguousTargetSeparatorsAreRejected(string text)
-    {
-        var previous = DefaultState();
-        ProgressionConfiguration.TryFromPreset(
-            ProgressionPreset.PopulationHeavy,
-            MegalopolisXp,
-            out var current);
-        var requested = State(
-            previous.Preset,
-            previous.XpPerResident,
-            target: text,
-            previous.VanillaXpPercentage,
-            PopulationRateInputMode.MegalopolisTarget);
-
-        Assert.IsFalse(
-            ProgressionSettingsResolver.TryResolveChange(
-                previous,
-                requested,
-                current,
-                MegalopolisXp,
-                out _,
-                out _));
-    }
-
-    [TestMethod]
-    public void PeriodDecimalRateIsAccepted()
-    {
-        var previous = DefaultState();
-        ProgressionConfiguration.TryFromPreset(
-            ProgressionPreset.PopulationHeavy,
-            MegalopolisXp,
-            out var current);
-        var requested = State(
-            previous.Preset,
-            rate: "0.5",
-            previous.MegalopolisPopulationTarget,
-            previous.VanillaXpPercentage,
-            PopulationRateInputMode.XpPerResident);
 
         Assert.IsTrue(
             ProgressionSettingsResolver.TryResolveChange(
                 previous,
-                requested,
-                current,
-                MegalopolisXp,
-                out var configuration,
-                out _));
-        Assert.AreEqual(0.5m, configuration.XpPerResident);
-    }
-
-    [DataTestMethod]
-    [DataRow("2e5")]
-    [DataRow("1e-28")]
-    [DataRow("1e-29")]
-    public void ScientificTargetNotationIsHandledWithoutThrowing(
-        string text)
-    {
-        var previous = DefaultState();
-        ProgressionConfiguration.TryFromPreset(
-            ProgressionPreset.PopulationHeavy,
-            MegalopolisXp,
-            out var current);
-        var requested = State(
-            previous.Preset,
-            previous.XpPerResident,
-            target: text,
-            previous.VanillaXpPercentage,
-            PopulationRateInputMode.MegalopolisTarget);
-
-        var resolved = ProgressionSettingsResolver.TryResolveChange(
-            previous,
-            requested,
-            current,
-            MegalopolisXp,
-            out var configuration,
-            out _);
-
-        Assert.AreEqual(text == "2e5", resolved);
-        if (resolved)
-        {
-            Assert.AreEqual(0.5m, configuration.XpPerResident);
-        }
-    }
-
-    [TestMethod]
-    public void InvalidPersistedCustomValuesAreRejected()
-    {
-        var requested = State(
-            ProgressionPreset.Custom,
-            rate: "2",
-            target: "0",
-            vanillaXpPercentage: 25,
-            PopulationRateInputMode.MegalopolisTarget);
-
-        Assert.IsFalse(
-            ProgressionSettingsResolver.TryResolveInitial(
-                requested,
-                MegalopolisXp,
-                out _,
-                out _));
-    }
-
-    [TestMethod]
-    public void ZeroRateHasNoProjectedTarget()
-    {
-        var previous = DefaultState();
-        ProgressionConfiguration.TryFromPreset(
-            ProgressionPreset.PopulationHeavy,
-            MegalopolisXp,
-            out var current);
-        var requested = State(
-            previous.Preset,
-            rate: "0",
-            previous.MegalopolisPopulationTarget,
-            previous.VanillaXpPercentage,
-            previous.RateInputMode);
-
-        Assert.IsTrue(
-            ProgressionSettingsResolver.TryResolveChange(
                 previous,
-                requested,
                 current,
-                MegalopolisXp,
                 out var configuration,
                 out var normalized));
 
-        Assert.AreEqual(0m, configuration.XpPerResident);
-        Assert.AreEqual(
-            string.Empty,
-            normalized.MegalopolisPopulationTarget);
-        Assert.AreEqual(
-            PopulationRateInputMode.XpPerResident,
-            normalized.RateInputMode);
+        Assert.AreSame(current, configuration);
+        Assert.IsTrue(previous.Equals(normalized));
+    }
+
+    [DataTestMethod]
+    [DataRow(-0.25d)]
+    [DataRow(10.25d)]
+    [DataRow(1.1d)]
+    public void InvalidRuleChangesAreRejected(double rate)
+    {
+        var previous = DefaultState();
+        ProgressionConfiguration.TryFromPreset(
+            ProgressionPreset.PopulationHeavy,
+            out var current);
+
+        Assert.IsFalse(
+            ProgressionSettingsResolver.TryResolveChange(
+                previous,
+                State(previous.Preset, rate, 25),
+                current,
+                out _,
+                out _));
     }
 
     private static ProgressionSettingsState DefaultState()
     {
         ProgressionConfiguration.TryFromPreset(
             ProgressionPreset.PopulationHeavy,
-            MegalopolisXp,
             out var configuration);
-        return ProgressionSettingsResolver.Normalize(
-            configuration,
-            MegalopolisXp,
-            PopulationRateInputMode.MegalopolisTarget);
+        return ProgressionSettingsResolver.Normalize(configuration);
     }
 
     private static ProgressionSettingsState State(
         ProgressionPreset preset,
-        string rate,
-        string target,
-        int vanillaXpPercentage,
-        PopulationRateInputMode rateInputMode)
+        double rate,
+        int vanillaXpPercentage)
     {
         return new ProgressionSettingsState(
             preset,
             rate,
-            target,
-            vanillaXpPercentage,
-            rateInputMode);
+            vanillaXpPercentage);
     }
 }

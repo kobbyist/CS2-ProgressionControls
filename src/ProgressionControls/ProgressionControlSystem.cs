@@ -5,7 +5,6 @@ using Colossal.PSI.Environment;
 using Colossal.Serialization.Entities;
 using Game;
 using Game.City;
-using Game.Prefabs;
 using Game.PSI;
 using Game.SceneFlow;
 using Game.Simulation;
@@ -38,14 +37,12 @@ namespace Kobbyist.ProgressionControls
         private CitySystem m_CitySystem;
         private SimulationSystem m_SimulationSystem;
         private XPSystem m_XPSystem;
-        private EntityQuery m_MilestoneQuery;
         private ProgressionConfiguration m_Configuration;
         private PopulationProgressionTracker m_PopulationTracker;
         private ProgressionStateStore m_StateStore;
         private ProgressionStateSnapshot m_PendingSaveSnapshot;
         private GameMode m_GameMode;
         private Guid m_CityId;
-        private int m_MegalopolisXpRequirement;
         private int m_PopulationEvaluationInterval;
         private int m_PopulationEvaluationsPerDay;
         private int m_PopulationXpAwardInterval;
@@ -74,8 +71,6 @@ namespace Kobbyist.ProgressionControls
                 World.GetOrCreateSystemManaged<SimulationSystem>();
             m_XPSystem =
                 World.GetOrCreateSystemManaged<XPSystem>();
-            m_MilestoneQuery = GetEntityQuery(
-                ComponentType.ReadOnly<MilestoneData>());
             m_StateStore = new ProgressionStateStore(
                 Path.Combine(
                     EnvPath.kUserDataPath,
@@ -226,24 +221,8 @@ namespace Kobbyist.ProgressionControls
                 return false;
             }
 
-            if (!TryGetMegalopolisXpRequirement(
-                out var megalopolisXpRequirement))
-            {
-                return false;
-            }
-
-            if (settings.SetMegalopolisXpRequirement(
-                megalopolisXpRequirement))
-            {
-                settings.ApplyAndSave();
-            }
-
-            m_MegalopolisXpRequirement =
-                megalopolisXpRequirement;
             var configuration =
-                ResolveInitialConfiguration(
-                    settings,
-                    megalopolisXpRequirement);
+                ResolveInitialConfiguration(settings);
 
             var cityId = Telemetry.GetCurrentSession();
             if (cityId == Guid.Empty)
@@ -354,7 +333,7 @@ namespace Kobbyist.ProgressionControls
             if (customProgressionEnabled)
             {
                 Mod.Log.Info(
-                    $"Progression integration active: preset={m_Configuration.Preset}, target={m_LastSettingsState.MegalopolisPopulationTarget}, rate={m_Configuration.XpPerResident}, vanilla={m_Configuration.VanillaXpPercentage}%, populationChecks={m_PopulationEvaluationsPerDay}/day, populationAwards={m_PopulationXpAwardsPerDay}/day, pendingPopulationXp={m_PopulationXpBatch.PendingXp}");
+                    $"Progression integration active: preset={m_Configuration.Preset}, rate={m_Configuration.XpPerResident}, vanilla={m_Configuration.VanillaXpPercentage}%, populationChecks={m_PopulationEvaluationsPerDay}/day, populationAwards={m_PopulationXpAwardsPerDay}/day, pendingPopulationXp={m_PopulationXpBatch.PendingXp}");
             }
             else
             {
@@ -371,7 +350,6 @@ namespace Kobbyist.ProgressionControls
             m_PopulationTracker = null;
             m_PendingSaveSnapshot = null;
             m_CityId = Guid.Empty;
-            m_MegalopolisXpRequirement = 0;
             m_LastSettingsState = null;
             m_PopulationEvaluationInterval = 0;
             m_PopulationEvaluationsPerDay = 0;
@@ -390,13 +368,11 @@ namespace Kobbyist.ProgressionControls
         }
 
         private ProgressionConfiguration ResolveInitialConfiguration(
-            Setting settings,
-            int megalopolisXpRequirement)
+            Setting settings)
         {
             var requested = ReadAppliedSettingsState(settings);
             if (ProgressionSettingsResolver.TryResolveInitial(
                 requested,
-                megalopolisXpRequirement,
                 out var configuration,
                 out var normalized))
             {
@@ -410,12 +386,9 @@ namespace Kobbyist.ProgressionControls
 
             ProgressionConfiguration.TryFromPreset(
                 ProgressionPreset.PopulationHeavy,
-                megalopolisXpRequirement,
                 out configuration);
             normalized = ProgressionSettingsResolver.Normalize(
-                configuration,
-                megalopolisXpRequirement,
-                PopulationRateInputMode.MegalopolisTarget);
+                configuration);
             ApplyNormalizedSettings(
                 settings,
                 requested,
@@ -450,14 +423,11 @@ namespace Kobbyist.ProgressionControls
                 m_LastSettingsState,
                 requested,
                 m_Configuration,
-                m_MegalopolisXpRequirement,
                 out var configuration,
                 out var normalized))
             {
                 normalized = ProgressionSettingsResolver.Normalize(
-                    m_Configuration,
-                    m_MegalopolisXpRequirement,
-                    m_LastSettingsState.RateInputMode);
+                    m_Configuration);
                 ApplyNormalizedSettings(
                     settings,
                     requested,
@@ -483,7 +453,7 @@ namespace Kobbyist.ProgressionControls
             if (configurationChanged)
             {
                 Mod.Log.Info(
-                    $"Progression settings applied prospectively: preset={configuration.Preset}, target={normalized.MegalopolisPopulationTarget}, rate={configuration.XpPerResident}, vanilla={configuration.VanillaXpPercentage}%");
+                    $"Progression settings applied prospectively: preset={configuration.Preset}, rate={configuration.XpPerResident}, vanilla={configuration.VanillaXpPercentage}%");
             }
 
             return configurationChanged;
@@ -495,18 +465,10 @@ namespace Kobbyist.ProgressionControls
         {
             return state != null &&
                 settings.AppliedPreset == state.Preset &&
-                string.Equals(
-                    settings.AppliedXpPerResident,
-                    state.XpPerResident,
-                    StringComparison.Ordinal) &&
-                string.Equals(
-                    settings.AppliedMegalopolisPopulationTarget,
-                    state.MegalopolisPopulationTarget,
-                    StringComparison.Ordinal) &&
+                settings.AppliedXpPerResident ==
+                    (float)state.XpPerResident &&
                 settings.AppliedVanillaXpPercentage ==
-                    state.VanillaXpPercentage &&
-                settings.AppliedPopulationRateInputMode ==
-                    state.RateInputMode;
+                    state.VanillaXpPercentage;
         }
 
         private static ProgressionSettingsState ReadAppliedSettingsState(
@@ -515,9 +477,7 @@ namespace Kobbyist.ProgressionControls
             return new ProgressionSettingsState(
                 settings.AppliedPreset,
                 settings.AppliedXpPerResident,
-                settings.AppliedMegalopolisPopulationTarget,
-                settings.AppliedVanillaXpPercentage,
-                settings.AppliedPopulationRateInputMode);
+                settings.AppliedVanillaXpPercentage);
         }
 
         private static ProgressionSettingsState ReadDraftSettingsState(
@@ -526,9 +486,7 @@ namespace Kobbyist.ProgressionControls
             return new ProgressionSettingsState(
                 settings.Preset,
                 settings.XpPerResident,
-                settings.MegalopolisPopulationTarget,
-                settings.VanillaXpPercentage,
-                settings.PopulationRateInputMode);
+                settings.VanillaXpPercentage);
         }
 
         private static void ApplyNormalizedSettings(
@@ -548,37 +506,6 @@ namespace Kobbyist.ProgressionControls
                 settings.ApplyResolvedRules(normalized);
             }
             settings.ApplyAndSave();
-        }
-
-        private bool TryGetMegalopolisXpRequirement(
-            out int xpRequirement)
-        {
-            xpRequirement = 0;
-            if (m_MilestoneQuery.IsEmptyIgnoreFilter)
-            {
-                return false;
-            }
-
-            var milestones =
-                m_MilestoneQuery.ToComponentDataArray<MilestoneData>(
-                    Allocator.Temp);
-            try
-            {
-                for (var index = 0;
-                    index < milestones.Length;
-                    index++)
-                {
-                    xpRequirement = Math.Max(
-                        xpRequirement,
-                        milestones[index].m_XpRequried);
-                }
-            }
-            finally
-            {
-                milestones.Dispose();
-            }
-
-            return xpRequirement > 0;
         }
 
         private void EvaluatePopulation()

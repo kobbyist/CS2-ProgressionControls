@@ -1,8 +1,13 @@
+using System;
+
 namespace Kobbyist.ProgressionControls.Core
 {
     public sealed class ProgressionConfiguration
     {
-        public const int DefaultMegalopolisPopulationTarget = 200000;
+        public const decimal MinimumXpPerResident = 0m;
+        public const decimal MaximumXpPerResident = 10m;
+        public const decimal XpPerResidentStep = 0.25m;
+        public const decimal DefaultXpPerResident = 1.5m;
         public const int DefaultVanillaXpPercentage = 25;
 
         private ProgressionConfiguration(
@@ -23,39 +28,29 @@ namespace Kobbyist.ProgressionControls.Core
 
         public static bool TryFromPreset(
             ProgressionPreset preset,
-            int megalopolisXpRequirement,
             out ProgressionConfiguration configuration)
         {
             configuration = null;
-            if (preset == ProgressionPreset.Custom ||
-                !ProgressionRateConverter.TryRateFromTarget(
-                    megalopolisXpRequirement,
-                    DefaultMegalopolisPopulationTarget,
-                    out var rate))
-            {
-                return false;
-            }
-
             switch (preset)
             {
                 case ProgressionPreset.PopulationBalanced:
                     configuration = new ProgressionConfiguration(
                         preset,
-                        rate,
+                        DefaultXpPerResident,
                         vanillaXpPercentage: 50);
                     return true;
 
                 case ProgressionPreset.PopulationHeavy:
                     configuration = new ProgressionConfiguration(
                         preset,
-                        rate,
+                        DefaultXpPerResident,
                         DefaultVanillaXpPercentage);
                     return true;
 
                 case ProgressionPreset.PopulationOnly:
                     configuration = new ProgressionConfiguration(
                         preset,
-                        rate,
+                        DefaultXpPerResident,
                         vanillaXpPercentage: 0);
                     return true;
 
@@ -70,7 +65,7 @@ namespace Kobbyist.ProgressionControls.Core
             out ProgressionConfiguration configuration)
         {
             configuration = null;
-            if (!ProgressionRateConverter.TryConvertRate(
+            if (!TryConvertXpPerResident(
                     xpPerResident,
                     out var rate) ||
                 !IsValidVanillaXpPercentage(vanillaXpPercentage))
@@ -85,14 +80,46 @@ namespace Kobbyist.ProgressionControls.Core
             return true;
         }
 
-        public bool TryGetMegalopolisTarget(
-            int megalopolisXpRequirement,
-            out decimal populationTarget)
+        public static bool TryConvertXpPerResident(
+            double xpPerResident,
+            out decimal validatedRate)
         {
-            return ProgressionRateConverter.TryTargetFromRate(
-                megalopolisXpRequirement,
-                XpPerResident,
-                out populationTarget);
+            validatedRate = 0m;
+            if (double.IsNaN(xpPerResident) ||
+                double.IsInfinity(xpPerResident) ||
+                xpPerResident < (double)MinimumXpPerResident ||
+                xpPerResident > (double)MaximumXpPerResident)
+            {
+                return false;
+            }
+
+            try
+            {
+                var rate = (decimal)xpPerResident;
+                if (xpPerResident > 0d && rate == 0m)
+                {
+                    return false;
+                }
+
+                if (!IsValidXpPerResident(rate))
+                {
+                    return false;
+                }
+
+                validatedRate = rate;
+                return true;
+            }
+            catch (OverflowException)
+            {
+                return false;
+            }
+        }
+
+        public static bool IsValidXpPerResident(decimal xpPerResident)
+        {
+            return xpPerResident >= MinimumXpPerResident &&
+                xpPerResident <= MaximumXpPerResident &&
+                xpPerResident % XpPerResidentStep == 0m;
         }
 
         public static bool IsValidVanillaXpPercentage(int percentage)
