@@ -232,7 +232,7 @@ runs, saves, reloads, and uninstalls cleanly on the latest public game build.
 | Game update changes XP types or order | Re-run local verification and block release until retested |
 | Competing progression mods alter the same pipeline | Document as unsupported; do not arbitrate in MVP |
 
-## Immediate Next Task
+## Remaining Release Work
 
 The local 0.1.0 MVP implementation, player documentation, package verification,
 available runtime matrix, and offline Paradox publisher-input staging are

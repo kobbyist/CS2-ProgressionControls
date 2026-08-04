@@ -3,7 +3,7 @@
 Progression Controls makes Cities: Skylines II milestone progression slower and
 more population-driven without replacing the game's milestones or rewards.
 
-**Current status:** Local MVP 0.1.0, verified on CS2 1.6.0f1. Release builds
+**Current status:** MVP 0.1.0 release candidate, verified on CS2 1.6.0f1. Release builds
 target the latest public game version available at build time.
 
 ## What it changes

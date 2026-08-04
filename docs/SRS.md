@@ -1,7 +1,7 @@
 # Progression Controls — Software Requirements Specification
 
-**Status:** MVP draft
-**Version:** 0.5
+**Status:** MVP release candidate
+**Version:** 1.0
 **Date:** 2026-08-04
 **Game:** Cities: Skylines II
 **Verified build:** 1.6.0f1
