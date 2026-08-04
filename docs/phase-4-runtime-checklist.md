@@ -32,7 +32,7 @@ integration checks. Phase 3 evidence remains in
 | Check | Result | Evidence |
 | --- | --- | --- |
 | Active game version | Pass | `SceneFlow.log` reports game version 1.6.0f1 and Unity 2022.3.71f1. The version was taken from the runtime log rather than the installation-folder name. |
-| Core tests | Pass | Release-mode test run completed with 70 passed, 0 failed, and 0 skipped. |
+| Core tests | Pass | Release-mode test run completed with 80 passed, 0 failed, and 0 skipped, including pending-batch accumulation, restoration, bounded draining, overflow, clearing, and the new cadence boundaries. |
 | Production build and deployment | Pass | The official CS2 targets compiled, post-processed, built platform libraries, and deployed the local package with 0 warnings and 0 errors. |
 | Local assembly refresh | Pass | The metadata-only verifier reproduced game version 1.6.0f1, Unity 2022.3.71f1, and the same hashes recorded in the versioned report for every overlapping assembly. |
 | Deployed package | Pass | The local package contains the exact nine-file publisher allowlist: two managed DLLs, three managed PDBs, three platform binaries, and `LICENSE`. The deployed production DLL is byte-identical to the successful build output. |
@@ -55,6 +55,10 @@ integration checks. Phase 3 evidence remains in
 ## Remaining release coverage
 
 - Existing late-game city, if a suitable save becomes available.
+- Population XP batching smoke: confirm responsive record detection with
+  Regular (16/day), one combined population XP notification per due window,
+  safe pending-XP restoration after save/reload, immediate frequency changes,
+  and a final pending batch when disabling the mod.
 - Post-hardening runtime smoke: confirm the main menu produces no city
   initialization warning; comma and underflow inputs are rejected without an
   exception; presets still govern road and population XP; disable/re-enable and

@@ -1,8 +1,8 @@
 # Progression Controls — Software Requirements Specification
 
 **Status:** MVP draft
-**Version:** 0.4
-**Date:** 2026-07-26
+**Version:** 0.5
+**Date:** 2026-08-04
 **Game:** Cities: Skylines II
 **Verified build:** 1.6.0f1
 **Support policy:** Latest public game version at build and release time
@@ -39,6 +39,11 @@ game-native behavior. Progression Controls is an original implementation.
 - After a decline, population XP resumes only after the previous record is
   exceeded.
 - Fractional XP is accumulated deterministically rather than discarded.
+- Record detection and XP submission use separate cadences.
+- Earned population XP is batched into at most 1, 4, 16, 64, or 256 awards and
+  notifications per in-game day; the default is 16.
+- Pending population XP is persisted at the exact save checkpoint, so batching
+  changes notification timing without changing total earned XP.
 
 The default rate is derived from the game’s runtime Megalopolis XP requirement
 so a population-only city reaches Megalopolis at approximately 200,000
@@ -77,6 +82,8 @@ reason.
 - It can be enabled or disabled in the mod Options.
 - Disabling it stops population XP and leaves future shared-queue gains
   unscaled.
+- Disabling flushes population XP already earned while enabled as one final
+  batch before the integration becomes dormant.
 - While disabled, the mod performs no recurring population observations, XP
   queue interception, or external progression checkpoint writes.
 - Growth while disabled receives no population XP.
@@ -106,6 +113,7 @@ There are no per-city settings, saved user profiles, imports, or exports.
 | Vanilla XP multiplier | Advanced integer slider that stages vanilla XP scaling from 0% to 100% |
 | Apply custom rules | Validates and atomically applies the three staged XP rule values |
 | Population update responsiveness | Advanced dropdown controlling 16 to 16,384 observations per in-game day; defaults to 4,096 |
+| Population XP notification frequency | Advanced dropdown batching earned population XP into at most 1 to 256 awards per in-game day; defaults to 16 |
 | Restore defaults | Restores the Population Heavy defaults |
 
 Built-in presets are immutable:
@@ -138,7 +146,8 @@ If external per-city state is still required, it must be limited to:
 
 - stable city session identifier and serialized simulation frame;
 - maximum observed population;
-- fractional population XP and vanilla-scaling remainders.
+- fractional population XP and vanilla-scaling remainders; and
+- population XP earned but not yet submitted as a notification batch.
 
 Missing or invalid tracking state uses the greater of current population and
 the verified base-game maximum-population record as a fresh baseline and never
@@ -167,6 +176,7 @@ disabling competing progression mods.
 | FR-12 | The city save shall not require Progression Controls to load. |
 | FR-13 | All player-facing text shall use localization keys. |
 | FR-14 | Advanced controls shall offer validated population observation cadences from 16 to 16,384 per in-game day, defaulting to 4,096. |
+| FR-15 | Advanced controls shall offer save-safe population XP batching from 1 to 256 awards per in-game day, defaulting to 16, without changing total earned XP. |
 
 ## 6. Quality Requirements
 
@@ -176,7 +186,8 @@ disabling competing progression mods.
   faster than new aggregate data can become available. Each observation reads
   one city population component and does not iterate citizens or buildings.
   XP interception makes one pass over pending XP events, so its variable work
-  depends on event count rather than city population.
+  depends on event count rather than city population. Population XP batching
+  reduces custom queue events and notification work at lower frequencies.
 - **Determinism:** Identical observations and settings produce identical XP,
   including fractional accumulation.
 - **Testability:** Population rules, target/rate conversion, validation, and

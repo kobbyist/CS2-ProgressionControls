@@ -20,13 +20,18 @@ namespace Kobbyist.ProgressionControls
     {
         private const int DefaultPopulationEvaluationsPerDay =
             (int)PopulationEvaluationCadence.Responsive;
+        private const int DefaultPopulationXpAwardsPerDay =
+            (int)PopulationXpAwardCadence.Regular;
         private const int MinimumPopulationEvaluationInterval = 16;
+        private const int MinimumPopulationXpAwardInterval = 16;
         private const int InitializationWarningInterval =
             TimeSystem.kTicksPerDay /
             (int)PopulationEvaluationCadence.Low;
 
         private readonly List<XPGain> m_PendingVanillaXp =
             new List<XPGain>();
+        private readonly PopulationXpBatch m_PopulationXpBatch =
+            new PopulationXpBatch();
         private readonly VanillaXpScaler m_VanillaXpScaler =
             new VanillaXpScaler();
 
@@ -43,16 +48,20 @@ namespace Kobbyist.ProgressionControls
         private int m_MegalopolisXpRequirement;
         private int m_PopulationEvaluationInterval;
         private int m_PopulationEvaluationsPerDay;
+        private int m_PopulationXpAwardInterval;
+        private int m_PopulationXpAwardsPerDay;
         private uint m_InitializationStartedFrame;
         private uint m_NextPopulationEvaluationFrame;
-        private long m_PendingPopulationXp;
+        private uint m_NextPopulationXpAwardFrame;
         private bool m_HasActiveCity;
         private bool m_InitializationDelayLogged;
         private bool m_HasPopulationEvaluationCadence;
+        private bool m_HasPopulationXpAwardCadence;
         private bool m_InitializationPending;
         private bool m_LastCustomProgressionEnabled;
 
         private PopulationEvaluationCadence m_LastPopulationEvaluationCadence;
+        private PopulationXpAwardCadence m_LastPopulationXpAwardCadence;
         private ProgressionSettingsState m_LastSettingsState;
 
         protected override void OnCreate()
@@ -140,11 +149,11 @@ namespace Kobbyist.ProgressionControls
             {
                 if (m_LastCustomProgressionEnabled)
                 {
+                    FlushPendingPopulationXp();
                     m_LastCustomProgressionEnabled = false;
                     m_VanillaXpScaler.Configure(
                         enabled: false,
                         percentage: 100);
-                    m_PendingPopulationXp = 0;
                     m_PendingVanillaXp.Clear();
                     Mod.Log.Info(
                         "Progression integration disabled; population observation and XP interception are dormant");
@@ -162,6 +171,13 @@ namespace Kobbyist.ProgressionControls
                     settings.PopulationEvaluationCadence);
             evaluationRequired =
                 evaluationRequired || configurationChanged;
+            if (ConfigurePopulationXpAwardCadence(
+                settings.PopulationXpAwardCadence))
+            {
+                m_NextPopulationXpAwardFrame =
+                    currentFrame +
+                    (uint)m_PopulationXpAwardInterval;
+            }
             if (!m_LastCustomProgressionEnabled)
             {
                 if (!TryRebaselineAfterEnable())
@@ -174,6 +190,9 @@ namespace Kobbyist.ProgressionControls
                 m_NextPopulationEvaluationFrame =
                     currentFrame +
                     (uint)m_PopulationEvaluationInterval;
+                m_NextPopulationXpAwardFrame =
+                    currentFrame +
+                    (uint)m_PopulationXpAwardInterval;
             }
 
             if (evaluationRequired ||
@@ -189,7 +208,7 @@ namespace Kobbyist.ProgressionControls
                 enabled: true,
                 percentage: m_Configuration.VanillaXpPercentage);
 
-            ProcessXpQueue();
+            ProcessXpQueue(currentFrame);
         }
 
         private bool TryInitializeActiveCity()
@@ -275,6 +294,18 @@ namespace Kobbyist.ProgressionControls
                     Mod.Log.Warn(
                         "Ignored an invalid persisted vanilla XP remainder");
                 }
+                if (customProgressionEnabled &&
+                    !m_PopulationXpBatch.TryRestore(
+                        persisted.PendingPopulationXp))
+                {
+                    m_PopulationXpBatch.Clear();
+                    Mod.Log.Warn(
+                        "Ignored an invalid persisted population XP batch");
+                }
+                else if (!customProgressionEnabled)
+                {
+                    m_PopulationXpBatch.Clear();
+                }
 
                 Mod.Log.Info(
                     $"Restored progression state for city {m_CityId:N} at frame {simulationFrame}");
@@ -297,6 +328,7 @@ namespace Kobbyist.ProgressionControls
                     customProgressionEnabled
                         ? m_Configuration.VanillaXpPercentage
                         : 100);
+                m_PopulationXpBatch.Clear();
 
                 Mod.Log.Info(
                     $"Established progression baseline at population {baseline}");
@@ -308,9 +340,14 @@ namespace Kobbyist.ProgressionControls
             {
                 ConfigurePopulationEvaluationCadence(
                     settings.PopulationEvaluationCadence);
+                ConfigurePopulationXpAwardCadence(
+                    settings.PopulationXpAwardCadence);
                 m_NextPopulationEvaluationFrame =
                     simulationFrame +
                     (uint)m_PopulationEvaluationInterval;
+                m_NextPopulationXpAwardFrame =
+                    simulationFrame +
+                    (uint)m_PopulationXpAwardInterval;
             }
             m_HasActiveCity = true;
             m_InitializationDelayLogged = false;
@@ -319,7 +356,7 @@ namespace Kobbyist.ProgressionControls
             if (customProgressionEnabled)
             {
                 Mod.Log.Info(
-                    $"Progression integration active: preset={m_Configuration.Preset}, target={m_LastSettingsState.MegalopolisPopulationTarget}, rate={m_Configuration.XpPerResident}, vanilla={m_Configuration.VanillaXpPercentage}%, populationChecks={m_PopulationEvaluationsPerDay}/day");
+                    $"Progression integration active: preset={m_Configuration.Preset}, target={m_LastSettingsState.MegalopolisPopulationTarget}, rate={m_Configuration.XpPerResident}, vanilla={m_Configuration.VanillaXpPercentage}%, populationChecks={m_PopulationEvaluationsPerDay}/day, populationAwards={m_PopulationXpAwardsPerDay}/day, pendingPopulationXp={m_PopulationXpBatch.PendingXp}");
             }
             else
             {
@@ -340,14 +377,17 @@ namespace Kobbyist.ProgressionControls
             m_LastSettingsState = null;
             m_PopulationEvaluationInterval = 0;
             m_PopulationEvaluationsPerDay = 0;
+            m_PopulationXpAwardInterval = 0;
+            m_PopulationXpAwardsPerDay = 0;
             m_HasPopulationEvaluationCadence = false;
+            m_HasPopulationXpAwardCadence = false;
             m_InitializationStartedFrame = 0;
             m_InitializationDelayLogged = false;
             m_InitializationPending = false;
             m_VanillaXpScaler.Configure(
                 enabled: false,
                 percentage: 100);
-            m_PendingPopulationXp = 0;
+            m_PopulationXpBatch.Clear();
             m_PendingVanillaXp.Clear();
         }
 
@@ -575,7 +615,12 @@ namespace Kobbyist.ProgressionControls
 
             if (result.AwardedXp > 0)
             {
-                m_PendingPopulationXp = result.AwardedXp;
+                if (!m_PopulationXpBatch.TryAdd(
+                    result.AwardedXp))
+                {
+                    Mod.Log.Error(
+                        "Population XP batch overflowed; preserving the previously pending amount");
+                }
             }
         }
 
@@ -608,7 +653,7 @@ namespace Kobbyist.ProgressionControls
                 return false;
             }
 
-            m_PendingPopulationXp = 0;
+            m_PopulationXpBatch.Clear();
             m_VanillaXpScaler.Configure(
                 enabled: true,
                 percentage: m_Configuration.VanillaXpPercentage);
@@ -617,11 +662,11 @@ namespace Kobbyist.ProgressionControls
             return true;
         }
 
-        private void ProcessXpQueue()
+        private void ProcessXpQueue(uint currentFrame)
         {
             if (!TryGetActiveCity(out var city))
             {
-                m_PendingPopulationXp = 0;
+                m_PopulationXpBatch.Clear();
                 return;
             }
 
@@ -646,23 +691,57 @@ namespace Kobbyist.ProgressionControls
                 queue.Enqueue(gain);
             }
 
-            var remaining = m_PendingPopulationXp;
-            m_PendingPopulationXp = 0;
-
-            while (remaining > 0)
+            if (IsPopulationXpAwardDue(currentFrame))
             {
-                var chunk = (int)Math.Min(
-                    int.MaxValue,
-                    remaining);
-                queue.Enqueue(
-                    new XPGain
-                    {
-                        entity = city,
-                        amount = chunk,
-                        reason = XPReason.Population,
-                    });
-                remaining -= chunk;
+                EnqueueNextPopulationXpAward(queue, city);
+                m_NextPopulationXpAwardFrame =
+                    currentFrame +
+                    (uint)m_PopulationXpAwardInterval;
             }
+        }
+
+        private void FlushPendingPopulationXp()
+        {
+            if (m_PopulationXpBatch.PendingXp <= 0)
+            {
+                return;
+            }
+
+            if (!TryGetActiveCity(out var city))
+            {
+                m_PopulationXpBatch.Clear();
+                return;
+            }
+
+            var queue =
+                m_XPSystem.GetQueue(out JobHandle queueWriters);
+            queueWriters.Complete();
+            while (m_PopulationXpBatch.PendingXp > 0)
+            {
+                EnqueueNextPopulationXpAward(queue, city);
+            }
+        }
+
+        private void EnqueueNextPopulationXpAward(
+            NativeQueue<XPGain> queue,
+            Entity city)
+        {
+            // XPSystem emits one XPMessage per XPGain, so a scheduled
+            // window submits at most one population gain.
+            var amount = (int)m_PopulationXpBatch.TakeUpTo(
+                int.MaxValue);
+            if (amount <= 0)
+            {
+                return;
+            }
+
+            queue.Enqueue(
+                new XPGain
+                {
+                    entity = city,
+                    amount = amount,
+                    reason = XPReason.Population,
+                });
         }
 
         private bool TryGetActiveCity(out Entity city)
@@ -725,12 +804,59 @@ namespace Kobbyist.ProgressionControls
             return true;
         }
 
+        private bool ConfigurePopulationXpAwardCadence(
+            PopulationXpAwardCadence requestedCadence)
+        {
+            if (m_HasPopulationXpAwardCadence &&
+                m_LastPopulationXpAwardCadence ==
+                    requestedCadence)
+            {
+                return false;
+            }
+
+            m_HasPopulationXpAwardCadence = true;
+            m_LastPopulationXpAwardCadence =
+                requestedCadence;
+
+            var awardsPerDay = (int)requestedCadence;
+            if (!EvaluationInterval.TryCalculate(
+                TimeSystem.kTicksPerDay,
+                awardsPerDay,
+                MinimumPopulationXpAwardInterval,
+                out var interval))
+            {
+                awardsPerDay =
+                    DefaultPopulationXpAwardsPerDay;
+                EvaluationInterval.TryCalculate(
+                    TimeSystem.kTicksPerDay,
+                    awardsPerDay,
+                    MinimumPopulationXpAwardInterval,
+                    out interval);
+                Mod.Log.Warn(
+                    $"Invalid population XP award cadence {requestedCadence}; using {awardsPerDay}/day");
+            }
+
+            m_PopulationXpAwardsPerDay = awardsPerDay;
+            m_PopulationXpAwardInterval = interval;
+            Mod.Log.Info(
+                $"Population XP award cadence configured: {awardsPerDay}/day, interval={interval} frames");
+            return true;
+        }
+
         private bool IsPopulationEvaluationDue(
             uint currentFrame)
         {
             return unchecked(
                 (int)(currentFrame -
                     m_NextPopulationEvaluationFrame)) >= 0;
+        }
+
+        private bool IsPopulationXpAwardDue(
+            uint currentFrame)
+        {
+            return unchecked(
+                (int)(currentFrame -
+                    m_NextPopulationXpAwardFrame)) >= 0;
         }
 
         private void LogInitializationDelayIfNeeded()
@@ -808,7 +934,8 @@ namespace Kobbyist.ProgressionControls
                     m_CityId,
                     m_SimulationSystem.frameIndex,
                     populationState,
-                    m_VanillaXpScaler.RemainderHundredths);
+                    m_VanillaXpScaler.RemainderHundredths,
+                    m_PopulationXpBatch.PendingXp);
         }
     }
 }

@@ -14,6 +14,8 @@ target the latest public game version available at build time.
 - Preserves the game's milestone thresholds, unlocks, development points,
   rewards, and loan limits.
 - Accumulates fractional population XP so rounding does not discard progress.
+- Batches population XP into a configurable maximum number of awards and
+  notifications per in-game day.
 - Applies settings changes prospectively without recalculating existing XP.
 
 Population decline never removes XP. If population falls and later recovers,
@@ -39,8 +41,9 @@ The main view contains the enable toggle and preset selector. Turn on
 
 - XP per new resident;
 - the projected population-only Megalopolis target;
-- the vanilla XP multiplier; and
-- population update responsiveness.
+- the vanilla XP multiplier;
+- population update responsiveness; and
+- population XP notification frequency.
 
 XP per resident and the Megalopolis target are linked. Advanced XP rules are
 staged until **Apply custom rules** validates and applies them together.
@@ -48,6 +51,11 @@ staged until **Apply custom rules** validates and applies them together.
 **Vanilla XP multiplier** is player-facing shorthand for the shared XP queue.
 Progression Controls scales every positive gain already in that queue when it
 runs. Its own population XP is appended afterward and is not scaled again.
+
+Population records are detected independently from population XP awards.
+Earned population XP accumulates and is submitted as one batch at the selected
+notification frequency, from 1 to 256 awards per in-game day. The default is
+Regular (16/day), and total population XP is unchanged.
 
 Turning off **Enable custom progression** leaves future queued XP unscaled and
 makes the mod dormant. Re-enabling establishes a safe population baseline and
@@ -60,8 +68,8 @@ milestones already earned become normal game state. A city remains loadable
 after disabling or removing the mod, and future progression returns to vanilla
 behavior.
 
-Minimal population-record and fractional-XP state is stored outside the city
-save and keyed to the exact save checkpoint.
+Minimal population-record, fractional-XP, and pending population-XP batch state
+is stored outside the city save and keyed to the exact save checkpoint.
 
 ## Compatibility
 

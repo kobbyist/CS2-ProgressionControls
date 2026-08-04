@@ -10,6 +10,7 @@ Progression Controls reshapes milestone XP without replacing the game's mileston
 - Award XP when the city reaches a new all-time population record.
 - Scale positive XP already queued for the game from 0% to 100%.
 - Accumulate fractional population XP without losing progress to rounding.
+- Batch population XP notifications from 1 to 256 awards per in-game day.
 - Apply every change prospectively without recalculating existing XP.
 - Disable the mod to leave future queued XP unscaled and make it dormant.
 
@@ -19,7 +20,7 @@ Progression Controls reshapes milestone XP without replacing the game's mileston
 - **Population Heavy:** population XP plus 25% vanilla XP.
 - **Population Only:** population XP with vanilla XP suppressed.
 
-Show Advanced exposes linked XP-per-resident and projected Megalopolis-target inputs, the vanilla XP multiplier, and population update responsiveness.
+Show Advanced exposes linked XP-per-resident and projected Megalopolis-target inputs, the vanilla XP multiplier, population update responsiveness, and population XP notification frequency.
 
 ## Save safety
 
@@ -39,6 +40,7 @@ Initial private package:
 - Population Balanced, Population Heavy, Population Only, and Custom rules.
 - Population XP at new all-time population records.
 - Shared-queue XP scaling from 0% to 100%.
+- Save-safe population XP notification batching.
 - Save-safe external checkpoints and dormant disable behavior.
   </ChangeLog>
   <AccessLevel Value="Private" />

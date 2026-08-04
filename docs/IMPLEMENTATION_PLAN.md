@@ -148,6 +148,8 @@ invalid inputs, and large XP totals. Phase 2 is complete.
 - Vanilla XP multiplier; default 25%
 - Advanced population update responsiveness; 16 to 16,384 observations per
   in-game day, default 4,096
+- Advanced population XP notification frequency; 1 to 256 awards per in-game
+  day, default 16
 - Restore defaults
 
 The progression-rule controls are implemented with immutable preset selection,
@@ -166,8 +168,9 @@ establishes a prospective population baseline.
 Use the base-game maximum-population record as the safe first-run high-water
 baseline. Persist only the stable city session ID, serialized simulation frame,
 maximum observed population, population XP fraction, vanilla-scaling fraction,
-outside the city save. The session ID plus frame identifies the exact save
-checkpoint, so loading an older save cannot consume newer external progression
+and earned population XP awaiting its next notification batch outside the city
+save. The session ID plus frame identifies the exact save checkpoint, so
+loading an older save cannot consume newer external progression
 state.
 
 After one-time city initialization, disabled mode returns before population

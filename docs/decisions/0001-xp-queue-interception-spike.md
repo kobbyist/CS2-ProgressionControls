@@ -36,7 +36,8 @@ On each armed update it will:
 2. complete the writer dependencies;
 3. drain queued gains in FIFO order;
 4. scale and re-enqueue those gains in the same order;
-5. enqueue any explicit custom population XP after shared-queue scaling; and
+5. when its independent award cadence is due, enqueue accumulated custom
+   population XP after shared-queue scaling; and
 6. allow the native `XPSystem` to consume the resulting queue.
 
 The two-type `UpdateBefore<Interceptor, XPSystem>` call is the interceptor's only

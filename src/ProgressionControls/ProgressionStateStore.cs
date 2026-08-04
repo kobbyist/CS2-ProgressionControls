@@ -13,12 +13,14 @@ namespace Kobbyist.ProgressionControls
             Guid cityId,
             uint simulationFrame,
             PopulationProgressionState populationState,
-            int vanillaRemainderHundredths)
+            int vanillaRemainderHundredths,
+            long pendingPopulationXp)
         {
             CityId = cityId;
             SimulationFrame = simulationFrame;
             PopulationState = populationState;
             VanillaRemainderHundredths = vanillaRemainderHundredths;
+            PendingPopulationXp = pendingPopulationXp;
         }
 
         public Guid CityId { get; }
@@ -29,12 +31,15 @@ namespace Kobbyist.ProgressionControls
 
         public int VanillaRemainderHundredths { get; }
 
+        public long PendingPopulationXp { get; }
+
         public bool IsValid =>
             CityId != Guid.Empty &&
             PopulationState != null &&
             PopulationState.IsValid &&
             VanillaRemainderHundredths >= 0 &&
-            VanillaRemainderHundredths < 100;
+            VanillaRemainderHundredths < 100 &&
+            PendingPopulationXp >= 0;
     }
 
     internal sealed class ProgressionStateStore
@@ -140,6 +145,8 @@ namespace Kobbyist.ProgressionControls
                         snapshot.PopulationState.FractionalXp,
                     VanillaRemainderHundredths =
                         snapshot.VanillaRemainderHundredths,
+                    PendingPopulationXp =
+                        snapshot.PendingPopulationXp,
                 };
 
                 var serializer =
@@ -225,7 +232,8 @@ namespace Kobbyist.ProgressionControls
                 parsedCityId,
                 model.SimulationFrame,
                 populationState,
-                model.VanillaRemainderHundredths);
+                model.VanillaRemainderHundredths,
+                model.PendingPopulationXp);
 
             if (!candidate.IsValid)
             {
@@ -262,6 +270,9 @@ namespace Kobbyist.ProgressionControls
 
             [DataMember(Order = 5)]
             public int VanillaRemainderHundredths { get; set; }
+
+            [DataMember(Order = 6)]
+            public long PendingPopulationXp { get; set; }
         }
     }
 }

@@ -6,6 +6,8 @@ namespace ProgressionControls.Core.Tests;
 public sealed class EvaluationIntervalTests
 {
     [DataTestMethod]
+    [DataRow(1, 262144)]
+    [DataRow(4, 65536)]
     [DataRow(16, 16384)]
     [DataRow(64, 4096)]
     [DataRow(256, 1024)]
