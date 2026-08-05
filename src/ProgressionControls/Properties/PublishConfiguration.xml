@@ -31,6 +31,7 @@ Progression Controls adds no required components to city saves. Earned XP and mi
 Unlimited Money is supported. Unlock All bypasses milestone progression, so XP changes have no meaningful visible effect. Positive XP from another mod may be scaled when queued before Progression Controls, depending on update order. Other mods that add or intercept XP or replace milestone behavior are unsupported.
   </LongDescription>
   <Thumbnail Value="Properties/Thumbnail.png" />
+  <Screenshot Value="Properties/Screenshot-Settings.png" />
   <Tag Value="Code Mod" />
   <ModVersion Value="0.1.0" />
   <GameVersion Value="1.6.*" />
