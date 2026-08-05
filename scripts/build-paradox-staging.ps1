@@ -109,6 +109,7 @@ function Get-PublishValue {
 }
 
 $requiredMetadata = @{
+    ModId = "154015"
     DisplayName = "Progression Controls"
     ModVersion = $Version
     GameVersion = "1.6.*"

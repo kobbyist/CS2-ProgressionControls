@@ -43,7 +43,8 @@ substitute format accepted by Paradox Mods.
 
 The official profiles are:
 
-- `PublishNewMod` - creates the first listing; `ModId` is initially empty.
+- `PublishNewMod` - created the first Private listing as mod `154015`; do not
+  invoke this profile again.
 - `PublishNewVersion` - uploads a new binary version after `ModId` is assigned.
 - `UpdatePublishedConfiguration` - changes listing metadata without a new
   binary version.
