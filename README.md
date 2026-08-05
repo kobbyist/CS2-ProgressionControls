@@ -1,7 +1,11 @@
 # Progression Controls
 
-Progression Controls makes Cities: Skylines II milestone progression slower and
-more population-driven without replacing the game's milestones or rewards.
+Vanilla milestone progression can move so quickly that unlocks arrive before a
+city has had time to grow into them. XP from roads, services, happiness, and
+other sources stacks up fast, disconnecting progression from population growth.
+
+Progression Controls slows that pace and makes new population records the
+foundation of milestone XP without replacing the game's milestones or rewards.
 
 ## What it changes
 

@@ -1,9 +1,13 @@
 <Publish>
   <ModId Value="154015" />
   <DisplayName Value="Progression Controls" />
-  <ShortDescription Value="Make milestone progression slower and more population-driven." />
+  <ShortDescription Value="Vanilla milestones arrive too quickly. Slow progression and make population growth matter." />
   <LongDescription>
-Progression Controls reshapes milestone XP without replacing the game's milestones, rewards, development points, loan limits, or unlocks.
+## Why this mod exists
+
+Vanilla milestone progression can move so quickly that unlocks arrive before a city has had time to grow into them. XP from roads, services, happiness, and other sources stacks up fast, making progression feel less connected to the population you are actually building.
+
+Progression Controls lets you slow that pace and make new population records the foundation of milestone XP. It keeps the game's milestones, rewards, development points, loan limits, and unlocks intact.
 
 ## Features
 
