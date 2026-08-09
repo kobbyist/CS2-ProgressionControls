@@ -35,12 +35,14 @@ Progression Controls adds no required components to city saves. Earned XP and mi
 Unlimited Money is supported. Unlock All bypasses milestone progression, so XP changes have no meaningful visible effect. Positive XP from another mod may be scaled when queued before Progression Controls, depending on update order. Other mods that add or intercept XP or replace milestone behavior are unsupported.
   </LongDescription>
   <Thumbnail Value="Properties/Thumbnail.png" />
+  <Screenshot Value="Properties/Screenshot-Overview.png" />
   <Screenshot Value="Properties/Screenshot-Settings.png" />
   <Tag Value="Code Mod" />
+  <ForumLink Value="https://github.com/kobbyist/CS2-ProgressionControls" />
   <ModVersion Value="0.1.0" />
   <GameVersion Value="1.6.*" />
   <ChangeLog>
-Initial private package:
+Initial public release:
 
 - Population Balanced, Population Heavy, Population Only, and Custom rules.
 - Population XP at new all-time population records.
@@ -48,5 +50,5 @@ Initial private package:
 - Save-safe population XP notification batching.
 - Save-safe external checkpoints and dormant disable behavior.
   </ChangeLog>
-  <AccessLevel Value="Private" />
+  <AccessLevel Value="Public" />
 </Publish>

@@ -35,6 +35,7 @@ $thumbnailPath = Join-Path `
     $projectRoot `
     "Properties\Thumbnail.png"
 $screenshotRelativePaths = @(
+    "Properties/Screenshot-Overview.png",
     "Properties/Screenshot-Settings.png"
 )
 $screenshotPaths = @(
@@ -115,7 +116,8 @@ $requiredMetadata = @{
     GameVersion = "1.6.*"
     Thumbnail = "Properties/Thumbnail.png"
     Tag = "Code Mod"
-    AccessLevel = "Private"
+    ForumLink = "https://github.com/kobbyist/CS2-ProgressionControls"
+    AccessLevel = "Public"
 }
 foreach ($entry in $requiredMetadata.GetEnumerator()) {
     $node = $configuration.Publish.($entry.Key)
@@ -150,8 +152,8 @@ foreach ($field in @(
 Add-Type -AssemblyName System.Drawing
 $thumbnail = [Drawing.Image]::FromFile($thumbnailPath)
 try {
-    if ($thumbnail.Width -ne 950 -or $thumbnail.Height -ne 500) {
-        throw "Thumbnail must be exactly 950x500 pixels."
+    if ($thumbnail.Width -ne 950 -or $thumbnail.Height -ne 950) {
+        throw "Thumbnail must be exactly 950x950 pixels."
     }
 }
 finally {
@@ -177,7 +179,7 @@ if ($unexpectedFiles.Count -gt 0) {
 }
 
 $artifactRoot = Join-Path $repositoryRoot "artifacts\paradox"
-$stageName = "ProgressionControls-$Version-private"
+$stageName = "ProgressionControls-$Version-public"
 $stageRoot = Assert-ChildPath `
     $artifactRoot `
     (Join-Path $artifactRoot $stageName)
