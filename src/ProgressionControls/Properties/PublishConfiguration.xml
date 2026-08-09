@@ -1,38 +1,45 @@
 <Publish>
   <ModId Value="154015" />
   <DisplayName Value="Progression Controls" />
-  <ShortDescription Value="Vanilla milestones arrive too quickly. Slow progression and make population growth matter." />
+  <ShortDescription Value="Slow progression and make population growth matter." />
   <LongDescription>
-## Why this mod exists
+## Why I made this mod
 
-Vanilla milestone progression can move so quickly that unlocks arrive before a city has had time to grow into them. XP from roads, services, happiness, and other sources stacks up fast, making progression feel less connected to the population you are actually building.
+I've always felt that vanilla milestones can arrive before a city has really had time to grow into them. XP from roads, services, happiness, and plenty of other sources stacks up quickly, and placing custom assets can add a ton of XP on top. Before long, progression can feel disconnected from the city and population you're actually building.
 
-Progression Controls lets you slow that pace and make new population records the foundation of milestone XP. It keeps the game's milestones, rewards, development points, loan limits, and unlocks intact.
+I made Progression Controls because I wanted a slower, more deliberate pace where growing the city is the foundation of milestone progress. It keeps the game's original milestones, unlocks, and rewards intact, while giving you more control over how quickly you reach them.
 
-## Features
+## How it works
 
-- Award XP when the city reaches a new all-time population record.
-- Scale positive XP already queued for the game from 0% to 100%.
-- Accumulate fractional population XP without losing progress to rounding.
-- Batch population XP notifications from 1 to 256 awards per in-game day.
-- Apply every change prospectively without recalculating existing XP.
-- Disable the mod to leave future queued XP unscaled and make it dormant.
+At its heart, the mod awards XP whenever your city reaches a new all-time population record. You can then choose how much of the usual vanilla XP you want to keep, from none at all to the full amount.
+
+- Earn population XP as your city sets new population records.
+- Keep anywhere from 0% to 100% of positive XP already queued by the game.
+- Change the XP earned per new resident to suit the pace you enjoy.
+- Adjust how often population growth is checked and how frequently XP notifications appear.
+- Turn custom progression off at any time to return to the vanilla pace.
+
+Changes only affect XP earned from that point onward, so the mod never rewrites XP or milestones you've already earned. It also keeps track of fractional population XP behind the scenes, so none of your progress is lost to rounding.
 
 ## Presets
+
+Three presets are included so you can get started without having to tune every setting:
 
 - **Population Balanced:** 1.5 XP per new record resident plus 50% vanilla XP.
 - **Population Heavy:** 1.5 XP per new record resident plus 25% vanilla XP.
 - **Population Only:** 1.5 XP per new record resident with vanilla XP suppressed.
 
-Show Advanced exposes an XP-per-new-resident slider from 0 to 10 in 0.25 increments, the vanilla XP multiplier, population update responsiveness, and population XP notification frequency.
+If you like to fine-tune things, Show Advanced lets you adjust XP per new resident from 0 to 10, the vanilla XP multiplier, population update responsiveness, and notification frequency. Editing an XP rule automatically creates a Custom setup.
 
-## Save safety
+## Safe to add or remove
 
-Progression Controls adds no required components to city saves. Earned XP and milestones remain normal game state, and cities continue loading after the mod is disabled or removed.
+The mod adds no required components to the city itself, and any XP or milestones you've already earned remain part of the normal game state. Your cities will continue to load if the mod is disabled or removed.
 
 ## Compatibility
 
-Unlimited Money is supported. Unlock All bypasses milestone progression, so XP changes have no meaningful visible effect. Positive XP from another mod may be scaled when queued before Progression Controls, depending on update order. Other mods that add or intercept XP or replace milestone behavior are unsupported.
+Unlimited Money is supported. Unlock All bypasses milestone progression entirely, so this mod won't have much of a visible effect while it's active.
+
+Mods that add XP may work, although their XP can be scaled if it enters the game's queue before Progression Controls runs. Mods that intercept XP or replace milestone behavior may conflict and aren't currently supported.
   </LongDescription>
   <Thumbnail Value="Properties/Thumbnail.png" />
   <Screenshot Value="Properties/Screenshot-Overview.png" />
