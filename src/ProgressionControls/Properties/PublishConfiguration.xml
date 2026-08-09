@@ -38,7 +38,7 @@ Unlimited Money is supported. Unlock All bypasses milestone progression, so XP c
   <Screenshot Value="Properties/Screenshot-Overview.png" />
   <Screenshot Value="Properties/Screenshot-Settings.png" />
   <Tag Value="Code Mod" />
-  <ForumLink Value="https://github.com/kobbyist/CS2-ProgressionControls" />
+  <ExternalLink Type="github" Url="https://github.com/kobbyist/CS2-ProgressionControls" />
   <ModVersion Value="0.1.0" />
   <GameVersion Value="1.6.*" />
   <ChangeLog>

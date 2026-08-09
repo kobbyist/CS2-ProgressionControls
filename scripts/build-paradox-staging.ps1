@@ -116,7 +116,6 @@ $requiredMetadata = @{
     GameVersion = "1.6.*"
     Thumbnail = "Properties/Thumbnail.png"
     Tag = "Code Mod"
-    ForumLink = "https://github.com/kobbyist/CS2-ProgressionControls"
     AccessLevel = "Public"
 }
 foreach ($entry in $requiredMetadata.GetEnumerator()) {
@@ -126,6 +125,18 @@ foreach ($entry in $requiredMetadata.GetEnumerator()) {
             $entry.Key,
             $entry.Value)
     }
+}
+$configuredGithubLinks = @(
+    $configuration.Publish.ExternalLink |
+        Where-Object {
+            $_ -is [System.Xml.XmlElement] -and
+                $_.GetAttribute("Type") -eq "github"
+        }
+)
+if ($configuredGithubLinks.Count -ne 1 -or
+        $configuredGithubLinks[0].GetAttribute("Url") -ne
+            "https://github.com/kobbyist/CS2-ProgressionControls") {
+    throw "Configured GitHub external link is missing or invalid."
 }
 $configuredScreenshots = @(
     $configuration.Publish.Screenshot |
