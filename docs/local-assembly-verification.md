@@ -123,9 +123,11 @@ Static metadata and IL inspection confirms:
   state only after a completed save.
 - `Colossal.IO.AssetDatabase.AssetDatabase.AllAssets()` is public and returns
   `IEnumerable<IAssetData>`.
-- `Game.Assets.SaveGameMetadata` is public and inherits the public asset `path`
-  property; `isValidSaveGame` is also public. The live metadata set can therefore
-  be used to identify checkpoints whose associated saves no longer exist.
+- `Game.Assets.SaveGameMetadata` is public and inherits the public asset `name`
+  and `path` properties; `isValidSaveGame` is also public. `name` is the logical
+  save identity supplied by the save callback, while `path` is the physical asset
+  source and is not a compatible checkpoint identity. The live metadata names can
+  therefore identify checkpoints whose associated saves no longer exist.
 - `Game.GameSystemBase` exposes `OnGamePreload(Purpose, GameMode)`,
   `OnGameLoaded(Context)`, and `OnDestroy()`.
 

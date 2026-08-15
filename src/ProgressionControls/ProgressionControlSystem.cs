@@ -849,8 +849,10 @@ namespace Kobbyist.ProgressionControls
                         .Where(metadata =>
                             metadata != null &&
                             metadata.isValidSaveGame &&
-                            !string.IsNullOrWhiteSpace(metadata.path))
-                        .Select(metadata => metadata.path)
+                            !string.IsNullOrWhiteSpace(metadata.name))
+                        // The save callback and metadata.name use the logical
+                        // save identity. metadata.path is its physical source.
+                        .Select(metadata => metadata.name)
                         .Distinct(StringComparer.Ordinal)
                         .ToArray();
                     liveSaveEnumerationTrusted = true;
