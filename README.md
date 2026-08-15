@@ -46,8 +46,12 @@ The main view contains the enable toggle and preset selector. Turn on
 - population XP notification frequency.
 
 XP per new resident is a slider from 0 to 10 in 0.25 increments. The default
-1.5 matches the game's nominal population XP rate. The two advanced XP rules
-are staged until **Apply custom rules** applies them together.
+1.5 matches the game's nominal population XP rate. Changes to either advanced
+XP rule apply immediately to future XP, switch the preset to Custom, and save
+automatically through the options system.
+
+Progression Controls settings are global and independent of city saves.
+Loading another city or an autosave does not replace them.
 
 **Vanilla XP multiplier** is player-facing shorthand for the shared XP queue.
 Progression Controls scales every positive gain already in that queue when it
@@ -71,6 +75,16 @@ behavior.
 
 Minimal population-record, fractional-XP, and pending population-XP batch state
 is stored outside the city save and keyed to the exact save checkpoint.
+New checkpoints also record the game's save name. After a successful game save,
+the mod keeps the checkpoint for that save name and retires older checkpoints
+for overwritten saves. When the game save list can be read safely, checkpoints
+for deleted saves are retired as well.
+
+Existing checkpoints from earlier mod versions do not contain a save name. The
+new retention policy keeps the newest 16 of these legacy checkpoints per city
+and removes older ones after a successful save. Loading a checkpoint that is no
+longer available establishes a safe population baseline and does not grant
+retroactive XP.
 
 ## License
 

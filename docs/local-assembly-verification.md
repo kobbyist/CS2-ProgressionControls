@@ -116,13 +116,32 @@ Static metadata and IL inspection confirms:
 - `Game.SceneFlow.GameManager.onGameSaveLoad` supplies
   `(saveName, previewUri, start, success)`, and `isGameLoading` is available to
   distinguish load callbacks.
+- `GameManager` converts `saveName` to an asset data path and uses that path for
+  both `SaveGameData` and `SaveGameMetadata` assets.
+- The completion callback runs after the package save operation and reports its
+  success result. This gives the mod a boundary for writing and pruning external
+  state only after a completed save.
+- `Colossal.IO.AssetDatabase.AssetDatabase.AllAssets()` is public and returns
+  `IEnumerable<IAssetData>`.
+- `Game.Assets.SaveGameMetadata` is public and inherits the public asset `path`
+  property; `isValidSaveGame` is also public. The live metadata set can therefore
+  be used to identify checkpoints whose associated saves no longer exist.
 - `Game.GameSystemBase` exposes `OnGamePreload(Purpose, GameMode)`,
   `OnGameLoaded(Context)`, and `OnDestroy()`.
 
 A city session identifier is therefore stable across ordinary loads but is not
 enough to distinguish separate save checkpoints. Production external state is
 keyed by `{sessionGuid}/{simulationFrame}.json`, captured when saving starts,
-and written only after the save succeeds.
+and written only after the save succeeds. Schema version 2 records the exact
+`saveName` in each new checkpoint. Successful saves then retain the current
+checkpoint for an overwritten save name and, when live save enumeration is
+trusted and includes the current save, remove indexed checkpoints for deleted
+saves.
+
+Legacy schema checkpoints remain loadable. Because they predate save-name
+indexing, their cleanup uses a deterministic fallback: retain the newest 16 per
+city session by last-write time, then simulation frame, then path. Cleanup is
+best-effort and is isolated from the completed game-save result.
 
 ### Data path and evaluation cadence
 
@@ -153,6 +172,23 @@ verified from the installed `Game.dll` metadata:
   `separateThousands`, `maxValueWithFraction`, and `signed`. Its constructor
   defaults `fractionDigits` to zero, so float sliders require an explicit
   precision attribute when their displayed values include fractional steps.
+
+### Settings persistence identity
+
+Local 1.6.0f1 IL confirms the complete options-save path:
+
+- Automatic settings callbacks for supported Boolean, integer, floating-point,
+  and enum controls call `Setting.ApplyAndSave()`.
+- `ApplyAndSave()` calls the virtual `Apply()` callback and then awaits
+  `AssetDatabase.SaveSpecificSetting(GetType().Name)`.
+- The target resolver compares `source.GetType().Name` values only. Namespace,
+  mod identity, and `FileLocation` do not disambiguate two settings classes
+  with the same simple name.
+- The settings type is therefore named
+  `KobbyistProgressionControlsSettings` and must remain globally unique.
+  The existing `Kobbyist_ProgressionControls` asset name, `FileLocation`,
+  serialized property names, and localization identifiers remain unchanged for
+  compatibility with the existing settings file.
 
 ### Vanilla population XP reference
 

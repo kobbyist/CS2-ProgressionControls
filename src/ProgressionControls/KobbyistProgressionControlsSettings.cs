@@ -27,7 +27,9 @@ namespace Kobbyist.ProgressionControls
     [FileLocation(Mod.SettingsAssetName)]
     [SettingsUIGroupOrder(kGeneralGroup, kRulesGroup, kAdvancedGroup)]
     [SettingsUIShowGroupName(kGeneralGroup, kRulesGroup, kAdvancedGroup)]
-    public sealed class Setting : ModSetting
+    // CS2 1.6.0f1 saves a specific settings asset by the source object's
+    // simple type name, so this name must remain globally unique.
+    public sealed class KobbyistProgressionControlsSettings : ModSetting
     {
         public const string kSection = "Main";
         public const string kGeneralGroup = "General";
@@ -36,9 +38,8 @@ namespace Kobbyist.ProgressionControls
 
         private float m_XpPerResident;
         private ProgressionPreset m_Preset;
-        private bool m_ApplyCustomRulesRequested;
 
-        public Setting(IMod mod)
+        public KobbyistProgressionControlsSettings(IMod mod)
             : base(mod)
         {
             SetDefaults();
@@ -81,20 +82,6 @@ namespace Kobbyist.ProgressionControls
         [SettingsUIAdvanced]
         public int VanillaXpPercentage { get; set; }
 
-        [SettingsUIButton]
-        [SettingsUISection(kSection, kRulesGroup)]
-        [SettingsUIAdvanced]
-        public bool ApplyCustomRules
-        {
-            set
-            {
-                if (value)
-                {
-                    m_ApplyCustomRulesRequested = true;
-                }
-            }
-        }
-
         [SettingsUIHidden]
         public ProgressionPreset AppliedPreset { get; set; }
 
@@ -130,18 +117,13 @@ namespace Kobbyist.ProgressionControls
                 PopulationXpAwardCadence.Regular;
         }
 
-        internal bool ConsumeApplyCustomRulesRequest()
+        public override void Apply()
         {
-            if (!m_ApplyCustomRulesRequested)
-            {
-                return false;
-            }
-
-            m_ApplyCustomRulesRequested = false;
-            return true;
+            ApplyRequestedRules();
+            base.Apply();
         }
 
-        internal bool ReapplyPresetRules()
+        internal bool NormalizeLoadedRules()
         {
             if (Preset != ProgressionPreset.Custom)
             {
@@ -161,6 +143,39 @@ namespace Kobbyist.ProgressionControls
             }
 
             return ApplyPresetRules(ProgressionPreset.PopulationHeavy);
+        }
+
+        private void ApplyRequestedRules()
+        {
+            var applied = new ProgressionSettingsState(
+                AppliedPreset,
+                AppliedXpPerResident,
+                AppliedVanillaXpPercentage);
+            if (!ProgressionSettingsResolver.TryResolveInitial(
+                applied,
+                out var currentConfiguration,
+                out var normalizedApplied))
+            {
+                ApplyPresetRules(ProgressionPreset.PopulationHeavy);
+                return;
+            }
+
+            var requested = new ProgressionSettingsState(
+                Preset,
+                XpPerResident,
+                VanillaXpPercentage);
+            if (ProgressionSettingsResolver.TryResolveChange(
+                normalizedApplied,
+                requested,
+                currentConfiguration,
+                out _,
+                out var normalized))
+            {
+                ApplyResolvedRules(normalized);
+                return;
+            }
+
+            ApplyResolvedRules(normalizedApplied);
         }
 
         private bool ApplyPresetRules(ProgressionPreset preset)

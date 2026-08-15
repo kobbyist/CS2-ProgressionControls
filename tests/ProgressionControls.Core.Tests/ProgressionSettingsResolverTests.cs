@@ -157,6 +157,48 @@ public sealed class ProgressionSettingsResolverTests
         Assert.IsTrue(previous.Equals(normalized));
     }
 
+    [TestMethod]
+    public void SequentialRuleEditsRemainCustomAndPreserveEarlierEdit()
+    {
+        var previous = DefaultState();
+        ProgressionConfiguration.TryFromPreset(
+            ProgressionPreset.PopulationHeavy,
+            out var current);
+
+        Assert.IsTrue(
+            ProgressionSettingsResolver.TryResolveChange(
+                previous,
+                State(
+                    previous.Preset,
+                    rate: 2d,
+                    previous.VanillaXpPercentage),
+                current,
+                out var firstConfiguration,
+                out var firstNormalized));
+
+        Assert.IsTrue(
+            ProgressionSettingsResolver.TryResolveChange(
+                firstNormalized,
+                State(
+                    firstNormalized.Preset,
+                    firstNormalized.XpPerResident,
+                    vanillaXpPercentage: 40),
+                firstConfiguration,
+                out var secondConfiguration,
+                out var secondNormalized));
+
+        Assert.AreEqual(
+            ProgressionPreset.Custom,
+            secondConfiguration.Preset);
+        Assert.AreEqual(2m, secondConfiguration.XpPerResident);
+        Assert.AreEqual(40, secondConfiguration.VanillaXpPercentage);
+        Assert.AreEqual(
+            ProgressionPreset.Custom,
+            secondNormalized.Preset);
+        Assert.AreEqual(2d, secondNormalized.XpPerResident);
+        Assert.AreEqual(40, secondNormalized.VanillaXpPercentage);
+    }
+
     [DataTestMethod]
     [DataRow(-0.25d)]
     [DataRow(10.25d)]
@@ -173,8 +215,11 @@ public sealed class ProgressionSettingsResolverTests
                 previous,
                 State(previous.Preset, rate, 25),
                 current,
-                out _,
-                out _));
+                out var configuration,
+                out var normalized));
+
+        Assert.IsNull(configuration);
+        Assert.IsNull(normalized);
     }
 
     private static ProgressionSettingsState DefaultState()
