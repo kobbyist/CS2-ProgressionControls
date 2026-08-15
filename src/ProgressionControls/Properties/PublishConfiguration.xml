@@ -43,19 +43,20 @@ Mods that add XP may work, although their XP can be scaled if it enters the game
   </LongDescription>
   <Thumbnail Value="Properties/Thumbnail.png" />
   <Screenshot Value="Properties/Screenshot-Overview.png" />
+  <Screenshot Value="Properties/Screenshot-Settings-Basic.png" />
   <Screenshot Value="Properties/Screenshot-Settings.png" />
   <Tag Value="Code Mod" />
   <ExternalLink Type="github" Url="https://github.com/kobbyist/CS2-ProgressionControls" />
-  <ModVersion Value="0.1.0" />
+  <ModVersion Value="0.1.1" />
   <GameVersion Value="1.6.*" />
   <ChangeLog>
-Initial public release:
+Version 0.1.1:
 
-- Population Balanced, Population Heavy, Population Only, and Custom rules.
-- Population XP at new all-time population records.
-- Shared-queue XP scaling from 0% to 100%.
-- Save-safe population XP notification batching.
-- Save-safe external checkpoints and dormant disable behavior.
+- Fixed settings persistence across city loads, autosaves, restarts, and unclean exits.
+- Removed Apply custom rules; XP rule edits now apply and save automatically.
+- Preserved legacy Custom settings without activating old unsubmitted drafts.
+- Added save-name-aware checkpoint retention for overwritten and deleted saves.
+- Kept all settings changes prospective with no retroactive XP awards.
   </ChangeLog>
   <AccessLevel Value="Public" />
 </Publish>

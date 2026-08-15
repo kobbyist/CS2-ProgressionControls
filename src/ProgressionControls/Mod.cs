@@ -21,7 +21,7 @@ namespace Kobbyist.ProgressionControls
             .GetLogger(LoggerName)
             .SetShowsErrorsInUI(false);
 
-        internal static Setting Settings { get; private set; }
+        internal static KobbyistProgressionControlsSettings Settings { get; private set; }
 
         private IDictionarySource m_LocaleSource;
         private bool m_LocaleRegistered;
@@ -46,15 +46,15 @@ namespace Kobbyist.ProgressionControls
                         "Required game services are unavailable");
                 }
 
-                var settings = new Setting(this);
+                var settings = new KobbyistProgressionControlsSettings(this);
                 Settings = settings;
 
                 AssetDatabase.global.LoadSettings(
                     SettingsAssetName,
                     settings,
-                    new Setting(this));
+                    new KobbyistProgressionControlsSettings(this));
 
-                if (settings.ReapplyPresetRules())
+                if (settings.NormalizeLoadedRules())
                 {
                     settings.ApplyAndSave();
                 }

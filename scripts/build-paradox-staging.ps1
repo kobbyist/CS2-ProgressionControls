@@ -1,5 +1,5 @@
 param(
-    [string] $Version = "0.1.0",
+    [string] $Version = "0.1.1",
     [string] $ContentSource
 )
 
@@ -36,6 +36,7 @@ $thumbnailPath = Join-Path `
     "Properties\Thumbnail.png"
 $screenshotRelativePaths = @(
     "Properties/Screenshot-Overview.png",
+    "Properties/Screenshot-Settings-Basic.png",
     "Properties/Screenshot-Settings.png"
 )
 $screenshotPaths = @(

@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using Colossal.IO.AssetDatabase;
 using Colossal.PSI.Environment;
 using Colossal.Serialization.Entities;
 using Game;
+using Game.Assets;
 using Game.City;
 using Game.PSI;
 using Game.SceneFlow;
@@ -41,6 +44,7 @@ namespace Kobbyist.ProgressionControls
         private PopulationProgressionTracker m_PopulationTracker;
         private ProgressionStateStore m_StateStore;
         private ProgressionStateSnapshot m_PendingSaveSnapshot;
+        private string m_PendingSaveName;
         private GameMode m_GameMode;
         private Guid m_CityId;
         private int m_PopulationEvaluationInterval;
@@ -349,6 +353,7 @@ namespace Kobbyist.ProgressionControls
             m_Configuration = null;
             m_PopulationTracker = null;
             m_PendingSaveSnapshot = null;
+            m_PendingSaveName = null;
             m_CityId = Guid.Empty;
             m_LastSettingsState = null;
             m_PopulationEvaluationInterval = 0;
@@ -368,7 +373,7 @@ namespace Kobbyist.ProgressionControls
         }
 
         private ProgressionConfiguration ResolveInitialConfiguration(
-            Setting settings)
+            KobbyistProgressionControlsSettings settings)
         {
             var requested = ReadAppliedSettingsState(settings);
             if (ProgressionSettingsResolver.TryResolveInitial(
@@ -400,24 +405,14 @@ namespace Kobbyist.ProgressionControls
         }
 
         private bool RefreshConfigurationFromSettings(
-            Setting settings)
+            KobbyistProgressionControlsSettings settings)
         {
-            var applyCustomRules =
-                settings.ConsumeApplyCustomRulesRequest();
-            if (!applyCustomRules &&
-                AppliedSettingsMatch(settings, m_LastSettingsState))
+            if (AppliedSettingsMatch(settings, m_LastSettingsState))
             {
                 return false;
             }
 
-            var requested = applyCustomRules
-                ? ReadDraftSettingsState(settings)
-                : ReadAppliedSettingsState(settings);
-            if (m_LastSettingsState != null &&
-                requested.Equals(m_LastSettingsState))
-            {
-                return false;
-            }
+            var requested = ReadAppliedSettingsState(settings);
 
             if (!ProgressionSettingsResolver.TryResolveChange(
                 m_LastSettingsState,
@@ -460,7 +455,7 @@ namespace Kobbyist.ProgressionControls
         }
 
         private static bool AppliedSettingsMatch(
-            Setting settings,
+            KobbyistProgressionControlsSettings settings,
             ProgressionSettingsState state)
         {
             return state != null &&
@@ -472,7 +467,7 @@ namespace Kobbyist.ProgressionControls
         }
 
         private static ProgressionSettingsState ReadAppliedSettingsState(
-            Setting settings)
+            KobbyistProgressionControlsSettings settings)
         {
             return new ProgressionSettingsState(
                 settings.AppliedPreset,
@@ -480,17 +475,8 @@ namespace Kobbyist.ProgressionControls
                 settings.AppliedVanillaXpPercentage);
         }
 
-        private static ProgressionSettingsState ReadDraftSettingsState(
-            Setting settings)
-        {
-            return new ProgressionSettingsState(
-                settings.Preset,
-                settings.XpPerResident,
-                settings.VanillaXpPercentage);
-        }
-
         private static void ApplyNormalizedSettings(
-            Setting settings,
+            KobbyistProgressionControlsSettings settings,
             ProgressionSettingsState requested,
             ProgressionSettingsState normalized)
         {
@@ -801,28 +787,109 @@ namespace Kobbyist.ProgressionControls
         {
             if (start)
             {
+                m_PendingSaveName = saveName;
                 CapturePendingSaveSnapshot();
                 return;
             }
 
             var pending = m_PendingSaveSnapshot;
+            var pendingSaveName = m_PendingSaveName;
             m_PendingSaveSnapshot = null;
-            if (!success || pending == null)
+            m_PendingSaveName = null;
+            if (!success ||
+                pending == null ||
+                string.IsNullOrWhiteSpace(pendingSaveName))
             {
+                return;
+            }
+
+            if (!string.Equals(
+                pendingSaveName,
+                saveName,
+                StringComparison.Ordinal))
+            {
+                Mod.Log.Warn(
+                    "Skipped external progression state because the save callback identity changed");
                 return;
             }
 
             if (m_StateStore.TrySave(
                 pending,
+                pendingSaveName,
                 out var saveError))
             {
                 Mod.Log.Info(
                     $"Saved external progression state for frame {pending.SimulationFrame}");
+                CleanupProgressionState(
+                    pending,
+                    pendingSaveName);
             }
             else
             {
                 Mod.Log.Error(
                     $"Failed to save external progression state: {saveError}");
+            }
+        }
+
+        private void CleanupProgressionState(
+            ProgressionStateSnapshot currentSnapshot,
+            string currentSaveName)
+        {
+            IReadOnlyCollection<string> liveSaveNames =
+                Array.Empty<string>();
+            var liveSaveEnumerationTrusted = false;
+            try
+            {
+                var database = AssetDatabase.global;
+                if (database != null)
+                {
+                    liveSaveNames = database
+                        .AllAssets()
+                        .OfType<SaveGameMetadata>()
+                        .Where(metadata =>
+                            metadata != null &&
+                            metadata.isValidSaveGame &&
+                            !string.IsNullOrWhiteSpace(metadata.name))
+                        // The save callback and metadata.name use the logical
+                        // save identity. metadata.path is its physical source.
+                        .Select(metadata => metadata.name)
+                        .Distinct(StringComparer.Ordinal)
+                        .ToArray();
+                    liveSaveEnumerationTrusted = true;
+                }
+            }
+            catch (Exception exception)
+            {
+                Mod.Log.Warn(
+                    $"Could not enumerate live saves for progression checkpoint cleanup: {exception}");
+            }
+
+            ProgressionStateCleanupResult cleanup;
+            try
+            {
+                cleanup = m_StateStore.Cleanup(
+                    currentSnapshot,
+                    currentSaveName,
+                    liveSaveNames,
+                    liveSaveEnumerationTrusted);
+            }
+            catch (Exception exception)
+            {
+                Mod.Log.Warn(
+                    $"Progression checkpoint cleanup failed without affecting the completed game save: {exception}");
+                return;
+            }
+
+            if (cleanup.RemovedIndexedCheckpoints > 0 ||
+                cleanup.RemovedLegacyCheckpoints > 0)
+            {
+                Mod.Log.Info(
+                    $"Cleaned progression checkpoints: indexed={cleanup.RemovedIndexedCheckpoints}, legacy={cleanup.RemovedLegacyCheckpoints}, retainedLegacy={cleanup.RetainedLegacyCheckpoints}");
+            }
+            if (cleanup.ErrorCount > 0)
+            {
+                Mod.Log.Warn(
+                    $"Progression checkpoint cleanup completed with {cleanup.ErrorCount} error(s); first error: {cleanup.FirstError}");
             }
         }
 
@@ -836,6 +903,7 @@ namespace Kobbyist.ProgressionControls
                 GameManager.instance.isGameLoading)
             {
                 m_PendingSaveSnapshot = null;
+                m_PendingSaveName = null;
                 return;
             }
 
@@ -844,6 +912,7 @@ namespace Kobbyist.ProgressionControls
             if (populationState == null)
             {
                 m_PendingSaveSnapshot = null;
+                m_PendingSaveName = null;
                 return;
             }
 
