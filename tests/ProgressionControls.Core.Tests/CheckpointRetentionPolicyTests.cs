@@ -210,6 +210,55 @@ public sealed class CheckpointRetentionPolicyTests
                 legacyLimitPerCity: -1).Count);
     }
 
+    [TestMethod]
+    public void SharedCheckpointSurvivesWhileAnyOwningSaveIsLive()
+    {
+        var candidates = new[]
+        {
+            Indexed("current", CityA, 30, "Save/C"),
+            new CheckpointRetentionCandidate(
+                "shared",
+                CityA,
+                10,
+                Timestamp(10),
+                new[] { "Save/A", "Save/B" }),
+        };
+
+        var deleted = CheckpointRetentionPolicy.SelectForDeletion(
+            candidates,
+            currentId: "current",
+            liveSaveNames: new[] { "Save/A", "Save/C" },
+            liveSaveEnumerationTrusted: true,
+            legacyLimitPerCity: 16);
+
+        Assert.AreEqual(0, deleted.Count);
+    }
+
+    [TestMethod]
+    public void SharedCheckpointCanBeRemovedAfterAllOwnersDisappear()
+    {
+        var candidates = new[]
+        {
+            Indexed("current", CityA, 30, "Save/C"),
+            new CheckpointRetentionCandidate(
+                "shared",
+                CityA,
+                10,
+                Timestamp(10),
+                new[] { "Save/A", "Save/B" }),
+        };
+
+        var deleted = CheckpointRetentionPolicy.SelectForDeletion(
+            candidates,
+            currentId: "current",
+            liveSaveNames: new[] { "Save/C" },
+            liveSaveEnumerationTrusted: true,
+            legacyLimitPerCity: 16);
+
+        CollectionAssert.AreEqual(
+            new[] { "shared" },
+            deleted.Select(candidate => candidate.Id).ToArray());
+    }
     private static CheckpointRetentionCandidate Indexed(
         string id,
         Guid cityId,

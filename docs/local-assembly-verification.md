@@ -114,13 +114,26 @@ Static metadata and IL inspection confirms:
   identifier.
 - `Game.Simulation.SimulationSystem.frameIndex` is a serialized `System.UInt32`.
 - `Game.SceneFlow.GameManager.onGameSaveLoad` supplies
-  `(saveName, previewUri, start, success)`, and `isGameLoading` is available to
-  distinguish load callbacks.
+  `(saveName, previewUri, start, success)` for saves. Local call-site inspection
+  finds its invocations only in the save state machine.
 - `GameManager` converts `saveName` to an asset data path and uses that path for
   both `SaveGameData` and `SaveGameMetadata` assets.
-- The completion callback runs after the package save operation and reports its
-  success result. This gives the mod a boundary for writing and pruning external
-  state only after a completed save.
+- Local 1.6.0f1 IL for `GameManager.<Save>d__87.MoveNext` invokes the start
+  callback with `start=true` before `WaitForGPUFrame` and before
+  `SaveSimulationData`. A mod callback can therefore flush a provisional
+  checkpoint before the game begins serializing the city.
+- After the start callback, the same state machine writes the current session
+  GUID and `DateTime.Now` to `SaveInfo.sessionGuid` and
+  `SaveInfo.lastModified` before serialization. `SaveGameMetadata.target`
+  publicly exposes that `SaveInfo`.
+- Because the in-memory modification time is assigned before the package
+  operation, it is not completion proof. The sidecar marks a pending record as
+  completed and flushes that marker only after the success callback. Promotion
+  then moves the marked record to its committed path. A marked record remains
+  recoverable after restart if promotion fails; an unmarked record is never
+  inferred to be successful from save metadata timestamps.
+- The same state machine invokes the completion callback only after the package
+  operation finishes and supplies the final success result.
 - `Colossal.IO.AssetDatabase.AssetDatabase.AllAssets()` is public and returns
   `IEnumerable<IAssetData>`.
 - `Game.Assets.SaveGameMetadata` is public and inherits the public asset `name`
@@ -128,19 +141,27 @@ Static metadata and IL inspection confirms:
   save identity supplied by the save callback, while `path` is the physical asset
   source and is not a compatible checkpoint identity. The live metadata names can
   therefore identify checkpoints whose associated saves no longer exist.
+- `Game.Serialization.LoadGameSystem.dataDescriptor` is public and returns the
+  `AsyncReadDescriptor` passed to `GameManager.LoadSimulationData`.
+  `SaveInfo.saveGameData` and `AssetData.GetAsyncReadDescriptor()` are public.
+  After load, matching those descriptors identifies the exact logical
+  `SaveGameMetadata.name` without private access or patching.
 - `Game.GameSystemBase` exposes `OnGamePreload(Purpose, GameMode)`,
   `OnGameLoaded(Context)`, and `OnDestroy()`.
 
 A city session identifier is therefore stable across ordinary loads but is not
 enough to distinguish separate save checkpoints. Production external state is
-keyed by `{sessionGuid}/{simulationFrame}.json`, captured when saving starts,
-and written only after the save succeeds. Schema version 2 records the exact
-`saveName` in each new checkpoint. Successful saves then retain the current
-checkpoint for an overwritten save name and, when live save enumeration is
-trusted and includes the current save, remove indexed checkpoints for deleted
-saves.
+keyed by `{sessionGuid}/{simulationFrame}.{sha256(saveName)}.json`. Schema 4
+stores the exact logical save name inside the checkpoint as a collision check.
+Separate saves retain separate snapshots even when divergent branches reach the
+same simulation frame. A pending checkpoint is captured and flushed before
+serialization, durably marked after success, and then promoted. Successful
+saves retain the current checkpoint for an overwritten save name. When live
+save enumeration is trusted and includes the current save, cleanup removes
+committed and confirmed-pending checkpoints for deleted saves. Unconfirmed
+pending records older than seven days are also removed.
 
-Legacy schema checkpoints remain loadable. Because they predate save-name
+Schema 0, 2, and 3 checkpoints remain loadable. Because schema 0 predates save-name
 indexing, their cleanup uses a deterministic fallback: retain the newest 16 per
 city session by last-write time, then simulation frame, then path. Cleanup is
 best-effort and is isolated from the completed game-save result.
@@ -301,6 +322,9 @@ Local 1.6.0f1 metadata and IL remain authoritative for the implementation:
   - `System.Int32 m_MaximumIncome`
   - `System.Int32 m_MaximumPopulation`
   - `System.Int32 m_XP`
+- Local 1.6.0f1 IL for `XPSystem.XPQueueProcessJob.Execute` applies an `XPGain`
+  by adding its amount directly to `m_XP`. The emergency save fallback writes
+  the same persisted field before `SaveSimulationData`.
 
 ### `Game.City.MilestoneReachedEvent`
 

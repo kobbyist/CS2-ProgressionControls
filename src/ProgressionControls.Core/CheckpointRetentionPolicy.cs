@@ -12,12 +12,35 @@ namespace Kobbyist.ProgressionControls.Core
             uint simulationFrame,
             DateTime lastWriteTimeUtc,
             string saveName)
+            : this(
+                id,
+                cityId,
+                simulationFrame,
+                lastWriteTimeUtc,
+                string.IsNullOrEmpty(saveName)
+                    ? Array.Empty<string>()
+                    : new[] { saveName })
+        {
+        }
+
+        public CheckpointRetentionCandidate(
+            string id,
+            Guid cityId,
+            uint simulationFrame,
+            DateTime lastWriteTimeUtc,
+            IEnumerable<string> saveNames)
         {
             Id = id;
             CityId = cityId;
             SimulationFrame = simulationFrame;
             LastWriteTimeUtc = lastWriteTimeUtc;
-            SaveName = saveName;
+            SaveNames = saveNames == null
+                ? Array.Empty<string>()
+                : saveNames
+                    .Where(name => !string.IsNullOrEmpty(name))
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(name => name, StringComparer.Ordinal)
+                    .ToArray();
         }
 
         public string Id { get; }
@@ -28,9 +51,14 @@ namespace Kobbyist.ProgressionControls.Core
 
         public DateTime LastWriteTimeUtc { get; }
 
-        public string SaveName { get; }
+        public IReadOnlyCollection<string> SaveNames { get; }
 
-        public bool IsLegacy => string.IsNullOrEmpty(SaveName);
+        public bool IsLegacy => SaveNames.Count == 0;
+
+        public bool OwnsSave(string saveName)
+        {
+            return SaveNames.Contains(saveName, StringComparer.Ordinal);
+        }
     }
 
     public static class CheckpointRetentionPolicy
@@ -63,45 +91,57 @@ namespace Kobbyist.ProgressionControls.Core
                 return Array.Empty<CheckpointRetentionCandidate>();
             }
 
-            var delete = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var saveGroup in all
+            var indexed = all
                 .Where(candidate => !candidate.IsLegacy)
-                .GroupBy(
-                    candidate => candidate.SaveName,
-                    StringComparer.Ordinal))
+                .ToList();
+            var retained = new HashSet<string>(StringComparer.Ordinal)
             {
-                var retained = saveGroup.FirstOrDefault(candidate =>
+                current.Id,
+            };
+
+            foreach (var saveName in indexed
+                .SelectMany(candidate => candidate.SaveNames)
+                .Distinct(StringComparer.Ordinal))
+            {
+                var owner = indexed.FirstOrDefault(candidate =>
                     string.Equals(
                         candidate.Id,
-                        currentId,
-                        StringComparison.Ordinal)) ??
-                    saveGroup
+                        current.Id,
+                        StringComparison.Ordinal) &&
+                    candidate.OwnsSave(saveName)) ??
+                    indexed
+                        .Where(candidate => candidate.OwnsSave(saveName))
                         .OrderByDescending(candidate =>
                             candidate.LastWriteTimeUtc)
                         .ThenByDescending(candidate =>
                             candidate.SimulationFrame)
-                        .ThenBy(candidate => candidate.Id, StringComparer.Ordinal)
+                        .ThenBy(
+                            candidate => candidate.Id,
+                            StringComparer.Ordinal)
                         .First();
-
-                foreach (var candidate in saveGroup)
-                {
-                    if (!ReferenceEquals(candidate, retained))
-                    {
-                        delete.Add(candidate.Id);
-                    }
-                }
+                retained.Add(owner.Id);
             }
+
+            var delete = new HashSet<string>(
+                indexed
+                    .Where(candidate => !retained.Contains(candidate.Id))
+                    .Select(candidate => candidate.Id),
+                StringComparer.Ordinal);
 
             var live = liveSaveNames == null
                 ? new HashSet<string>(StringComparer.Ordinal)
                 : new HashSet<string>(
                     liveSaveNames.Where(name => !string.IsNullOrEmpty(name)),
                     StringComparer.Ordinal);
-            if (liveSaveEnumerationTrusted && live.Contains(current.SaveName))
+            if (liveSaveEnumerationTrusted &&
+                current.SaveNames.Any(live.Contains))
             {
-                foreach (var candidate in all.Where(candidate =>
-                    !candidate.IsLegacy &&
-                    !live.Contains(candidate.SaveName)))
+                foreach (var candidate in indexed.Where(candidate =>
+                    !string.Equals(
+                        candidate.Id,
+                        current.Id,
+                        StringComparison.Ordinal) &&
+                    !candidate.SaveNames.Any(live.Contains)))
                 {
                     delete.Add(candidate.Id);
                 }

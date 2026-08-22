@@ -54,6 +54,11 @@ namespace Kobbyist.ProgressionControls.Core
             m_RemainderHundredths = remainderHundredths;
             return true;
         }
+
+        public void ClearRemainder()
+        {
+            m_RemainderHundredths = 0;
+        }
     }
 }
 

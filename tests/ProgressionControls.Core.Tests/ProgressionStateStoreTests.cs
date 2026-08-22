@@ -1,0 +1,554 @@
+using System.Globalization;
+using Kobbyist.ProgressionControls.Core;
+
+namespace ProgressionControls.Core.Tests;
+
+[TestClass]
+public sealed class ProgressionStateStoreTests
+{
+    private static readonly Guid CityId =
+        Guid.Parse("33333333-3333-3333-3333-333333333333");
+
+    private string? m_RootPath;
+
+    [TestInitialize]
+    public void Initialize()
+    {
+        m_RootPath = Path.Combine(
+            Path.GetTempPath(),
+            "ProgressionControls.Tests",
+            Guid.NewGuid().ToString("N"));
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        if (m_RootPath != null && Directory.Exists(m_RootPath))
+        {
+            Directory.Delete(m_RootPath, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void PreparedCheckpointRequiresDurableCompletionMarker()
+    {
+        var store = CreateStore();
+        var expected = Snapshot(frame: 100, pendingPopulationXp: 42);
+
+        Assert.IsTrue(store.TryPrepare(
+            expected,
+            "Save/A",
+            out var preparation,
+            out var prepareError),
+            prepareError);
+
+        Assert.IsFalse(store.TryLoad(
+            CityId,
+            100,
+            "Save/A",
+            out _,
+            out var unconfirmedError));
+        StringAssert.Contains(
+            unconfirmedError,
+            "not durably marked");
+
+        MarkCompletedWithFailedPromotion(
+            store,
+            preparation);
+        store = CreateStore();
+        Assert.IsTrue(store.TryLoad(
+            CityId,
+            100,
+            "Save/A",
+            out var restored,
+            out var loadError),
+            loadError);
+        AssertSnapshot(expected, restored);
+        Assert.AreEqual(0, PendingFiles().Count);
+        Assert.AreEqual(1, CheckpointFiles().Count);
+    }
+
+    [TestMethod]
+    public void FailedSaveDiscardRemovesPreparedCheckpoint()
+    {
+        var store = CreateStore();
+        var snapshot = Snapshot(frame: 200, pendingPopulationXp: 5);
+
+        Assert.IsTrue(store.TryPrepare(
+            snapshot,
+            "Save/A",
+            out var preparation,
+            out var prepareError),
+            prepareError);
+        Assert.IsTrue(store.TryDiscard(
+            preparation,
+            out var discardError),
+            discardError);
+
+        Assert.IsFalse(store.TryLoad(
+            CityId,
+            200,
+            "Save/A",
+            out _,
+            out var loadError));
+        Assert.IsNull(loadError);
+        Assert.AreEqual(0, PendingFiles().Count);
+        Assert.AreEqual(0, CheckpointFiles().Count);
+    }
+
+    [TestMethod]
+    public void FailedSaveDiscardPreservesEarlierRecoveryRecord()
+    {
+        var store = CreateStore();
+        var snapshot = Snapshot(frame: 250, pendingPopulationXp: 11);
+        Assert.IsTrue(store.TryPrepare(
+            snapshot,
+            "Save/A",
+            out var firstPreparation,
+            out var firstPrepareError),
+            firstPrepareError);
+        MarkCompletedWithFailedPromotion(
+            store,
+            firstPreparation);
+
+        Assert.IsTrue(store.TryPrepare(
+            snapshot,
+            "Save/B",
+            out var secondPreparation,
+            out var secondPrepareError),
+            secondPrepareError);
+        Assert.AreEqual(2, PendingFiles().Count);
+
+        Assert.IsTrue(store.TryDiscard(
+            secondPreparation,
+            out var discardError),
+            discardError);
+        Assert.AreEqual(1, PendingFiles().Count);
+
+        Assert.IsTrue(store.TryLoad(
+            CityId,
+            250,
+            "Save/A",
+            out var restored,
+            out var loadError),
+            loadError);
+        AssertSnapshot(snapshot, restored);
+    }
+
+    [TestMethod]
+    public void CommittedCheckpointWinsOverUnconfirmedPreparation()
+    {
+        var store = CreateStore();
+        var committed = Snapshot(frame: 275, pendingPopulationXp: 7);
+        PrepareAndCommit(store, committed, "Save/A");
+
+        var unconfirmed = Snapshot(frame: 275, pendingPopulationXp: 99);
+        Assert.IsTrue(store.TryPrepare(
+            unconfirmed,
+            "Save/A",
+            out _,
+            out var prepareError),
+            prepareError);
+
+        Assert.IsTrue(store.TryLoad(
+            CityId,
+            275,
+            "Save/A",
+            out var restored,
+            out var loadError),
+            loadError);
+        AssertSnapshot(committed, restored);
+    }
+
+    [TestMethod]
+    public void PendingCheckpointForAnotherSaveDoesNotWarnOrOverride()
+    {
+        var store = CreateStore();
+        var committed = Snapshot(frame: 280, pendingPopulationXp: 7);
+        PrepareAndCommit(store, committed, "Save/A");
+
+        var other = Snapshot(frame: 280, pendingPopulationXp: 99);
+        Assert.IsTrue(store.TryPrepare(
+            other,
+            "Save/B",
+            out _,
+            out var prepareError),
+            prepareError);
+
+        Assert.IsTrue(store.TryLoad(
+            CityId,
+            280,
+            "Save/A",
+            out var restored,
+            out var loadError),
+            loadError);
+        Assert.IsNull(loadError);
+        AssertSnapshot(committed, restored);
+    }
+
+    [TestMethod]
+    public void MalformedPendingCheckpointReportsError()
+    {
+        var cityDirectory = Path.Combine(
+            m_RootPath!,
+            CityId.ToString("N"));
+        Directory.CreateDirectory(cityDirectory);
+        File.WriteAllText(
+            Path.Combine(cityDirectory, "290.corrupt.pending"),
+            "not-json");
+
+        var store = CreateStore();
+        Assert.IsFalse(store.TryLoad(
+            CityId,
+            290,
+            "Save/A",
+            out _,
+            out var loadError));
+        Assert.IsFalse(string.IsNullOrWhiteSpace(loadError));
+    }
+
+    [TestMethod]
+    public void SuccessfulCommitRemovesSupersededRecoveryRecord()
+    {
+        var store = CreateStore();
+        var snapshot = Snapshot(frame: 295, pendingPopulationXp: 13);
+        Assert.IsTrue(store.TryPrepare(
+            snapshot,
+            "Save/A",
+            out var firstPreparation,
+            out var firstPrepareError),
+            firstPrepareError);
+        MarkCompletedWithFailedPromotion(
+            store,
+            firstPreparation);
+
+        Assert.IsTrue(store.TryPrepare(
+            snapshot,
+            "Save/A",
+            out var secondPreparation,
+            out var secondPrepareError),
+            secondPrepareError);
+        Assert.AreEqual(2, PendingFiles().Count);
+
+        Assert.IsTrue(store.TryCommit(
+            secondPreparation,
+            out var commitError),
+            commitError);
+        Assert.AreEqual(0, PendingFiles().Count);
+        Assert.AreEqual(1, CheckpointFiles().Count);
+    }
+
+    [TestMethod]
+    public void FailSafeXpRoundsCombinedFractionUp()
+    {
+        var snapshot = new ProgressionStateSnapshot(
+            CityId,
+            simulationFrame: 299,
+            new PopulationProgressionState(
+                maximumPopulation: 1234,
+                fractionalXp: 0.75m),
+            vanillaRemainderHundredths: 50,
+            pendingPopulationXp: 42);
+
+        Assert.AreEqual(44m, snapshot.RequiredVanillaFailSafeXp);
+    }
+
+    [TestMethod]
+    public void DivergentSameFrameSavesRetainSeparateSnapshots()
+    {
+        var store = CreateStore();
+        var first = Snapshot(frame: 300, pendingPopulationXp: 17);
+        var second = Snapshot(frame: 300, pendingPopulationXp: 99);
+        PrepareAndCommit(store, first, "Save/A");
+        PrepareAndCommit(store, second, "Save/B");
+
+        Assert.AreEqual(2, CheckpointFiles().Count);
+        Assert.IsTrue(store.TryLoad(
+            CityId,
+            300,
+            "Save/A",
+            out var restoredFirst,
+            out var firstLoadError),
+            firstLoadError);
+        AssertSnapshot(first, restoredFirst);
+        Assert.IsTrue(store.TryLoad(
+            CityId,
+            300,
+            "Save/B",
+            out var restoredSecond,
+            out var secondLoadError),
+            secondLoadError);
+        AssertSnapshot(second, restoredSecond);
+
+        var current = Snapshot(frame: 400, pendingPopulationXp: 23);
+        PrepareAndCommit(store, current, "Save/C");
+
+        var firstCleanup = store.Cleanup(
+            current,
+            "Save/C",
+            new[] { "Save/A", "Save/C" },
+            liveSaveEnumerationTrusted: true);
+
+        Assert.AreEqual(0, firstCleanup.ErrorCount);
+        Assert.AreEqual(1, firstCleanup.RemovedIndexedCheckpoints);
+        Assert.IsTrue(store.TryLoad(
+            CityId,
+            300,
+            "Save/A",
+            out var restored,
+            out var loadError),
+            loadError);
+        AssertSnapshot(first, restored);
+        Assert.IsFalse(store.TryLoad(
+            CityId,
+            300,
+            "Save/B",
+            out _,
+            out _));
+
+        var secondCleanup = store.Cleanup(
+            current,
+            "Save/C",
+            new[] { "Save/C" },
+            liveSaveEnumerationTrusted: true);
+
+        Assert.AreEqual(0, secondCleanup.ErrorCount);
+        Assert.AreEqual(1, secondCleanup.RemovedIndexedCheckpoints);
+        Assert.IsFalse(store.TryLoad(
+            CityId,
+            300,
+            "Save/A",
+            out _,
+            out _));
+    }
+
+    [TestMethod]
+    public void LaterOverwriteDoesNotConfirmStalePendingCheckpoint()
+    {
+        var store = CreateStore();
+        var stale = Snapshot(frame: 450, pendingPopulationXp: 31);
+        Assert.IsTrue(store.TryPrepare(
+            stale,
+            "Save/A",
+            out _,
+            out var prepareError),
+            prepareError);
+
+        var later = Snapshot(frame: 451, pendingPopulationXp: 47);
+        PrepareAndCommit(store, later, "Save/A");
+
+        store = CreateStore();
+        Assert.IsFalse(store.TryLoad(
+            CityId,
+            450,
+            "Save/A",
+            out _,
+            out var loadError));
+        StringAssert.Contains(loadError, "not durably marked");
+    }
+
+    [TestMethod]
+    public void CleanupRemovesExpiredUnconfirmedPendingCheckpoint()
+    {
+        var store = CreateStore();
+        var abandoned = Snapshot(frame: 600, pendingPopulationXp: 9);
+        Assert.IsTrue(store.TryPrepare(
+            abandoned,
+            "Save/A",
+            out _,
+            out var prepareError),
+            prepareError);
+        File.SetLastWriteTimeUtc(
+            PendingFiles().Single(),
+            DateTime.UtcNow.AddDays(-8));
+
+        var current = Snapshot(frame: 700, pendingPopulationXp: 12);
+        PrepareAndCommit(store, current, "Save/C");
+        var cleanup = store.Cleanup(
+            current,
+            "Save/C",
+            new[] { "Save/A", "Save/C" },
+            liveSaveEnumerationTrusted: true);
+
+        Assert.AreEqual(0, cleanup.ErrorCount);
+        Assert.AreEqual(1, cleanup.RemovedPendingCheckpoints);
+        Assert.AreEqual(0, PendingFiles().Count);
+    }
+
+    [TestMethod]
+    public void CleanupRemovesConfirmedPendingWhenOwnerIsDeleted()
+    {
+        var store = CreateStore();
+        var abandoned = Snapshot(frame: 650, pendingPopulationXp: 15);
+        Assert.IsTrue(store.TryPrepare(
+            abandoned,
+            "Save/A",
+            out var preparation,
+            out var prepareError),
+            prepareError);
+        MarkCompletedWithFailedPromotion(store, preparation);
+
+        var current = Snapshot(frame: 700, pendingPopulationXp: 12);
+        PrepareAndCommit(store, current, "Save/C");
+        var cleanup = store.Cleanup(
+            current,
+            "Save/C",
+            new[] { "Save/C" },
+            liveSaveEnumerationTrusted: true);
+
+        Assert.AreEqual(0, cleanup.ErrorCount);
+        Assert.AreEqual(1, cleanup.RemovedPendingCheckpoints);
+        Assert.AreEqual(0, PendingFiles().Count);
+    }
+
+    [TestMethod]
+    public void CleanupKeepsConfirmedPendingWhenCurrentSaveIsNotEnumerated()
+    {
+        var store = CreateStore();
+        var recoverable = Snapshot(frame: 675, pendingPopulationXp: 15);
+        Assert.IsTrue(store.TryPrepare(
+            recoverable,
+            "Save/A",
+            out var preparation,
+            out var prepareError),
+            prepareError);
+        MarkCompletedWithFailedPromotion(store, preparation);
+
+        var current = Snapshot(frame: 700, pendingPopulationXp: 12);
+        PrepareAndCommit(store, current, "Save/C");
+        var cleanup = store.Cleanup(
+            current,
+            "Save/C",
+            new[] { "Save/A" },
+            liveSaveEnumerationTrusted: true);
+
+        Assert.AreEqual(0, cleanup.ErrorCount);
+        Assert.AreEqual(0, cleanup.RemovedPendingCheckpoints);
+        Assert.AreEqual(1, PendingFiles().Count);
+    }
+
+    [TestMethod]
+    public void SchemaTwoCheckpointRemainsLoadable()
+    {
+        var cityDirectory = Path.Combine(
+            m_RootPath!,
+            CityId.ToString("N"));
+        Directory.CreateDirectory(cityDirectory);
+        var path = Path.Combine(cityDirectory, "500.json");
+        var json = string.Format(
+            CultureInfo.InvariantCulture,
+            "{{\"CityId\":\"{0:D}\",\"SimulationFrame\":500,\"MaximumPopulation\":1234,\"PopulationFractionalXp\":0.5,\"VanillaRemainderHundredths\":25,\"PendingPopulationXp\":12,\"SchemaVersion\":2,\"SaveName\":\"Save/A\"}}",
+            CityId);
+        File.WriteAllText(path, json);
+
+        var store = CreateStore();
+        Assert.IsTrue(store.TryLoad(
+            CityId,
+            500,
+            "Save/A",
+            out var restored,
+            out var loadError),
+            loadError);
+        Assert.AreEqual(1234, restored.PopulationState.MaximumPopulation);
+        Assert.AreEqual(0.5m, restored.PopulationState.FractionalXp);
+        Assert.AreEqual(25, restored.VanillaRemainderHundredths);
+        Assert.AreEqual(12, restored.PendingPopulationXp);
+    }
+
+    private ProgressionStateStore CreateStore()
+    {
+        return new ProgressionStateStore(m_RootPath!);
+    }
+
+    private IReadOnlyList<string> PendingFiles()
+    {
+        return Directory.Exists(m_RootPath)
+            ? Directory.GetFiles(
+                m_RootPath!,
+                "*.pending",
+                SearchOption.AllDirectories)
+            : Array.Empty<string>();
+    }
+
+    private IReadOnlyList<string> CheckpointFiles()
+    {
+        return Directory.Exists(m_RootPath)
+            ? Directory.GetFiles(
+                m_RootPath!,
+                "*.json",
+                SearchOption.AllDirectories)
+            : Array.Empty<string>();
+    }
+
+    private void MarkCompletedWithFailedPromotion(
+        ProgressionStateStore store,
+        ProgressionStatePreparation preparation)
+    {
+        var pendingName = Path.GetFileName(
+            preparation.PendingPath);
+        var pendingParts = pendingName.Split('.');
+        Assert.AreEqual(4, pendingParts.Length);
+        var finalPath = Path.Combine(
+            Path.GetDirectoryName(preparation.PendingPath)!,
+            pendingParts[0] + "." + pendingParts[1] + ".json");
+        Directory.CreateDirectory(finalPath);
+        Assert.IsFalse(store.TryCommit(
+            preparation,
+            out var commitError));
+        Assert.IsFalse(string.IsNullOrWhiteSpace(commitError));
+        Directory.Delete(finalPath);
+        Assert.AreEqual(1, PendingFiles().Count);
+    }
+
+    private static ProgressionStateSnapshot Snapshot(
+        uint frame,
+        long pendingPopulationXp)
+    {
+        return new ProgressionStateSnapshot(
+            CityId,
+            frame,
+            new PopulationProgressionState(
+                maximumPopulation: 1234,
+                fractionalXp: 0.5m),
+            vanillaRemainderHundredths: 25,
+            pendingPopulationXp);
+    }
+
+    private static void PrepareAndCommit(
+        ProgressionStateStore store,
+        ProgressionStateSnapshot snapshot,
+        string saveName)
+    {
+        Assert.IsTrue(store.TryPrepare(
+            snapshot,
+            saveName,
+            out var preparation,
+            out var prepareError),
+            prepareError);
+        Assert.IsTrue(store.TryCommit(
+            preparation,
+            out var commitError),
+            commitError);
+    }
+
+    private static void AssertSnapshot(
+        ProgressionStateSnapshot expected,
+        ProgressionStateSnapshot actual)
+    {
+        Assert.IsNotNull(actual);
+        Assert.AreEqual(expected.CityId, actual.CityId);
+        Assert.AreEqual(expected.SimulationFrame, actual.SimulationFrame);
+        Assert.AreEqual(
+            expected.PopulationState.MaximumPopulation,
+            actual.PopulationState.MaximumPopulation);
+        Assert.AreEqual(
+            expected.PopulationState.FractionalXp,
+            actual.PopulationState.FractionalXp);
+        Assert.AreEqual(
+            expected.VanillaRemainderHundredths,
+            actual.VanillaRemainderHundredths);
+        Assert.AreEqual(
+            expected.PendingPopulationXp,
+            actual.PendingPopulationXp);
+    }
+}
