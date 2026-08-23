@@ -1,0 +1,127 @@
+.overlayPanel,
+.dialogPanel {
+  width: 360rem;
+  overflow: visible;
+  border: 0;
+  background-color: transparent;
+  color: rgba(254, 254, 254, 0.92);
+  --menuPanel1: transparent;
+  --menuPanel2: transparent;
+  --panelColorDark: transparent;
+  --panelColorNormal: transparent;
+  --sectionHeaderColor: transparent;
+}
+
+.overlayPanel {
+  max-height: 760rem;
+}
+
+.overlayPanel > div[class*="header_"],
+.dialogPanel > div[class*="header_"] {
+  height: 34rem !important;
+  min-height: 34rem !important;
+  max-height: 34rem !important;
+  background-color: rgba(36, 54, 66, 0.88) !important;
+  background-image: none !important;
+}
+
+.overlayPanel > div[class*="content_"] {
+  background-color: transparent !important;
+  background-image: linear-gradient(
+    to bottom,
+    rgba(55, 82, 96, 0.84),
+    rgba(31, 45, 60, 0.8)
+  ) !important;
+}
+
+.dialogPanel > div[class*="header_"] {
+  background-color: rgba(36, 54, 66, 0.96) !important;
+}
+
+.dialogPanel > div[class*="content_"] {
+  background-color: transparent !important;
+  background-image: linear-gradient(
+    to bottom,
+    rgba(55, 82, 96, 0.96),
+    rgba(31, 45, 60, 0.96)
+  ) !important;
+}
+
+.panelContent {
+  padding: 0 0 6rem !important;
+}
+
+.dialogPanel .panelContent {
+  padding: 12rem !important;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 34rem;
+  padding: 0 4rem;
+}
+
+.titleArea {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.headerIcon {
+  width: 25rem;
+  height: 21rem;
+  flex: 0 0 25rem;
+  filter: brightness(0) invert(1) opacity(0.9);
+}
+
+.title {
+  flex: 1;
+  overflow: hidden;
+  color: #54d7ff;
+  font-size: var(--fontSizeS);
+  font-weight: 600;
+  letter-spacing: 1.4rem;
+  line-height: 1;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.closeButton {
+  width: 24rem;
+  min-width: 24rem;
+  height: 24rem;
+  min-height: 24rem;
+  flex: 0 0 24rem;
+  margin-left: 5rem;
+}
+
+.closeIcon {
+  width: 18rem;
+  height: 18rem;
+  filter: brightness(0) invert(1) opacity(0.88);
+}
+
+.section {
+  display: block;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  min-height: 28rem;
+  padding: 7rem 10rem 5rem;
+  color: rgba(254, 254, 254, 0.9);
+  font-size: var(--fontSizeS);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.sectionHeader > span:first-child {
+  flex: 1;
+}

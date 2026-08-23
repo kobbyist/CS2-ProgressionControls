@@ -1,0 +1,328 @@
+.panelPosition {
+  position: absolute;
+  top: 60rem;
+  left: var(--screenPadding);
+  z-index: 20;
+}
+
+.summary {
+  display: flex;
+  align-items: stretch;
+  min-height: 42rem;
+  padding: 5rem 10rem;
+  border-bottom: 1rem solid rgba(255, 255, 255, 0.12);
+  background-color: rgba(0, 0, 0, 0.14);
+}
+
+.summaryValue {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.summaryValue:last-child {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.summaryValue span {
+  color: rgba(254, 254, 254, 0.64);
+  font-size: var(--fontSizeXS);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.summaryValue strong {
+  margin-top: 3rem;
+  overflow: hidden;
+  color: rgba(254, 254, 254, 0.96);
+  font-size: var(--fontSizeS);
+  font-weight: 700;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summaryValue:first-child strong {
+  color: #ffd777;
+}
+
+.summaryDivider {
+  width: 1rem;
+  margin: 2rem 12rem;
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.claimableCount {
+  flex: 0 0 auto;
+  padding: 4rem 7rem;
+  border-radius: 6rem;
+  background-color: rgba(40, 110, 62, 0.72);
+  color: rgba(255, 255, 255, 0.96);
+  font-size: var(--fontSizeXS);
+  font-weight: 700;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.milestoneScroll {
+  max-height: 410rem;
+}
+
+.milestoneList {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  padding: 0 6rem 2rem;
+}
+
+.milestoneRow,
+.milestoneRowClaimable {
+  display: flex;
+  align-items: center;
+  height: 46rem;
+  min-height: 46rem;
+  gap: 6rem;
+  padding: 4rem 6rem;
+  border: 1rem solid rgba(255, 255, 255, 0.08);
+  border-radius: 3rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+}
+
+.milestoneRow {
+  color: rgba(254, 254, 254, 0.68);
+}
+
+.milestoneRowClaimable {
+  border-left: 3rem solid #54d7ff;
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.railIcon {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.milestoneIcon,
+.milestoneIconCompact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32rem;
+  height: 32rem;
+  flex: 0 0 32rem;
+}
+
+.milestoneIconCompact {
+  width: 30rem;
+  height: 30rem;
+  flex-basis: 30rem;
+}
+
+.milestoneIcon img,
+.milestoneIcon > div {
+  width: 30rem;
+  height: 30rem;
+  object-fit: contain;
+}
+
+.milestoneIconCompact img,
+.milestoneIconCompact > div {
+  width: 28rem;
+  height: 28rem;
+  object-fit: contain;
+}
+
+.milestoneCopy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.milestoneCopy strong {
+  overflow: hidden;
+  color: rgba(254, 254, 254, 0.9);
+  font-size: var(--fontSizeS);
+  font-weight: 500;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.milestoneCopy span {
+  margin-top: 2rem;
+  color: rgba(254, 254, 254, 0.56);
+  font-size: var(--fontSizeXS);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.claimButton {
+  min-width: 62rem;
+  height: 30rem;
+  min-height: 30rem;
+  padding: 0 7rem;
+  border: 1rem solid rgba(84, 215, 255, 0.88) !important;
+  border-radius: 4rem;
+  background-color: rgba(36, 88, 112, 0.8) !important;
+  color: #ffffff;
+  font-size: var(--fontSizeXS);
+  font-weight: 700;
+}
+
+.claimButton:hover {
+  background-color: rgba(84, 215, 255, 0.42) !important;
+}
+
+.lockedReason {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 105rem;
+  flex: 0 0 105rem;
+  gap: 4rem;
+  overflow: hidden;
+  color: rgba(254, 254, 254, 0.52);
+  font-size: 9rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.lockIcon {
+  width: 13rem;
+  height: 13rem;
+  flex: 0 0 13rem;
+}
+
+.completeState {
+  min-height: 46rem;
+  margin: 0 6rem 2rem;
+  padding: 14rem 10rem;
+  border-radius: 3rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+  color: rgba(254, 254, 254, 0.68);
+  font-size: var(--fontSizeS);
+  text-align: center;
+}
+
+.nextMilestone {
+  margin-top: 2rem;
+  border-top: 1rem solid rgba(255, 255, 255, 0.12);
+}
+
+.nextMilestoneBody {
+  display: flex;
+  align-items: center;
+  min-height: 40rem;
+  gap: 7rem;
+  padding: 3rem 10rem;
+}
+
+.nextMilestoneCopy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nextMilestoneCopy strong {
+  overflow: hidden;
+  color: rgba(254, 254, 254, 0.9);
+  font-size: var(--fontSizeS);
+  font-weight: 500;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nextMilestoneCopy span {
+  margin-top: 3rem;
+  color: rgba(254, 254, 254, 0.7);
+  font-size: var(--fontSizeXS);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.progressTrack {
+  height: 5rem;
+  margin: 2rem 10rem 7rem;
+  overflow: hidden;
+  border-radius: 3rem;
+  background-color: rgba(8, 18, 27, 0.72);
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: inherit;
+  background-color: #54d7ff;
+  transition: width 180ms ease-out;
+}
+
+.modalScrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(5, 10, 15, 0.66);
+}
+
+.dialogBody {
+  margin: 0 0 10rem;
+  color: rgba(254, 254, 254, 0.78);
+  font-size: var(--fontSizeS);
+  line-height: 1.35;
+}
+
+.dialogBody strong {
+  color: #ffd777;
+}
+
+.pendingNotice {
+  margin-bottom: 8rem;
+  padding: 7rem 8rem;
+  border-left: 3rem solid #54d7ff;
+  background-color: rgba(0, 0, 0, 0.16);
+  color: rgba(254, 254, 254, 0.78);
+  font-size: var(--fontSizeXS);
+  line-height: 1.3;
+}
+
+.dialogActions {
+  display: flex;
+  flex-direction: column;
+  gap: 5rem;
+}
+
+.dialogActions button {
+  min-height: 31rem;
+  font-size: var(--fontSizeXS);
+}
+
+.dangerButton {
+  border-color: rgba(245, 96, 96, 0.9) !important;
+  background-color: rgba(112, 42, 42, 0.74) !important;
+  color: #ffffff;
+}
+
+.discardWarning {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5rem;
+  margin-top: 8rem;
+  color: rgba(255, 170, 170, 0.8);
+  font-size: var(--fontSizeXS);
+}
+
+.warningIcon {
+  width: 14rem;
+  height: 14rem;
+  filter: brightness(1.3);
+}
