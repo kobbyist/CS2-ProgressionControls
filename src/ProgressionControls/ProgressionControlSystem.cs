@@ -78,6 +78,7 @@ namespace Kobbyist.ProgressionControls
                 World.GetOrCreateSystemManaged<SimulationSystem>();
             m_XPSystem =
                 World.GetOrCreateSystemManaged<XPSystem>();
+            CreateManualProgression();
             m_StateStore = new ProgressionStateStore(
                 Path.Combine(
                     EnvPath.kUserDataPath,
@@ -145,17 +146,29 @@ namespace Kobbyist.ProgressionControls
             }
 
             var settings = Mod.Settings;
+            var manualProcessingRequired =
+                UpdateManualProgression(settings);
             var customProgressionEnabled =
                 settings.EnableCustomProgression;
+            var currentFrame =
+                m_SimulationSystem.frameIndex;
             if (!customProgressionEnabled)
             {
+                m_VanillaXpScaler.Configure(
+                    enabled: false,
+                    percentage: 100);
+                if (manualProcessingRequired)
+                {
+                    ProcessXpQueue(
+                        currentFrame,
+                        allowPopulationAward: false);
+                    return;
+                }
+
                 if (m_LastCustomProgressionEnabled)
                 {
                     FlushPendingPopulationXp();
                     m_LastCustomProgressionEnabled = false;
-                    m_VanillaXpScaler.Configure(
-                        enabled: false,
-                        percentage: 100);
                     m_PendingVanillaXp.Clear();
                     Mod.Log.Info(
                         "Progression integration disabled; population observation and XP interception are dormant");
@@ -166,8 +179,6 @@ namespace Kobbyist.ProgressionControls
 
             var configurationChanged =
                 RefreshConfigurationFromSettings(settings);
-            var currentFrame =
-                m_SimulationSystem.frameIndex;
             var evaluationRequired =
                 ConfigurePopulationEvaluationCadence(
                     settings.PopulationEvaluationCadence);
@@ -210,7 +221,9 @@ namespace Kobbyist.ProgressionControls
                 enabled: true,
                 percentage: m_Configuration.VanillaXpPercentage);
 
-            ProcessXpQueue(currentFrame);
+            ProcessXpQueue(
+                currentFrame,
+                allowPopulationAward: true);
         }
 
         private bool TryInitializeActiveCity()
@@ -331,6 +344,11 @@ namespace Kobbyist.ProgressionControls
                     $"Established progression baseline at population {baseline}");
             }
 
+            InitializeManualProgression(
+                persisted,
+                baseGameXp.m_XP,
+                settings);
+
             m_LastCustomProgressionEnabled =
                 customProgressionEnabled;
             if (customProgressionEnabled)
@@ -385,6 +403,7 @@ namespace Kobbyist.ProgressionControls
                 percentage: 100);
             m_PopulationXpBatch.Clear();
             m_PendingVanillaXp.Clear();
+            ResetManualProgression();
         }
 
         private ProgressionConfiguration ResolveInitialConfiguration(
@@ -581,14 +600,24 @@ namespace Kobbyist.ProgressionControls
             return true;
         }
 
-        private void ProcessXpQueue(uint currentFrame)
+        private void ProcessXpQueue(
+            uint currentFrame,
+            bool allowPopulationAward)
         {
-            if (!TryGetActiveCity(out var city))
+            if (!TryGetActiveCity(out var city) ||
+                !EntityManager.HasComponent<XP>(city))
             {
                 m_PopulationXpBatch.Clear();
                 return;
             }
 
+            var projectedCityXp =
+                (long)EntityManager.GetComponentData<XP>(city).m_XP;
+            var nextRequiredXp = TryGetNextMilestone(
+                GetAchievedMilestone(),
+                out var nextMilestone)
+                ? nextMilestone.RequiredXp
+                : 0;
             var queue =
                 m_XPSystem.GetQueue(out JobHandle queueWriters);
             queueWriters.Complete();
@@ -600,8 +629,18 @@ namespace Kobbyist.ProgressionControls
                 {
                     gain.amount =
                         m_VanillaXpScaler.Scale(gain.amount);
+                    gain.amount = RouteManualPositiveXp(
+                        gain.amount,
+                        projectedCityXp,
+                        nextRequiredXp);
                 }
 
+                if (gain.amount == 0)
+                {
+                    continue;
+                }
+
+                projectedCityXp += gain.amount;
                 m_PendingVanillaXp.Add(gain);
             }
 
@@ -610,13 +649,23 @@ namespace Kobbyist.ProgressionControls
                 queue.Enqueue(gain);
             }
 
-            if (IsPopulationXpAwardDue(currentFrame))
+            if (allowPopulationAward &&
+                IsPopulationXpAwardDue(currentFrame))
             {
-                EnqueueNextPopulationXpAward(queue, city);
+                EnqueueNextPopulationXpAward(
+                    queue,
+                    city,
+                    ref projectedCityXp,
+                    nextRequiredXp);
                 m_NextPopulationXpAwardFrame =
                     currentFrame +
                     (uint)m_PopulationXpAwardInterval;
             }
+
+            TryEnqueueRequestedManualClaim(
+                queue,
+                city,
+                ref projectedCityXp);
         }
 
         private void FlushPendingPopulationXp()
@@ -626,29 +675,52 @@ namespace Kobbyist.ProgressionControls
                 return;
             }
 
-            if (!TryGetActiveCity(out var city))
+            if (!TryGetActiveCity(out var city) ||
+                !EntityManager.HasComponent<XP>(city))
             {
                 m_PopulationXpBatch.Clear();
                 return;
             }
 
+            var projectedCityXp =
+                (long)EntityManager.GetComponentData<XP>(city).m_XP;
+            var nextRequiredXp = TryGetNextMilestone(
+                GetAchievedMilestone(),
+                out var nextMilestone)
+                ? nextMilestone.RequiredXp
+                : 0;
             var queue =
                 m_XPSystem.GetQueue(out JobHandle queueWriters);
             queueWriters.Complete();
             while (m_PopulationXpBatch.PendingXp > 0)
             {
-                EnqueueNextPopulationXpAward(queue, city);
+                EnqueueNextPopulationXpAward(
+                    queue,
+                    city,
+                    ref projectedCityXp,
+                    nextRequiredXp);
             }
         }
 
         private void EnqueueNextPopulationXpAward(
             NativeQueue<XPGain> queue,
-            Entity city)
+            Entity city,
+            ref long projectedCityXp,
+            int nextRequiredXp)
         {
             // XPSystem emits one XPMessage per XPGain, so a scheduled
             // window submits at most one population gain.
             var amount = (int)m_PopulationXpBatch.TakeUpTo(
                 int.MaxValue);
+            if (amount <= 0)
+            {
+                return;
+            }
+
+            amount = RouteManualPositiveXp(
+                amount,
+                projectedCityXp,
+                nextRequiredXp);
             if (amount <= 0)
             {
                 return;
@@ -661,8 +733,8 @@ namespace Kobbyist.ProgressionControls
                     amount = amount,
                     reason = XPReason.Population,
                 });
+            projectedCityXp += amount;
         }
-
         private bool TryGetActiveCity(out Entity city)
         {
             city = Entity.Null;
@@ -1083,6 +1155,14 @@ namespace Kobbyist.ProgressionControls
                 }
 
                 var requiredXp = snapshot.RequiredVanillaFailSafeXp;
+                if (snapshot.PendingMilestoneClaimIndex > 0 &&
+                    cityXp.m_XP <
+                        snapshot.PendingMilestoneClaimThreshold)
+                {
+                    requiredXp +=
+                        snapshot.PendingMilestoneClaimXp;
+                }
+
                 var availableXp =
                     (decimal)int.MaxValue - cityXp.m_XP;
                 var releasedXp = Math.Min(requiredXp, availableXp);
@@ -1109,6 +1189,7 @@ namespace Kobbyist.ProgressionControls
                 m_PopulationXpBatch.Clear();
                 m_VanillaXpScaler.ClearRemainder();
                 m_PendingVanillaXp.Clear();
+                ResetManualProgression();
                 return true;
             }
             catch (Exception exception)
@@ -1124,7 +1205,9 @@ namespace Kobbyist.ProgressionControls
             if (!m_HasActiveCity ||
                 m_PopulationTracker == null ||
                 Mod.Settings == null ||
-                !Mod.Settings.EnableCustomProgression ||
+                (!Mod.Settings.EnableCustomProgression &&
+                    m_ManualProgressionBank.HeldXp == 0 &&
+                    !m_ManualProgressionBank.IsClaimPending) ||
                 m_CityId == Guid.Empty ||
                 GameManager.instance.isGameLoading)
             {
@@ -1143,7 +1226,11 @@ namespace Kobbyist.ProgressionControls
                 m_SimulationSystem.frameIndex,
                 populationState,
                 m_VanillaXpScaler.RemainderHundredths,
-                m_PopulationXpBatch.PendingXp);
+                m_PopulationXpBatch.PendingXp,
+                m_ManualProgressionBank.HeldXp,
+                m_ManualProgressionBank.PendingClaimIndex,
+                m_ManualProgressionBank.PendingClaimXp,
+                m_ManualProgressionBank.PendingClaimThreshold);
         }
     }
 }

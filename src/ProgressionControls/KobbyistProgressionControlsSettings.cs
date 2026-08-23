@@ -49,6 +49,18 @@ namespace Kobbyist.ProgressionControls
         public bool EnableCustomProgression { get; set; }
 
         [SettingsUISection(kSection, kGeneralGroup)]
+        [SettingsUIDisableByCondition(
+            typeof(KobbyistProgressionControlsSettings),
+            nameof(IsManualMilestoneClaimsDisabled))]
+        public bool ManualMilestoneClaims { get; set; }
+
+        public static bool IsManualMilestoneClaimsDisabled()
+        {
+            return Mod.Settings == null ||
+                !Mod.Settings.EnableCustomProgression;
+        }
+
+        [SettingsUISection(kSection, kGeneralGroup)]
         public ProgressionPreset Preset
         {
             get => m_Preset;
@@ -110,6 +122,7 @@ namespace Kobbyist.ProgressionControls
         public override void SetDefaults()
         {
             EnableCustomProgression = true;
+            ManualMilestoneClaims = false;
             Preset = ProgressionPreset.PopulationHeavy;
             PopulationEvaluationCadence =
                 PopulationEvaluationCadence.Responsive;
