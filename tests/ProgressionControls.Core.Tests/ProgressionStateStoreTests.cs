@@ -254,6 +254,51 @@ public sealed class ProgressionStateStoreTests
     }
 
     [TestMethod]
+    public void FailSafeXpIncludesHeldMilestoneXp()
+    {
+        var snapshot = new ProgressionStateSnapshot(
+            CityId,
+            simulationFrame: 299,
+            new PopulationProgressionState(
+                maximumPopulation: 1234,
+                fractionalXp: 0.25m),
+            vanillaRemainderHundredths: 25,
+            pendingPopulationXp: 10,
+            heldMilestoneXp: 500);
+
+        Assert.AreEqual(511m, snapshot.RequiredVanillaFailSafeXp);
+    }
+
+    [TestMethod]
+    public void ManualMilestoneStateRoundTrips()
+    {
+        var store = CreateStore();
+        var snapshot = new ProgressionStateSnapshot(
+            CityId,
+            simulationFrame: 301,
+            new PopulationProgressionState(
+                maximumPopulation: 1234,
+                fractionalXp: 0m),
+            vanillaRemainderHundredths: 0,
+            pendingPopulationXp: 0,
+            heldMilestoneXp: 4500,
+            pendingMilestoneClaimIndex: 4,
+            pendingMilestoneClaimXp: 500,
+            pendingMilestoneClaimThreshold: 9000);
+
+        PrepareAndCommit(store, snapshot, "Manual Save");
+
+        Assert.IsTrue(store.TryLoad(
+            CityId,
+            301,
+            "Manual Save",
+            out var restored,
+            out var loadError),
+            loadError);
+        AssertSnapshot(snapshot, restored);
+    }
+
+    [TestMethod]
     public void DivergentSameFrameSavesRetainSeparateSnapshots()
     {
         var store = CreateStore();
@@ -455,6 +500,34 @@ public sealed class ProgressionStateStoreTests
         Assert.AreEqual(12, restored.PendingPopulationXp);
     }
 
+    [TestMethod]
+    public void SchemaFourCheckpointRemainsLoadable()
+    {
+        var store = CreateStore();
+        var snapshot = Snapshot(
+            frame: 501,
+            pendingPopulationXp: 13);
+        PrepareAndCommit(store, snapshot, "Save/A");
+
+        var path = CheckpointFiles().Single();
+        var json = File.ReadAllText(path);
+        StringAssert.Contains(json, @"""SchemaVersion"":5");
+        File.WriteAllText(
+            path,
+            json.Replace(
+                @"""SchemaVersion"":5",
+                @"""SchemaVersion"":4"));
+
+        Assert.IsTrue(store.TryLoad(
+            CityId,
+            501,
+            "Save/A",
+            out var restored,
+            out var loadError),
+            loadError);
+        AssertSnapshot(snapshot, restored);
+    }
+
     private ProgressionStateStore CreateStore()
     {
         return new ProgressionStateStore(m_RootPath!);
@@ -550,5 +623,17 @@ public sealed class ProgressionStateStoreTests
         Assert.AreEqual(
             expected.PendingPopulationXp,
             actual.PendingPopulationXp);
+        Assert.AreEqual(
+            expected.HeldMilestoneXp,
+            actual.HeldMilestoneXp);
+        Assert.AreEqual(
+            expected.PendingMilestoneClaimIndex,
+            actual.PendingMilestoneClaimIndex);
+        Assert.AreEqual(
+            expected.PendingMilestoneClaimXp,
+            actual.PendingMilestoneClaimXp);
+        Assert.AreEqual(
+            expected.PendingMilestoneClaimThreshold,
+            actual.PendingMilestoneClaimThreshold);
     }
 }

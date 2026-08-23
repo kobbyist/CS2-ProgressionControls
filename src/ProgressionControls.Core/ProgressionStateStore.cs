@@ -17,13 +17,22 @@ namespace Kobbyist.ProgressionControls.Core
             uint simulationFrame,
             PopulationProgressionState populationState,
             int vanillaRemainderHundredths,
-            long pendingPopulationXp)
+            long pendingPopulationXp,
+            long heldMilestoneXp = 0,
+            int pendingMilestoneClaimIndex = 0,
+            int pendingMilestoneClaimXp = 0,
+            int pendingMilestoneClaimThreshold = 0)
         {
             CityId = cityId;
             SimulationFrame = simulationFrame;
             PopulationState = populationState;
             VanillaRemainderHundredths = vanillaRemainderHundredths;
             PendingPopulationXp = pendingPopulationXp;
+            HeldMilestoneXp = heldMilestoneXp;
+            PendingMilestoneClaimIndex = pendingMilestoneClaimIndex;
+            PendingMilestoneClaimXp = pendingMilestoneClaimXp;
+            PendingMilestoneClaimThreshold =
+                pendingMilestoneClaimThreshold;
         }
 
         public Guid CityId { get; }
@@ -35,6 +44,14 @@ namespace Kobbyist.ProgressionControls.Core
         public int VanillaRemainderHundredths { get; }
 
         public long PendingPopulationXp { get; }
+
+        public long HeldMilestoneXp { get; }
+
+        public int PendingMilestoneClaimIndex { get; }
+
+        public int PendingMilestoneClaimXp { get; }
+
+        public int PendingMilestoneClaimThreshold { get; }
 
         public decimal RequiredVanillaFailSafeXp
         {
@@ -49,6 +66,7 @@ namespace Kobbyist.ProgressionControls.Core
                     PopulationState.FractionalXp +
                     VanillaRemainderHundredths / 100m;
                 return PendingPopulationXp +
+                    HeldMilestoneXp +
                     decimal.Ceiling(fractionalXp);
             }
         }
@@ -59,7 +77,16 @@ namespace Kobbyist.ProgressionControls.Core
             PopulationState.IsValid &&
             VanillaRemainderHundredths >= 0 &&
             VanillaRemainderHundredths < 100 &&
-            PendingPopulationXp >= 0;
+            PendingPopulationXp >= 0 &&
+            HeldMilestoneXp >= 0 &&
+            PendingMilestoneClaimIndex >= 0 &&
+            PendingMilestoneClaimXp >= 0 &&
+            PendingMilestoneClaimThreshold >= 0 &&
+            (PendingMilestoneClaimIndex == 0
+                ? PendingMilestoneClaimXp == 0 &&
+                    PendingMilestoneClaimThreshold == 0
+                : PendingMilestoneClaimXp > 0 &&
+                    PendingMilestoneClaimThreshold > 0);
     }
 
     internal sealed class ProgressionStatePreparation
@@ -128,7 +155,8 @@ namespace Kobbyist.ProgressionControls.Core
 
     internal sealed class ProgressionStateStore
     {
-        private const int CurrentSchemaVersion = 4;
+        private const int CurrentSchemaVersion = 5;
+        private const int SaveSpecificSchemaVersion = 4;
         private const int MultiOwnerSchemaVersion = 3;
         private const int IndexedSchemaVersion = 2;
         private const int LegacyCheckpointLimitPerCity = 16;
@@ -559,8 +587,11 @@ namespace Kobbyist.ProgressionControls.Core
         {
             return model != null &&
                 (model.SchemaVersion <= IndexedSchemaVersion ||
-                    (model.SchemaVersion == CurrentSchemaVersion &&
-                        model.CompletionConfirmed));
+                    ((model.SchemaVersion ==
+                            SaveSpecificSchemaVersion ||
+                        model.SchemaVersion ==
+                            CurrentSchemaVersion) &&
+                    model.CompletionConfirmed));
         }
 
         private void CleanupPendingFiles(
@@ -1194,6 +1225,13 @@ namespace Kobbyist.ProgressionControls.Core
                 VanillaRemainderHundredths =
                     snapshot.VanillaRemainderHundredths,
                 PendingPopulationXp = snapshot.PendingPopulationXp,
+                HeldMilestoneXp = snapshot.HeldMilestoneXp,
+                PendingMilestoneClaimIndex =
+                    snapshot.PendingMilestoneClaimIndex,
+                PendingMilestoneClaimXp =
+                    snapshot.PendingMilestoneClaimXp,
+                PendingMilestoneClaimThreshold =
+                    snapshot.PendingMilestoneClaimThreshold,
                 SchemaVersion = CurrentSchemaVersion,
                 SaveName = saveName,
                 CompletionConfirmed = false,
@@ -1209,6 +1247,7 @@ namespace Kobbyist.ProgressionControls.Core
             }
 
             if (model.SchemaVersion == IndexedSchemaVersion ||
+                model.SchemaVersion == SaveSpecificSchemaVersion ||
                 model.SchemaVersion == CurrentSchemaVersion)
             {
                 return string.IsNullOrWhiteSpace(model.SaveName)
@@ -1254,7 +1293,11 @@ namespace Kobbyist.ProgressionControls.Core
                 model.SimulationFrame,
                 populationState,
                 model.VanillaRemainderHundredths,
-                model.PendingPopulationXp);
+                model.PendingPopulationXp,
+                model.HeldMilestoneXp,
+                model.PendingMilestoneClaimIndex,
+                model.PendingMilestoneClaimXp,
+                model.PendingMilestoneClaimThreshold);
 
             if (!candidate.IsValid)
             {
@@ -1282,7 +1325,8 @@ namespace Kobbyist.ProgressionControls.Core
                 return GetSaveNames(model).Count > 0;
             }
 
-            return model.SchemaVersion == CurrentSchemaVersion &&
+            return (model.SchemaVersion == SaveSpecificSchemaVersion ||
+                    model.SchemaVersion == CurrentSchemaVersion) &&
                 !string.IsNullOrWhiteSpace(model.SaveName);
         }
 
@@ -1356,6 +1400,18 @@ namespace Kobbyist.ProgressionControls.Core
 
             [DataMember(Order = 10, EmitDefaultValue = false)]
             public bool CompletionConfirmed { get; set; }
+
+            [DataMember(Order = 11, EmitDefaultValue = false)]
+            public long HeldMilestoneXp { get; set; }
+
+            [DataMember(Order = 12, EmitDefaultValue = false)]
+            public int PendingMilestoneClaimIndex { get; set; }
+
+            [DataMember(Order = 13, EmitDefaultValue = false)]
+            public int PendingMilestoneClaimXp { get; set; }
+
+            [DataMember(Order = 14, EmitDefaultValue = false)]
+            public int PendingMilestoneClaimThreshold { get; set; }
         }
     }
 }
