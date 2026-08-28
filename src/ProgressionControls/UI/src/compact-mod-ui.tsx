@@ -22,7 +22,6 @@ export const TopLeftEntryButton = ({
   <Button
     variant="floating"
     src={icon}
-    tinted
     tooltipLabel={title}
     aria-label={title}
     onSelect={onSelect}

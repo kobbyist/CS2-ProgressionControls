@@ -8,10 +8,11 @@ import {
   TopLeftEntryButton,
 } from "./compact-mod-ui";
 import styles from "./manual-progression.module.scss";
+import progressionControlsIcon from "./progression-controls.svg";
 
 const bindingGroup = "Kobbyist.ProgressionControls";
 const nativeMilestoneIcon = "Media/Game/Icons/Milestone.svg";
-const nativeToolbarIcon = "Media/Game/Icons/Trophy.svg";
+const nativeToolbarIcon = progressionControlsIcon;
 const nativeLockIcon = "Media/Glyphs/Lock.svg";
 const nativeWarningIcon = "Media/Misc/Warning.svg";
 
@@ -147,50 +148,36 @@ export const ManualProgressionOverlay = () => {
           icon={nativeToolbarIcon}
           onClose={() => setOpen(false)}
         >
-          <div className={styles.summary}>
-            <SummaryValue
-              label={t("HeldXp", "Held XP")}
-              value={formatXp(state.heldXp)}
-            />
-            <div className={styles.summaryDivider} />
-            <SummaryValue
-              label={t("EffectiveXp", "Effective XP")}
-              value={formatXp(state.effectiveXp)}
-            />
-          </div>
+          <XpLedger heldXp={state.heldXp} t={t} />
 
           {readyCount > 0 ? (
             <>
               <PanelSection
-                title={t("MilestoneQueue", "Milestone queue")}
+                title={t("MilestoneQueue", "Earned milestones")}
                 summary={
-                  <span className={styles.claimableCount}>
-                    <strong>{readyCount}</strong>{" "}
-                    {t("Claimable", "claimable")}
+                  <span
+                    className={styles.queueCount}
+                    aria-label={`${readyCount} ${t("Claimable", "claimable")}`}
+                  >
+                    {readyCount}
                   </span>
                 }
               >
-              <Scrollable vertical className={styles.milestoneScroll}>
-                <div className={styles.milestoneList} role="list">
-                  {state.milestones.map((milestone, position) => (
-                    <MilestoneRow
-                      key={milestone.index}
-                      milestone={milestone}
-                      isFirst={position === 0}
-                      milestoneName={milestoneName(milestone.index)}
-                      previousMilestoneName={
-                        position > 0
-                          ? milestoneName(
-                              state.milestones[position - 1].index,
-                            )
-                          : ""
-                      }
-                      claimPending={state.claimPending}
-                      t={t}
-                    />
-                  ))}
-                </div>
-              </Scrollable>
+                <Scrollable vertical className={styles.milestoneScroll}>
+                  <div className={styles.milestoneList} role="list">
+                    {state.milestones.map((milestone, position) => (
+                      <MilestoneRow
+                        key={milestone.index}
+                        milestone={milestone}
+                        isFirst={position === 0}
+                        position={position}
+                        milestoneName={milestoneName(milestone.index)}
+                        claimPending={state.claimPending}
+                        t={t}
+                      />
+                    ))}
+                  </div>
+                </Scrollable>
               </PanelSection>
             </>
           ) : state.nextMilestoneIndex > 0 ? (
@@ -214,16 +201,21 @@ export const ManualProgressionOverlay = () => {
   );
 };
 
-const SummaryValue = ({
-  label,
-  value,
+const XpLedger = ({
+  heldXp,
+  t,
 }: {
-  label: string;
-  value: string;
+  heldXp: number;
+  t: Translate;
 }) => (
-  <div className={styles.summaryValue}>
-    <span>{label}</span>
-    <strong>{value}</strong>
+  <div className={styles.xpLedger}>
+    <div className={styles.ledgerIcon} aria-hidden="true">
+      <Icon src={nativeMilestoneIcon} />
+    </div>
+    <div className={styles.ledgerCopy}>
+      <span>{t("HeldXp", "Held XP")}</span>
+      <strong>{formatXp(heldXp)}</strong>
+    </div>
   </div>
 );
 
@@ -250,15 +242,15 @@ const MilestoneIcon = ({
 const MilestoneRow = ({
   milestone,
   isFirst,
+  position,
   milestoneName,
-  previousMilestoneName,
   claimPending,
   t,
 }: {
   milestone: ManualMilestone;
   isFirst: boolean;
+  position: number;
   milestoneName: string;
-  previousMilestoneName: string;
   claimPending: boolean;
   t: Translate;
 }) => {
@@ -274,6 +266,9 @@ const MilestoneRow = ({
       role="listitem"
       aria-busy={claiming}
     >
+      <div className={styles.queueOrder} aria-hidden="true">
+        {String(position + 1).padStart(2, "0")}
+      </div>
       <div className={styles.railIcon}>
         <MilestoneIcon image={milestone.image} />
       </div>
@@ -295,18 +290,13 @@ const MilestoneRow = ({
             : t("Claim", "Claim")}
         </Button>
       ) : (
-        <div className={styles.lockedReason}>
+        <div className={styles.queuedStatus}>
           <Icon
             src={nativeLockIcon}
             tinted
             className={styles.lockIcon}
           />
-          <span>
-            {t(
-              "ClaimPreviousFirst",
-              "Claim " + previousMilestoneName + " first",
-            )}
-          </span>
+          <span>{t("Queued", "Queued")}</span>
         </div>
       )}
     </div>
@@ -328,8 +318,7 @@ const NextMilestoneProgress = ({
   );
 
   return (
-    <div className={styles.nextMilestone}>
-      <PanelSection title={t("NextMilestone", "Next milestone")}>
+    <PanelSection title={t("NextMilestone", "Next milestone")}>
       <div className={styles.nextMilestoneBody}>
         <MilestoneIcon image={state.nextImage} compact />
         <div className={styles.nextMilestoneCopy}>
@@ -359,8 +348,7 @@ const NextMilestoneProgress = ({
           style={{ width: progress + "%" }}
         />
       </div>
-      </PanelSection>
-    </div>
+    </PanelSection>
   );
 };
 

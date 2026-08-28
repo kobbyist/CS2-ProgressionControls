@@ -1,58 +1,24 @@
 .overlayPanel,
 .dialogPanel {
-  width: 360rem;
+  width: 320rem;
   overflow: visible;
-  border: 0;
-  background-color: transparent;
   color: rgba(254, 254, 254, 0.92);
-  --menuPanel1: transparent;
-  --menuPanel2: transparent;
-  --panelColorDark: transparent;
-  --panelColorNormal: transparent;
-  --sectionHeaderColor: transparent;
 }
 
 .overlayPanel {
-  max-height: 760rem;
+  max-height: 620rem;
 }
 
-.overlayPanel > div[class*="header_"],
-.dialogPanel > div[class*="header_"] {
-  height: 34rem !important;
-  min-height: 34rem !important;
-  max-height: 34rem !important;
-  background-color: rgba(36, 54, 66, 0.88) !important;
-  background-image: none !important;
-}
-
-.overlayPanel > div[class*="content_"] {
-  background-color: transparent !important;
-  background-image: linear-gradient(
-    to bottom,
-    rgba(55, 82, 96, 0.84),
-    rgba(31, 45, 60, 0.8)
-  ) !important;
-}
-
-.dialogPanel > div[class*="header_"] {
-  background-color: rgba(36, 54, 66, 0.96) !important;
-}
-
-.dialogPanel > div[class*="content_"] {
-  background-color: transparent !important;
-  background-image: linear-gradient(
-    to bottom,
-    rgba(55, 82, 96, 0.96),
-    rgba(31, 45, 60, 0.96)
-  ) !important;
+.dialogPanel {
+  width: 340rem;
 }
 
 .panelContent {
-  padding: 0 0 6rem !important;
+  padding: 0 0 4rem;
 }
 
 .dialogPanel .panelContent {
-  padding: 12rem !important;
+  padding: 12rem;
 }
 
 .header {
@@ -60,8 +26,8 @@
   align-items: center;
   width: 100%;
   min-width: 0;
-  height: 34rem;
-  padding: 0 4rem;
+  height: 36rem;
+  padding: 0 5rem 0 8rem;
 }
 
 .titleArea {
@@ -72,10 +38,11 @@
 }
 
 .headerIcon {
-  width: 25rem;
-  height: 21rem;
-  flex: 0 0 25rem;
-  filter: brightness(0) invert(1) opacity(0.9);
+  width: 20rem;
+  height: 20rem;
+  flex: 0 0 20rem;
+  margin-right: 7rem;
+  object-fit: contain;
 }
 
 .title {
@@ -83,27 +50,27 @@
   overflow: hidden;
   color: #54d7ff;
   font-size: var(--fontSizeS);
-  font-weight: 600;
-  letter-spacing: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.7rem;
   line-height: 1;
-  text-align: center;
+  text-align: left;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .closeButton {
-  width: 24rem;
-  min-width: 24rem;
-  height: 24rem;
-  min-height: 24rem;
-  flex: 0 0 24rem;
-  margin-left: 5rem;
+  width: 22rem;
+  min-width: 22rem;
+  height: 22rem;
+  min-height: 22rem;
+  flex: 0 0 22rem;
+  margin-left: 6rem;
 }
 
 .closeIcon {
-  width: 18rem;
-  height: 18rem;
+  width: 16rem;
+  height: 16rem;
   filter: brightness(0) invert(1) opacity(0.88);
 }
 
@@ -114,10 +81,15 @@
 .sectionHeader {
   display: flex;
   align-items: center;
-  min-height: 28rem;
-  padding: 7rem 10rem 5rem;
-  color: rgba(254, 254, 254, 0.9);
-  font-size: var(--fontSizeS);
+  min-height: 29rem;
+  padding: 6rem 9rem 5rem;
+  border-top: 1rem solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1rem solid rgba(255, 255, 255, 0.08);
+  background-color: rgba(0, 0, 0, 0.1);
+  color: rgba(254, 254, 254, 0.76);
+  font-size: var(--fontSizeXS);
+  font-weight: 600;
+  letter-spacing: 0.35rem;
   line-height: 1;
   text-transform: uppercase;
 }

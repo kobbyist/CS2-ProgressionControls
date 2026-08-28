@@ -56,6 +56,10 @@ module.exports = {
           "sass-loader",
         ],
       },
+      {
+        test: /\.svg$/,
+        type: "asset/resource",
+      },
     ],
   },
   resolve: {
