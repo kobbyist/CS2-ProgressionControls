@@ -209,13 +209,8 @@ const XpLedger = ({
   t: Translate;
 }) => (
   <div className={styles.xpLedger}>
-    <div className={styles.ledgerIcon} aria-hidden="true">
-      <Icon src={nativeMilestoneIcon} />
-    </div>
-    <div className={styles.ledgerCopy}>
-      <span>{t("HeldXp", "Held XP")}</span>
-      <strong>{formatXp(heldXp)}</strong>
-    </div>
+    <span className={styles.ledgerLabel}>{t("HeldXp", "Held XP")}</span>
+    <strong className={styles.ledgerValue}>{formatXp(heldXp)}</strong>
   </div>
 );
 
@@ -323,10 +318,10 @@ const NextMilestoneProgress = ({
         <MilestoneIcon image={state.nextImage} compact />
         <div className={styles.nextMilestoneCopy}>
           <strong>{milestoneName}</strong>
-          <span>
-            {formatXp(state.effectiveXp)} /{" "}
-            {formatXp(state.nextRequiredXp)} XP
-          </span>
+        </div>
+        <div className={styles.nextMilestoneValue}>
+          <strong>{formatXp(state.effectiveXp)}</strong>
+          <span> / {formatXp(state.nextRequiredXp)} XP</span>
         </div>
       </div>
       <div

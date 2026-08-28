@@ -8,51 +8,31 @@
 .xpLedger {
   display: flex;
   align-items: center;
-  min-height: 48rem;
-  padding: 6rem 9rem;
+  justify-content: space-between;
+  min-height: 36rem;
+  padding: 7rem 10rem;
   border-bottom: 1rem solid rgba(255, 255, 255, 0.08);
   background-color: rgba(0, 0, 0, 0.14);
   box-sizing: border-box;
 }
 
-.ledgerIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32rem;
-  height: 32rem;
-  flex: 0 0 32rem;
-  margin-right: 8rem;
-  border-radius: 3rem;
-  background-color: rgba(255, 255, 255, 0.08);
-}
-
-.ledgerIcon > div {
-  width: 25rem;
-  height: 25rem;
-}
-
-.ledgerCopy {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.ledgerCopy span {
+.ledgerLabel {
   color: rgba(254, 254, 254, 0.58);
   font-size: var(--fontSizeXS);
+  font-weight: 600;
+  letter-spacing: 0.35rem;
   line-height: 1;
   text-transform: uppercase;
 }
 
-.ledgerCopy strong {
-  margin-top: 3rem;
+.ledgerValue {
+  margin-left: 12rem;
   overflow: hidden;
   color: #ffd777;
-  font-size: var(--fontSizeM);
+  font-size: var(--fontSizeS);
   font-weight: 700;
   line-height: 1;
+  text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -228,7 +208,6 @@
 .nextMilestoneCopy {
   display: flex;
   flex: 1;
-  flex-direction: column;
   min-width: 0;
   margin-left: 8rem;
 }
@@ -243,12 +222,19 @@
   white-space: nowrap;
 }
 
-.nextMilestoneCopy span {
-  margin-top: 4rem;
-  color: rgba(254, 254, 254, 0.62);
+.nextMilestoneValue {
+  margin-left: 10rem;
+  flex: 0 0 auto;
+  color: rgba(254, 254, 254, 0.52);
   font-size: var(--fontSizeXS);
   line-height: 1;
+  text-align: right;
   white-space: nowrap;
+}
+
+.nextMilestoneValue strong {
+  color: rgba(254, 254, 254, 0.9);
+  font-weight: 700;
 }
 
 .progressTrack {
