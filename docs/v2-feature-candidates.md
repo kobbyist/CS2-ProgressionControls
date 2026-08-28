@@ -19,6 +19,10 @@ or after aggregation.
 
 ### Manual progression
 
+Implementation is now defined in
+[design/manual-progression.md](./design/manual-progression.md). The summary
+below is retained as the original product direction.
+
 Let players control when newly earned milestones are accepted. XP continues to
 accumulate in an external bank while milestones wait for a manual claim. The UI
 shows every milestone supported by effective XP in an ordered claim queue.
@@ -31,8 +35,8 @@ description must explain that unclaimed XP is stored outside the city save and
 depends on the matching Progression Controls checkpoint.
 
 Turning manual claims off while XP is banked must open a confirmation prompt.
-The player chooses either to release the accumulated XP through the vanilla
-queue or discard it permanently. Removing the mod cannot display this prompt,
+The player chooses either to release the accumulated XP into the save-owned
+city XP or discard it permanently. Removing the mod cannot display this prompt,
 so the option description must tell players to turn manual claims off before
 removing the mod. Reinstalling the mod can restore held XP only while the
 matching checkpoint remains available.

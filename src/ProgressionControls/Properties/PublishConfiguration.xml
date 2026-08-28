@@ -1,7 +1,7 @@
 <Publish>
   <ModId Value="154015" />
   <DisplayName Value="Progression Controls" />
-  <ShortDescription Value="Slow progression and make population growth matter." />
+  <ShortDescription Value="Shape XP, slow milestones, and claim earned milestones when you are ready." />
   <LongDescription>
 ## Why I made this mod
 
@@ -18,8 +18,17 @@ At its heart, the mod awards XP whenever your city reaches a new all-time popula
 - Change the XP earned per new resident to suit the pace you enjoy.
 - Adjust how often population growth is checked and how frequently XP notifications appear.
 - Turn custom progression off at any time to return to the vanilla pace.
+- Optionally hold earned milestone XP and claim supported milestones one at a time.
 
 Changes only affect XP earned from that point onward, so the mod never rewrites XP or milestones you've already earned. It also keeps track of fractional population XP behind the scenes, so none of your progress is lost to rounding.
+
+## Manual milestone claims
+
+Manual milestone claims are a separate option and are off by default. When enabled, Progression Controls stops city XP one point below the next milestone and stores the remainder in a save-specific external checkpoint. The in-game panel lists every milestone supported by your total earned XP, with only the next milestone enabled.
+
+Claiming releases exactly enough XP for the next threshold. The game still grants its normal money, development points, unlocks, and milestone event.
+
+If you turn manual claims off while XP is held, choose whether to release it to vanilla progression, discard it permanently, or cancel. Turn manual claims off and make that choice before disabling or removing the mod.
 
 ## Presets
 
@@ -33,7 +42,9 @@ If you like to fine-tune things, Show Advanced lets you adjust XP per new reside
 
 ## Safe to add or remove
 
-The mod adds no required components to the city itself, and any XP or milestones you've already earned remain part of the normal game state. Your cities will continue to load if the mod is disabled or removed.
+The mod adds no required components to the city itself, and any XP or milestones already written to the city remain normal game state. Your cities will continue to load if the mod is disabled or removed.
+
+Manual milestone claims store unclaimed XP outside the city save. Before disabling or removing the mod, turn manual claims off and choose whether to release or discard that held XP. Reinstalling can offer recovery only while the matching Progression Controls checkpoint still exists.
 
 ## Compatibility
 
@@ -47,16 +58,17 @@ Mods that add XP may work, although their XP can be scaled if it enters the game
   <Screenshot Value="Properties/Screenshot-Settings.png" />
   <Tag Value="Code Mod" />
   <ExternalLink Type="github" Url="https://github.com/kobbyist/CS2-ProgressionControls" />
-  <ModVersion Value="0.1.1" />
+  <ModVersion Value="0.2.0" />
   <GameVersion Value="1.6.*" />
   <ChangeLog>
-Version 0.1.1:
+Version 0.2.0:
 
-- Fixed settings persistence across city loads, autosaves, restarts, and unclean exits.
-- Removed Apply custom rules; XP rule edits now apply and save automatically.
-- Preserved legacy Custom settings without activating old unsubmitted drafts.
-- Added save-name-aware checkpoint retention for overwritten and deleted saves.
-- Kept all settings changes prospective with no retroactive XP awards.
+- Added optional manual milestone claims, off by default.
+- Added an in-game ordered claim queue with only the next earned milestone enabled.
+- Added held-XP disable choices: release to vanilla, discard permanently, or cancel.
+- Added checkpoint recovery choices: restore manual claims, discard, or decide later.
+- Added transactional claim recovery and schema 5 checkpoint persistence.
+- Preserved vanilla milestone rewards and unlocks without Harmony patches.
   </ChangeLog>
   <AccessLevel Value="Public" />
 </Publish>

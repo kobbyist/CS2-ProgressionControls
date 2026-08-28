@@ -1,5 +1,5 @@
 param(
-    [string] $Version = "0.1.1",
+    [string] $Version = "0.2.0",
     [string] $ContentSource
 )
 
@@ -63,7 +63,10 @@ $contentSourcePath = [IO.Path]::GetFullPath($ContentSource)
 $approvedSourceFiles = @(
     "Kobbyist.ProgressionControls.Core.dll",
     "Kobbyist.ProgressionControls.Core.pdb",
+    "Kobbyist.ProgressionControls.css",
     "Kobbyist.ProgressionControls.dll",
+    "Kobbyist.ProgressionControls.mjs",
+    "Kobbyist.ProgressionControls.mjs.LICENSE.txt",
     "Kobbyist.ProgressionControls.pdb",
     "Kobbyist.ProgressionControls_linux_x86_64.so",
     "Kobbyist.ProgressionControls_mac_x86_64.bundle",

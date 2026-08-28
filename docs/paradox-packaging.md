@@ -25,17 +25,18 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 
 The script never invokes ModPublisher. It validates:
 
-- required Public 0.1.1 listing metadata, the `Code Mod` tag, and the GitHub
+- required Public 0.2.0 listing metadata, the `Code Mod` tag, and the GitHub
   external link;
 - the 950x950 square thumbnail;
-- an exact nine-file content allowlist: two managed DLLs, three PDBs, three
-  platform binaries, and the MIT license;
+- an exact twelve-file content allowlist: two managed DLLs, three PDBs, three
+  platform binaries, the UI module, its stylesheet and license notice, and
+  the MIT license;
 - MIT license inclusion;
 - absence of nested or unexpected content; and
 - SHA-256 hashes for every staged input.
 
 It writes an ignored staging directory and ZIP below `artifacts/paradox/`.
-The resulting bundle contains 15 files: nine content files, metadata, the
+The resulting bundle contains 18 files: twelve content files, metadata, the
 thumbnail, the original overview artwork, basic and advanced settings
 screenshots, and checksum manifest. Its PDBs
 are deliberate diagnostic symbols. This ZIP is an auditable copy of the
