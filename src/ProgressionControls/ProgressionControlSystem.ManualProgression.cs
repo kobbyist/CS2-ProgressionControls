@@ -12,8 +12,8 @@ namespace Kobbyist.ProgressionControls
 {
     public partial class ProgressionControlSystem
     {
-        private readonly ManualProgressionBank m_ManualProgressionBank =
-            new ManualProgressionBank();
+        private readonly ManualMilestoneClaimBank m_ManualMilestoneClaimBank =
+            new ManualMilestoneClaimBank();
 
         private PrefabSystem m_PrefabSystem;
         private EntityQuery m_MilestoneLevelQuery;
@@ -23,6 +23,7 @@ namespace Kobbyist.ProgressionControls
         private int m_RequestedManualMilestone;
         private bool m_ManualClaimsActive;
         private bool m_ManualRecoveryDeferred;
+        private bool m_HeldXpReleaseSaturationLogged;
 
         private void CreateManualProgression()
         {
@@ -42,20 +43,20 @@ namespace Kobbyist.ProgressionControls
             ResetManualProgression();
 
             if (persisted != null &&
-                !m_ManualProgressionBank.TryRestore(
+                !m_ManualMilestoneClaimBank.TryRestore(
                     persisted.HeldMilestoneXp,
-                    persisted.PendingMilestoneClaimIndex,
-                    persisted.PendingMilestoneClaimXp,
-                    persisted.PendingMilestoneClaimThreshold))
+                    persisted.PendingMilestoneClaim))
             {
                 Mod.Log.Warn(
                     "Ignored invalid persisted manual milestone state");
-                m_ManualProgressionBank.TryRestore(0, 0, 0, 0);
+                m_ManualMilestoneClaimBank.TryRestore(
+                    0,
+                    PendingMilestoneClaim.None);
             }
 
             var achievedMilestone = GetAchievedMilestone();
             var recovery =
-                m_ManualProgressionBank.RecoverPendingClaim(
+                m_ManualMilestoneClaimBank.RecoverPendingClaim(
                     achievedMilestone,
                     cityXp);
             if (recovery == PendingClaimRecovery.RolledBack)
@@ -73,18 +74,18 @@ namespace Kobbyist.ProgressionControls
                 settings.ManualMilestoneClaims;
             m_ManualClaimsActive = requested ||
                 recovery == PendingClaimRecovery.WaitingForVanilla;
-            if (!requested && m_ManualProgressionBank.HeldXp > 0)
+            if (!requested && m_ManualMilestoneClaimBank.HeldXp > 0)
             {
                 m_ManualProgressionDialog =
-                    recovery == PendingClaimRecovery.WaitingForVanilla
-                        ? ManualProgressionDialogKind.Disable
-                        : ManualProgressionDialogKind.Restore;
+                    ManualProgressionDialogKind.Restore;
             }
         }
 
         private void ResetManualProgression()
         {
-            m_ManualProgressionBank.TryRestore(0, 0, 0, 0);
+            m_ManualMilestoneClaimBank.TryRestore(
+                0,
+                PendingMilestoneClaim.None);
             m_ManualProgressionDialog =
                 ManualProgressionDialogKind.None;
             m_RequestedManualDecision =
@@ -92,6 +93,7 @@ namespace Kobbyist.ProgressionControls
             m_RequestedManualMilestone = 0;
             m_ManualClaimsActive = false;
             m_ManualRecoveryDeferred = false;
+            m_HeldXpReleaseSaturationLogged = false;
         }
 
         private bool UpdateManualProgression(
@@ -113,8 +115,8 @@ namespace Kobbyist.ProgressionControls
                 m_ManualProgressionDialog ==
                     ManualProgressionDialogKind.None)
             {
-                if (m_ManualProgressionBank.HeldXp > 0 ||
-                    m_ManualProgressionBank.IsClaimPending)
+                if (m_ManualMilestoneClaimBank.HeldXp > 0 ||
+                    m_ManualMilestoneClaimBank.IsClaimPending)
                 {
                     m_ManualProgressionDialog =
                         ManualProgressionDialogKind.Disable;
@@ -126,7 +128,7 @@ namespace Kobbyist.ProgressionControls
             }
             else if (!m_ManualClaimsActive &&
                 !m_ManualRecoveryDeferred &&
-                m_ManualProgressionBank.HeldXp > 0 &&
+                m_ManualMilestoneClaimBank.HeldXp > 0 &&
                 m_ManualProgressionDialog ==
                     ManualProgressionDialogKind.None)
             {
@@ -135,8 +137,8 @@ namespace Kobbyist.ProgressionControls
             }
 
             if (m_ManualClaimsActive &&
-                m_ManualProgressionBank.HeldXp > 0 &&
-                !m_ManualProgressionBank.IsClaimPending &&
+                m_ManualMilestoneClaimBank.HeldXp > 0 &&
+                !m_ManualMilestoneClaimBank.IsClaimPending &&
                 !TryGetNextMilestone(
                     GetAchievedMilestone(),
                     out _))
@@ -151,7 +153,7 @@ namespace Kobbyist.ProgressionControls
             }
 
             return m_ManualClaimsActive ||
-                m_ManualProgressionBank.IsClaimPending;
+                m_ManualMilestoneClaimBank.IsClaimPending;
         }
 
         internal void RequestManualMilestoneClaim(int milestoneIndex)
@@ -216,7 +218,7 @@ namespace Kobbyist.ProgressionControls
                 else if (decision ==
                     ManualProgressionDecision.Discard)
                 {
-                    m_ManualProgressionBank.DiscardHeldXp();
+                    m_ManualMilestoneClaimBank.DiscardHeldXp();
                     m_ManualProgressionDialog =
                         ManualProgressionDialogKind.None;
                     m_ManualClaimsActive = false;
@@ -233,7 +235,7 @@ namespace Kobbyist.ProgressionControls
                 return;
             }
 
-            if (m_ManualProgressionBank.IsClaimPending)
+            if (m_ManualMilestoneClaimBank.IsClaimPending)
             {
                 m_ManualProgressionDialog =
                     ManualProgressionDialogKind.Disable;
@@ -258,7 +260,7 @@ namespace Kobbyist.ProgressionControls
             else if (decision ==
                 ManualProgressionDecision.Discard)
             {
-                m_ManualProgressionBank.DiscardHeldXp();
+                m_ManualMilestoneClaimBank.DiscardHeldXp();
                 settings.ManualMilestoneClaims = false;
                 settings.ApplyAndSave();
                 m_ManualClaimsActive = false;
@@ -269,14 +271,14 @@ namespace Kobbyist.ProgressionControls
 
         private void ConfirmPendingManualClaim()
         {
-            if (!m_ManualProgressionBank.IsClaimPending)
+            if (!m_ManualMilestoneClaimBank.IsClaimPending)
             {
                 return;
             }
 
             var pendingIndex =
-                m_ManualProgressionBank.PendingClaimIndex;
-            if (m_ManualProgressionBank.TryConfirmClaim(
+                m_ManualMilestoneClaimBank.PendingClaim.Index;
+            if (m_ManualMilestoneClaimBank.TryConfirmClaim(
                 GetAchievedMilestone()))
             {
                 Mod.Log.Info(
@@ -286,14 +288,14 @@ namespace Kobbyist.ProgressionControls
 
         private bool ReleaseHeldXpToCity()
         {
-            if (m_ManualProgressionBank.IsClaimPending ||
+            if (m_ManualMilestoneClaimBank.IsClaimPending ||
                 !TryGetActiveCity(out var city) ||
                 !EntityManager.HasComponent<Game.City.XP>(city))
             {
                 return false;
             }
 
-            var heldXp = m_ManualProgressionBank.HeldXp;
+            var heldXp = m_ManualMilestoneClaimBank.HeldXp;
             if (heldXp <= 0)
             {
                 return true;
@@ -304,23 +306,27 @@ namespace Kobbyist.ProgressionControls
             var available = Math.Max(
                 0L,
                 (long)int.MaxValue - cityXp.m_XP);
-            var released = Math.Min(heldXp, available);
-            cityXp.m_XP = (int)Math.Min(
-                int.MaxValue,
-                (long)cityXp.m_XP + released);
-            EntityManager.SetComponentData(city, cityXp);
-            m_ManualProgressionBank.ReleaseHeldXp();
+            if (!VanillaXpCapacity.TryAdd(
+                cityXp.m_XP,
+                heldXp,
+                out var updatedXp))
+            {
+                if (!m_HeldXpReleaseSaturationLogged)
+                {
+                    Mod.Log.Warn(
+                        $"Vanilla XP can hold only {available} of {heldXp} held XP; retained the complete bank");
+                    m_HeldXpReleaseSaturationLogged = true;
+                }
 
-            if (released < heldXp)
-            {
-                Mod.Log.Warn(
-                    $"Vanilla XP saturated after releasing {released} of {heldXp} held XP");
+                return false;
             }
-            else
-            {
-                Mod.Log.Info(
-                    $"Released {released} held milestone XP to vanilla progression");
-            }
+
+            cityXp.m_XP = updatedXp;
+            EntityManager.SetComponentData(city, cityXp);
+            m_ManualMilestoneClaimBank.ReleaseHeldXp();
+            m_HeldXpReleaseSaturationLogged = false;
+            Mod.Log.Info(
+                $"Released {heldXp} held milestone XP to vanilla progression");
 
             return true;
         }
@@ -341,7 +347,7 @@ namespace Kobbyist.ProgressionControls
                 : projectedCityXp >= int.MaxValue
                     ? int.MaxValue
                     : (int)projectedCityXp;
-            if (!m_ManualProgressionBank.TryRoutePositiveXp(
+            if (!m_ManualMilestoneClaimBank.TryRoutePositiveXp(
                 amount,
                 projected,
                 nextRequiredXp,
@@ -365,7 +371,7 @@ namespace Kobbyist.ProgressionControls
             m_RequestedManualMilestone = 0;
             if (!m_ManualClaimsActive ||
                 requestedIndex <= 0 ||
-                m_ManualProgressionBank.IsClaimPending)
+                m_ManualMilestoneClaimBank.IsClaimPending)
             {
                 return;
             }
@@ -389,14 +395,14 @@ namespace Kobbyist.ProgressionControls
             var queueEntries = ManualMilestoneQueue.Build(
                 achievedMilestone,
                 cityXp,
-                m_ManualProgressionBank.HeldXp,
+                m_ManualMilestoneClaimBank.HeldXp,
                 claimPending: false,
                 GetMilestoneDefinitions());
             var first = queueEntries.FirstOrDefault();
             if (first == null ||
                 !first.CanClaim ||
                 first.Index != requestedIndex ||
-                !m_ManualProgressionBank.TryBeginClaim(
+                !m_ManualMilestoneClaimBank.TryBeginClaim(
                     next.Index,
                     next.RequiredXp,
                     cityXp,
@@ -436,8 +442,8 @@ namespace Kobbyist.ProgressionControls
             var queue = ManualMilestoneQueue.Build(
                 achievedMilestone,
                 cityXp,
-                m_ManualProgressionBank.HeldXp,
-                m_ManualProgressionBank.IsClaimPending,
+                m_ManualMilestoneClaimBank.HeldXp,
+                m_ManualMilestoneClaimBank.IsClaimPending,
                 definitions.Select(definition =>
                     new ManualMilestoneDefinition(
                         definition.Index,
@@ -460,10 +466,10 @@ namespace Kobbyist.ProgressionControls
                         : string.Empty,
                 }).ToArray();
             var effectiveXp =
-                m_ManualProgressionBank.HeldXp >
+                m_ManualMilestoneClaimBank.HeldXp >
                     long.MaxValue - cityXp
                     ? long.MaxValue
-                    : m_ManualProgressionBank.HeldXp + cityXp;
+                    : m_ManualMilestoneClaimBank.HeldXp + cityXp;
             var nextMilestone = definitions
                 .Where(definition =>
                     definition.Index > achievedMilestone)
@@ -477,11 +483,11 @@ namespace Kobbyist.ProgressionControls
             {
                 Available = true,
                 Active = m_ManualClaimsActive,
-                HeldXp = m_ManualProgressionBank.HeldXp,
+                HeldXp = m_ManualMilestoneClaimBank.HeldXp,
                 CityXp = cityXp,
                 EffectiveXp = effectiveXp,
                 ClaimPending =
-                    m_ManualProgressionBank.IsClaimPending,
+                    m_ManualMilestoneClaimBank.IsClaimPending,
                 Dialog = m_ManualProgressionDialog
                     .ToString()
                     .ToLowerInvariant(),

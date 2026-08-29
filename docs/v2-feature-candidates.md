@@ -8,8 +8,9 @@ scope are not yet an implementation commitment.
 
 ### Implementation order
 
-Manual progression is implemented. Visibility and feedback is the next feature
-area. XP source mix remains selected, but follows visibility and feedback.
+Manual milestone claims are implemented. Visibility and feedback is the next
+feature area. XP source mix remains selected, but follows visibility and
+feedback.
 
 ### XP source mix
 
@@ -22,7 +23,7 @@ Open design questions include the final grouping of game XP reasons, how
 unknown reasons are handled, and whether fractional carry is tracked per group
 or after aggregation.
 
-### Manual progression
+### Manual milestone claims
 
 Implementation is now defined in
 [design/manual-progression.md](./design/manual-progression.md). The summary
@@ -46,11 +47,12 @@ so the option description must tell players to turn manual claims off before
 removing the mod. Reinstalling the mod can restore held XP only while the
 matching checkpoint remains available.
 
-Checkpoint durability is a prerequisite for manual progression. A checkpoint
-is prepared and flushed before the game serializes a save, then committed after
-the save succeeds. Each logical save name has its own checkpoint, including
-when two divergent branches reach the same city and simulation frame. Cleanup
-cannot remove a checkpoint while its save remains present.
+Checkpoint durability is a prerequisite for manual milestone claims. A
+checkpoint is prepared and flushed before the game serializes a save, then
+committed after the save succeeds. Each logical save name has its own
+checkpoint, including when two divergent branches reach the same city and
+simulation frame. Cleanup cannot remove a checkpoint while its save remains
+present.
 
 Population gates, minimum milestone age, and one-milestone-per-day pacing
 remain possible extensions rather than part of the initial commitment.

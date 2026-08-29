@@ -3,12 +3,12 @@ using Kobbyist.ProgressionControls.Core;
 namespace ProgressionControls.Core.Tests;
 
 [TestClass]
-public sealed class ManualProgressionBankTests
+public sealed class ManualMilestoneClaimBankTests
 {
     [TestMethod]
     public void PositiveXpStopsOnePointBeforeMilestone()
     {
-        var bank = new ManualProgressionBank();
+        var bank = new ManualMilestoneClaimBank();
 
         Assert.IsTrue(bank.TryRoutePositiveXp(
             amount: 25,
@@ -25,7 +25,7 @@ public sealed class ManualProgressionBankTests
     [TestMethod]
     public void RepeatedGainsUseProjectedCityXp()
     {
-        var bank = new ManualProgressionBank();
+        var bank = new ManualMilestoneClaimBank();
 
         Assert.IsTrue(bank.TryRoutePositiveXp(
             5,
@@ -49,12 +49,10 @@ public sealed class ManualProgressionBankTests
     [TestMethod]
     public void ClaimReleasesOnlyThresholdDelta()
     {
-        var bank = new ManualProgressionBank();
+        var bank = new ManualMilestoneClaimBank();
         Assert.IsTrue(bank.TryRestore(
             heldXp: 50,
-            pendingClaimIndex: 0,
-            pendingClaimXp: 0,
-            pendingClaimThreshold: 0));
+            pendingClaim: PendingMilestoneClaim.None));
 
         Assert.IsTrue(bank.TryBeginClaim(
             milestoneIndex: 4,
@@ -64,16 +62,16 @@ public sealed class ManualProgressionBankTests
 
         Assert.AreEqual(1, released);
         Assert.AreEqual(49L, bank.HeldXp);
-        Assert.AreEqual(4, bank.PendingClaimIndex);
-        Assert.AreEqual(1, bank.PendingClaimXp);
-        Assert.AreEqual(100, bank.PendingClaimThreshold);
+        Assert.AreEqual(4, bank.PendingClaim.Index);
+        Assert.AreEqual(1, bank.PendingClaim.ReleasedXp);
+        Assert.AreEqual(100, bank.PendingClaim.Threshold);
     }
 
     [TestMethod]
     public void PendingClaimBlocksAnotherClaim()
     {
-        var bank = new ManualProgressionBank();
-        Assert.IsTrue(bank.TryRestore(50, 0, 0, 0));
+        var bank = new ManualMilestoneClaimBank();
+        Assert.IsTrue(bank.TryRestore(50, PendingMilestoneClaim.None));
         Assert.IsTrue(bank.TryBeginClaim(4, 100, 99, out _));
 
         Assert.IsFalse(bank.TryBeginClaim(5, 150, 100, out _));
@@ -83,8 +81,8 @@ public sealed class ManualProgressionBankTests
     [TestMethod]
     public void ConfirmedClaimClearsPendingState()
     {
-        var bank = new ManualProgressionBank();
-        Assert.IsTrue(bank.TryRestore(50, 0, 0, 0));
+        var bank = new ManualMilestoneClaimBank();
+        Assert.IsTrue(bank.TryRestore(50, PendingMilestoneClaim.None));
         Assert.IsTrue(bank.TryBeginClaim(4, 100, 99, out _));
 
         Assert.IsFalse(bank.TryConfirmClaim(3));
@@ -96,12 +94,15 @@ public sealed class ManualProgressionBankTests
     [TestMethod]
     public void RecoveryRollsBackClaimMissingFromCitySave()
     {
-        var bank = new ManualProgressionBank();
+        var bank = new ManualMilestoneClaimBank();
+        Assert.IsTrue(PendingMilestoneClaim.TryCreate(
+            4,
+            1,
+            100,
+            out var pendingClaim));
         Assert.IsTrue(bank.TryRestore(
             heldXp: 49,
-            pendingClaimIndex: 4,
-            pendingClaimXp: 1,
-            pendingClaimThreshold: 100));
+            pendingClaim: pendingClaim));
 
         var recovery = bank.RecoverPendingClaim(
             achievedMilestone: 3,
@@ -115,8 +116,13 @@ public sealed class ManualProgressionBankTests
     [TestMethod]
     public void RecoveryWaitsWhenClaimXpReachedCitySave()
     {
-        var bank = new ManualProgressionBank();
-        Assert.IsTrue(bank.TryRestore(49, 4, 1, 100));
+        var bank = new ManualMilestoneClaimBank();
+        Assert.IsTrue(PendingMilestoneClaim.TryCreate(
+            4,
+            1,
+            100,
+            out var pendingClaim));
+        Assert.IsTrue(bank.TryRestore(49, pendingClaim));
 
         var recovery = bank.RecoverPendingClaim(
             achievedMilestone: 3,
@@ -130,24 +136,46 @@ public sealed class ManualProgressionBankTests
     }
 
     [TestMethod]
-    public void RestoreRejectsInconsistentPendingStateAtomically()
+    public void PendingClaimRejectsInconsistentState()
     {
-        var bank = new ManualProgressionBank();
-        Assert.IsTrue(bank.TryRestore(12, 0, 0, 0));
+        var bank = new ManualMilestoneClaimBank();
+        Assert.IsTrue(bank.TryRestore(12, PendingMilestoneClaim.None));
 
-        Assert.IsFalse(bank.TryRestore(20, 4, 0, 100));
+        Assert.IsFalse(PendingMilestoneClaim.TryCreate(
+            4,
+            0,
+            100,
+            out _));
         Assert.AreEqual(12L, bank.HeldXp);
         Assert.IsFalse(bank.IsClaimPending);
     }
 
     [TestMethod]
-    public void ReleaseAndDiscardWaitForPendingClaim()
+    public void RestoreRejectsNegativeHeldXpAtomically()
     {
-        var bank = new ManualProgressionBank();
-        Assert.IsTrue(bank.TryRestore(49, 4, 1, 100));
+        var bank = new ManualMilestoneClaimBank();
+        Assert.IsTrue(bank.TryRestore(12, PendingMilestoneClaim.None));
+
+        Assert.IsFalse(bank.TryRestore(-1, PendingMilestoneClaim.None));
+        Assert.AreEqual(12L, bank.HeldXp);
+        Assert.IsFalse(bank.IsClaimPending);
+    }
+
+    [TestMethod]
+    public void DiscardClearsHeldXpButPreservesPendingClaim()
+    {
+        var bank = new ManualMilestoneClaimBank();
+        Assert.IsTrue(PendingMilestoneClaim.TryCreate(
+            4,
+            1,
+            100,
+            out var pendingClaim));
+        Assert.IsTrue(bank.TryRestore(49, pendingClaim));
 
         Assert.AreEqual(0L, bank.ReleaseHeldXp());
-        Assert.IsFalse(bank.DiscardHeldXp());
-        Assert.AreEqual(49L, bank.HeldXp);
+        bank.DiscardHeldXp();
+        Assert.AreEqual(0L, bank.HeldXp);
+        Assert.IsTrue(bank.IsClaimPending);
+        Assert.AreEqual(4, bank.PendingClaim.Index);
     }
 }

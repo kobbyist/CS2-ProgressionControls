@@ -2,6 +2,54 @@ using System;
 
 namespace Kobbyist.ProgressionControls.Core
 {
+    internal readonly struct PendingMilestoneClaim
+    {
+        private PendingMilestoneClaim(
+            int index,
+            int releasedXp,
+            int threshold)
+        {
+            Index = index;
+            ReleasedXp = releasedXp;
+            Threshold = threshold;
+        }
+
+        public static PendingMilestoneClaim None => default;
+
+        public int Index { get; }
+
+        public int ReleasedXp { get; }
+
+        public int Threshold { get; }
+
+        public bool IsPending => Index > 0;
+
+        public bool IsValid =>
+            Index == 0
+                ? ReleasedXp == 0 && Threshold == 0
+                : Index > 0 && ReleasedXp > 0 && Threshold > 0;
+
+        public static bool TryCreate(
+            int index,
+            int releasedXp,
+            int threshold,
+            out PendingMilestoneClaim claim)
+        {
+            var candidate = new PendingMilestoneClaim(
+                index,
+                releasedXp,
+                threshold);
+            if (!candidate.IsValid)
+            {
+                claim = None;
+                return false;
+            }
+
+            claim = candidate;
+            return true;
+        }
+    }
+
     internal enum PendingClaimRecovery
     {
         None,
@@ -10,40 +58,25 @@ namespace Kobbyist.ProgressionControls.Core
         Confirmed,
     }
 
-    internal sealed class ManualProgressionBank
+    internal sealed class ManualMilestoneClaimBank
     {
         public long HeldXp { get; private set; }
 
-        public int PendingClaimIndex { get; private set; }
+        public PendingMilestoneClaim PendingClaim { get; private set; }
 
-        public int PendingClaimXp { get; private set; }
-
-        public int PendingClaimThreshold { get; private set; }
-
-        public bool IsClaimPending => PendingClaimIndex > 0;
+        public bool IsClaimPending => PendingClaim.IsPending;
 
         public bool TryRestore(
             long heldXp,
-            int pendingClaimIndex,
-            int pendingClaimXp,
-            int pendingClaimThreshold)
+            PendingMilestoneClaim pendingClaim)
         {
-            if (heldXp < 0 ||
-                pendingClaimIndex < 0 ||
-                pendingClaimXp < 0 ||
-                pendingClaimThreshold < 0 ||
-                !PendingFieldsAreConsistent(
-                    pendingClaimIndex,
-                    pendingClaimXp,
-                    pendingClaimThreshold))
+            if (heldXp < 0 || !pendingClaim.IsValid)
             {
                 return false;
             }
 
             HeldXp = heldXp;
-            PendingClaimIndex = pendingClaimIndex;
-            PendingClaimXp = pendingClaimXp;
-            PendingClaimThreshold = pendingClaimThreshold;
+            PendingClaim = pendingClaim;
             return true;
         }
 
@@ -107,16 +140,25 @@ namespace Kobbyist.ProgressionControls.Core
 
             releasedXp = (int)requiredRelease;
             HeldXp -= releasedXp;
-            PendingClaimIndex = milestoneIndex;
-            PendingClaimXp = releasedXp;
-            PendingClaimThreshold = requiredXp;
+            if (!PendingMilestoneClaim.TryCreate(
+                milestoneIndex,
+                releasedXp,
+                requiredXp,
+                out var pendingClaim))
+            {
+                HeldXp += releasedXp;
+                releasedXp = 0;
+                return false;
+            }
+
+            PendingClaim = pendingClaim;
             return true;
         }
 
         public bool TryConfirmClaim(int achievedMilestone)
         {
             if (!IsClaimPending ||
-                achievedMilestone < PendingClaimIndex)
+                achievedMilestone < PendingClaim.Index)
             {
                 return false;
             }
@@ -134,23 +176,23 @@ namespace Kobbyist.ProgressionControls.Core
                 return PendingClaimRecovery.None;
             }
 
-            if (achievedMilestone >= PendingClaimIndex)
+            if (achievedMilestone >= PendingClaim.Index)
             {
                 ClearPendingClaim();
                 return PendingClaimRecovery.Confirmed;
             }
 
-            if (cityXp >= PendingClaimThreshold)
+            if (cityXp >= PendingClaim.Threshold)
             {
                 return PendingClaimRecovery.WaitingForVanilla;
             }
 
-            if (HeldXp > long.MaxValue - PendingClaimXp)
+            if (HeldXp > long.MaxValue - PendingClaim.ReleasedXp)
             {
                 return PendingClaimRecovery.WaitingForVanilla;
             }
 
-            HeldXp += PendingClaimXp;
+            HeldXp += PendingClaim.ReleasedXp;
             ClearPendingClaim();
             return PendingClaimRecovery.RolledBack;
         }
@@ -167,37 +209,14 @@ namespace Kobbyist.ProgressionControls.Core
             return released;
         }
 
-        public bool DiscardHeldXp()
+        public void DiscardHeldXp()
         {
-            if (IsClaimPending)
-            {
-                return false;
-            }
-
             HeldXp = 0;
-            return true;
-        }
-
-        private static bool PendingFieldsAreConsistent(
-            int pendingClaimIndex,
-            int pendingClaimXp,
-            int pendingClaimThreshold)
-        {
-            if (pendingClaimIndex == 0)
-            {
-                return pendingClaimXp == 0 &&
-                    pendingClaimThreshold == 0;
-            }
-
-            return pendingClaimXp > 0 &&
-                pendingClaimThreshold > 0;
         }
 
         private void ClearPendingClaim()
         {
-            PendingClaimIndex = 0;
-            PendingClaimXp = 0;
-            PendingClaimThreshold = 0;
+            PendingClaim = PendingMilestoneClaim.None;
         }
     }
 }

@@ -19,9 +19,7 @@ namespace Kobbyist.ProgressionControls.Core
             int vanillaRemainderHundredths,
             long pendingPopulationXp,
             long heldMilestoneXp = 0,
-            int pendingMilestoneClaimIndex = 0,
-            int pendingMilestoneClaimXp = 0,
-            int pendingMilestoneClaimThreshold = 0)
+            PendingMilestoneClaim pendingMilestoneClaim = default)
         {
             CityId = cityId;
             SimulationFrame = simulationFrame;
@@ -29,10 +27,7 @@ namespace Kobbyist.ProgressionControls.Core
             VanillaRemainderHundredths = vanillaRemainderHundredths;
             PendingPopulationXp = pendingPopulationXp;
             HeldMilestoneXp = heldMilestoneXp;
-            PendingMilestoneClaimIndex = pendingMilestoneClaimIndex;
-            PendingMilestoneClaimXp = pendingMilestoneClaimXp;
-            PendingMilestoneClaimThreshold =
-                pendingMilestoneClaimThreshold;
+            PendingMilestoneClaim = pendingMilestoneClaim;
         }
 
         public Guid CityId { get; }
@@ -47,11 +42,7 @@ namespace Kobbyist.ProgressionControls.Core
 
         public long HeldMilestoneXp { get; }
 
-        public int PendingMilestoneClaimIndex { get; }
-
-        public int PendingMilestoneClaimXp { get; }
-
-        public int PendingMilestoneClaimThreshold { get; }
+        public PendingMilestoneClaim PendingMilestoneClaim { get; }
 
         public decimal RequiredVanillaFailSafeXp
         {
@@ -79,14 +70,7 @@ namespace Kobbyist.ProgressionControls.Core
             VanillaRemainderHundredths < 100 &&
             PendingPopulationXp >= 0 &&
             HeldMilestoneXp >= 0 &&
-            PendingMilestoneClaimIndex >= 0 &&
-            PendingMilestoneClaimXp >= 0 &&
-            PendingMilestoneClaimThreshold >= 0 &&
-            (PendingMilestoneClaimIndex == 0
-                ? PendingMilestoneClaimXp == 0 &&
-                    PendingMilestoneClaimThreshold == 0
-                : PendingMilestoneClaimXp > 0 &&
-                    PendingMilestoneClaimThreshold > 0);
+            PendingMilestoneClaim.IsValid;
     }
 
     internal sealed class ProgressionStatePreparation
@@ -1240,11 +1224,11 @@ namespace Kobbyist.ProgressionControls.Core
                 PendingPopulationXp = snapshot.PendingPopulationXp,
                 HeldMilestoneXp = snapshot.HeldMilestoneXp,
                 PendingMilestoneClaimIndex =
-                    snapshot.PendingMilestoneClaimIndex,
+                    snapshot.PendingMilestoneClaim.Index,
                 PendingMilestoneClaimXp =
-                    snapshot.PendingMilestoneClaimXp,
+                    snapshot.PendingMilestoneClaim.ReleasedXp,
                 PendingMilestoneClaimThreshold =
-                    snapshot.PendingMilestoneClaimThreshold,
+                    snapshot.PendingMilestoneClaim.Threshold,
                 SchemaVersion = CurrentSchemaVersion,
                 SaveName = saveName,
                 CompletionConfirmed = false,
@@ -1301,6 +1285,15 @@ namespace Kobbyist.ProgressionControls.Core
             var populationState = new PopulationProgressionState(
                 model.MaximumPopulation,
                 model.PopulationFractionalXp);
+            if (!PendingMilestoneClaim.TryCreate(
+                model.PendingMilestoneClaimIndex,
+                model.PendingMilestoneClaimXp,
+                model.PendingMilestoneClaimThreshold,
+                out var pendingMilestoneClaim))
+            {
+                return false;
+            }
+
             var candidate = new ProgressionStateSnapshot(
                 parsedCityId,
                 model.SimulationFrame,
@@ -1308,9 +1301,7 @@ namespace Kobbyist.ProgressionControls.Core
                 model.VanillaRemainderHundredths,
                 model.PendingPopulationXp,
                 model.HeldMilestoneXp,
-                model.PendingMilestoneClaimIndex,
-                model.PendingMilestoneClaimXp,
-                model.PendingMilestoneClaimThreshold);
+                pendingMilestoneClaim);
 
             if (!candidate.IsValid)
             {

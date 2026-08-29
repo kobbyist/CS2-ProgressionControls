@@ -1,4 +1,4 @@
-# Manual milestone progression
+# Manual milestone claims
 
 ## Product behavior
 
@@ -51,7 +51,9 @@ Schema 5 adds:
 Schema 4 checkpoints remain readable with these values defaulted to zero.
 Fail-safe checkpoint preparation adds held XP to the save-owned city XP.
 Pending claim XP is added only when the city has not already reached its
-recorded threshold.
+recorded threshold. Both fail-safe release and player-requested release are
+all-or-nothing: if vanilla city XP cannot hold the complete amount, external
+state is retained unchanged.
 
 ## Integration boundaries
 
@@ -71,7 +73,8 @@ Exact installed signatures and hashes are recorded in
 The in-game screenshots supplied during the August 2026 UI review are the active
 visual reference. The panel follows the compact CS2 utility-mod convention:
 
-- a cyan rounded-square toolbar tile with a white native trophy glyph;
+- a cyan rounded-square toolbar tile with the original white route-and-flag
+  glyph;
 - a 320 rem translucent panel with a 36 rem header;
 - game typography variables instead of custom display type;
 - a compact next-target banner using the milestone's native illustration,

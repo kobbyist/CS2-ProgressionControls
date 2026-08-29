@@ -1174,26 +1174,27 @@ namespace Kobbyist.ProgressionControls
                 }
 
                 var requiredXp = snapshot.RequiredVanillaFailSafeXp;
-                if (snapshot.PendingMilestoneClaimIndex > 0 &&
+                if (snapshot.PendingMilestoneClaim.IsPending &&
                     cityXp.m_XP <
-                        snapshot.PendingMilestoneClaimThreshold)
+                        snapshot.PendingMilestoneClaim.Threshold)
                 {
                     requiredXp +=
-                        snapshot.PendingMilestoneClaimXp;
+                        snapshot.PendingMilestoneClaim.ReleasedXp;
                 }
 
                 var availableXp =
                     (decimal)int.MaxValue - cityXp.m_XP;
-                var releasedXp = Math.Min(requiredXp, availableXp);
-
-                var updatedXp =
-                    (decimal)cityXp.m_XP + releasedXp;
-                cityXp.m_XP = decimal.ToInt32(updatedXp);
-                if (releasedXp < requiredXp)
+                if (!VanillaXpCapacity.TryAdd(
+                    cityXp.m_XP,
+                    requiredXp,
+                    out var updatedXp))
                 {
                     error =
-                        $"Vanilla XP saturated after releasing {releasedXp} of {requiredXp} XP";
+                        $"Vanilla XP can hold only {availableXp} of {requiredXp} XP; external progression state was retained";
+                    return false;
                 }
+
+                cityXp.m_XP = updatedXp;
 
                 cityXp.m_MaximumPopulation = Math.Max(
                     cityXp.m_MaximumPopulation,
@@ -1225,8 +1226,8 @@ namespace Kobbyist.ProgressionControls
                 m_PopulationTracker == null ||
                 Mod.Settings == null ||
                 (!Mod.Settings.EnableCustomProgression &&
-                    m_ManualProgressionBank.HeldXp == 0 &&
-                    !m_ManualProgressionBank.IsClaimPending) ||
+                    m_ManualMilestoneClaimBank.HeldXp == 0 &&
+                    !m_ManualMilestoneClaimBank.IsClaimPending) ||
                 m_CityId == Guid.Empty ||
                 GameManager.instance.isGameLoading)
             {
@@ -1246,10 +1247,8 @@ namespace Kobbyist.ProgressionControls
                 populationState,
                 m_VanillaXpScaler.RemainderHundredths,
                 m_PopulationXpBatch.PendingXp,
-                m_ManualProgressionBank.HeldXp,
-                m_ManualProgressionBank.PendingClaimIndex,
-                m_ManualProgressionBank.PendingClaimXp,
-                m_ManualProgressionBank.PendingClaimThreshold);
+                m_ManualMilestoneClaimBank.HeldXp,
+                m_ManualMilestoneClaimBank.PendingClaim);
         }
     }
 }

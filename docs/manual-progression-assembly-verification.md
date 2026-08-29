@@ -210,7 +210,7 @@
   - `Game.City.XPRewardFlags ElectricityGridBuilt`
   - `System.Byte value__`
 
-## Manual progression behavioral verification
+## Manual milestone claims behavioral verification
 
 Mono.Cecil inspection of the installed Game.dll established the behavior
 needed by the adapter:

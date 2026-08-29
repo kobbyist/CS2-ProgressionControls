@@ -303,6 +303,11 @@ public sealed class ProgressionStateStoreTests
     public void ManualMilestoneStateRoundTrips()
     {
         var store = CreateStore();
+        Assert.IsTrue(PendingMilestoneClaim.TryCreate(
+            4,
+            500,
+            9000,
+            out var pendingMilestoneClaim));
         var snapshot = new ProgressionStateSnapshot(
             CityId,
             simulationFrame: 301,
@@ -312,9 +317,7 @@ public sealed class ProgressionStateStoreTests
             vanillaRemainderHundredths: 0,
             pendingPopulationXp: 0,
             heldMilestoneXp: 4500,
-            pendingMilestoneClaimIndex: 4,
-            pendingMilestoneClaimXp: 500,
-            pendingMilestoneClaimThreshold: 9000);
+            pendingMilestoneClaim: pendingMilestoneClaim);
 
         PrepareAndCommit(store, snapshot, "Manual Save");
 
@@ -657,13 +660,13 @@ public sealed class ProgressionStateStoreTests
             expected.HeldMilestoneXp,
             actual.HeldMilestoneXp);
         Assert.AreEqual(
-            expected.PendingMilestoneClaimIndex,
-            actual.PendingMilestoneClaimIndex);
+            expected.PendingMilestoneClaim.Index,
+            actual.PendingMilestoneClaim.Index);
         Assert.AreEqual(
-            expected.PendingMilestoneClaimXp,
-            actual.PendingMilestoneClaimXp);
+            expected.PendingMilestoneClaim.ReleasedXp,
+            actual.PendingMilestoneClaim.ReleasedXp);
         Assert.AreEqual(
-            expected.PendingMilestoneClaimThreshold,
-            actual.PendingMilestoneClaimThreshold);
+            expected.PendingMilestoneClaim.Threshold,
+            actual.PendingMilestoneClaim.Threshold);
     }
 }
