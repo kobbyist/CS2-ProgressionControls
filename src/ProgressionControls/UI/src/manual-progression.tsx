@@ -19,7 +19,7 @@ const nativeWarningIcon = "Media/Misc/Warning.svg";
 const stateBinding = bindValue<string>(
   bindingGroup,
   "manualProgressionState",
-  '{"available":false,"active":false,"heldXp":0,"cityXp":0,"effectiveXp":0,"claimPending":false,"dialog":"none","milestones":[],"nextMilestoneIndex":0,"nextRequiredXp":0,"nextImage":"","nextRangeXp":0,"nextBackgroundColor":{"r":0,"g":0,"b":0,"a":0},"nextAccentColor":{"r":0,"g":0,"b":0,"a":0},"nextTextColor":{"r":0,"g":0,"b":0,"a":0}}',
+  '{"available":false,"active":false,"heldXp":0,"cityXp":0,"effectiveXp":0,"claimPending":false,"dialog":"none","milestones":[],"nextMilestoneIndex":0,"nextRequiredXp":0,"nextImage":"","nextRangeXp":0,"nextBackgroundColor":{"r":0,"g":0,"b":0,"a":0},"nextTextColor":{"r":0,"g":0,"b":0,"a":0}}',
 );
 
 interface ManualProgressionColor {
@@ -50,7 +50,6 @@ interface ManualProgressionState {
   nextImage: string;
   nextRangeXp: number;
   nextBackgroundColor: ManualProgressionColor;
-  nextAccentColor: ManualProgressionColor;
   nextTextColor: ManualProgressionColor;
 }
 
@@ -70,7 +69,6 @@ const emptyState: ManualProgressionState = {
   nextImage: "",
   nextRangeXp: 0,
   nextBackgroundColor: { r: 0, g: 0, b: 0, a: 0 },
-  nextAccentColor: { r: 0, g: 0, b: 0, a: 0 },
   nextTextColor: { r: 0, g: 0, b: 0, a: 0 },
 };
 
@@ -345,10 +343,6 @@ const NextMilestoneBanner = ({
     state.nextBackgroundColor,
     "#b9cdd1",
   );
-  const accentColor = colorToCss(
-    state.nextAccentColor,
-    "#45d98b",
-  );
   const textColor = colorToCss(
     state.nextTextColor,
     "#101c27",
@@ -384,15 +378,23 @@ const NextMilestoneBanner = ({
           aria-valuemax={state.nextRequiredXp}
           aria-valuenow={visibleXp}
         >
-          <div
-            className={styles.milestoneRangeFill}
-            style={{
-              backgroundColor: accentColor,
-              width: progress + "%",
-            }}
-          />
           <div className={styles.milestoneRangeValue}>
             {formatXp(visibleXp)} / {formatXp(state.nextRequiredXp)} XP
+          </div>
+          <div
+            className={styles.milestoneRangeBounds}
+            style={{ width: progress + "%" }}
+          >
+            <div
+              className={styles.milestoneRangeFill}
+              style={{
+                width: progress > 0 ? 10000 / progress + "%" : "0%",
+              }}
+            >
+              <div className={styles.milestoneRangeProgressValue}>
+                {formatXp(visibleXp)} / {formatXp(state.nextRequiredXp)} XP
+              </div>
+            </div>
           </div>
         </div>
         <div className={styles.nextMilestoneIdentity}>

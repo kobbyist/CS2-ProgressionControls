@@ -495,8 +495,6 @@ namespace Kobbyist.ProgressionControls
                 NextRangeXp = nextRange.CurrentXp,
                 NextBackgroundColor =
                     nextMilestone?.BackgroundColor ?? default,
-                NextAccentColor =
-                    nextMilestone?.AccentColor ?? default,
                 NextTextColor =
                     nextMilestone?.TextColor ?? default,
             };
@@ -570,8 +568,6 @@ namespace Kobbyist.ProgressionControls
                     var image = string.Empty;
                     var backgroundColor = default(
                         ManualProgressionColorView);
-                    var accentColor = default(
-                        ManualProgressionColorView);
                     var textColor = default(
                         ManualProgressionColorView);
                     try
@@ -584,8 +580,6 @@ namespace Kobbyist.ProgressionControls
                             image = prefab.m_Image ?? string.Empty;
                             backgroundColor = ToColorView(
                                 prefab.m_BackgroundColor);
-                            accentColor = ToColorView(
-                                prefab.m_AccentColor);
                             textColor = ToColorView(
                                 prefab.m_TextColor);
                         }
@@ -600,7 +594,6 @@ namespace Kobbyist.ProgressionControls
                             milestoneData.m_XpRequried,
                             image,
                             backgroundColor,
-                            accentColor,
                             textColor));
                 }
 
@@ -628,14 +621,12 @@ namespace Kobbyist.ProgressionControls
                 int requiredXp,
                 string image,
                 ManualProgressionColorView backgroundColor,
-                ManualProgressionColorView accentColor,
                 ManualProgressionColorView textColor)
             {
                 Index = index;
                 RequiredXp = requiredXp;
                 Image = image;
                 BackgroundColor = backgroundColor;
-                AccentColor = accentColor;
                 TextColor = textColor;
             }
 
@@ -646,8 +637,6 @@ namespace Kobbyist.ProgressionControls
             public string Image { get; }
 
             public ManualProgressionColorView BackgroundColor { get; }
-
-            public ManualProgressionColorView AccentColor { get; }
 
             public ManualProgressionColorView TextColor { get; }
         }

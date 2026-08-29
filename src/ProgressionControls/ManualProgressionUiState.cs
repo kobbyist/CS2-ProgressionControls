@@ -70,10 +70,7 @@ namespace Kobbyist.ProgressionControls
         [DataMember(Name = "nextBackgroundColor", Order = 13)]
         public ManualProgressionColorView NextBackgroundColor { get; set; }
 
-        [DataMember(Name = "nextAccentColor", Order = 14)]
-        public ManualProgressionColorView NextAccentColor { get; set; }
-
-        [DataMember(Name = "nextTextColor", Order = 15)]
+        [DataMember(Name = "nextTextColor", Order = 14)]
         public ManualProgressionColorView NextTextColor { get; set; }
 
         public static ManualProgressionViewState Empty =>
