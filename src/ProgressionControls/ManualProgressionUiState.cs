@@ -64,6 +64,12 @@ namespace Kobbyist.ProgressionControls
         [DataMember(Name = "nextImage", Order = 11)]
         public string NextImage { get; set; }
 
+        [DataMember(Name = "nextProgressXp", Order = 12)]
+        public long NextProgressXp { get; set; }
+
+        [DataMember(Name = "nextProgressRequiredXp", Order = 13)]
+        public int NextProgressRequiredXp { get; set; }
+
         public static ManualProgressionViewState Empty =>
             new ManualProgressionViewState
             {

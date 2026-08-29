@@ -19,7 +19,7 @@ const nativeWarningIcon = "Media/Misc/Warning.svg";
 const stateBinding = bindValue<string>(
   bindingGroup,
   "manualProgressionState",
-  '{"available":false,"active":false,"heldXp":0,"cityXp":0,"effectiveXp":0,"claimPending":false,"dialog":"none","milestones":[],"nextMilestoneIndex":0,"nextRequiredXp":0,"nextImage":""}',
+  '{"available":false,"active":false,"heldXp":0,"cityXp":0,"effectiveXp":0,"claimPending":false,"dialog":"none","milestones":[],"nextMilestoneIndex":0,"nextRequiredXp":0,"nextImage":"","nextProgressXp":0,"nextProgressRequiredXp":0}',
 );
 
 interface ManualMilestone {
@@ -41,6 +41,8 @@ interface ManualProgressionState {
   nextMilestoneIndex: number;
   nextRequiredXp: number;
   nextImage: string;
+  nextProgressXp: number;
+  nextProgressRequiredXp: number;
 }
 
 type Translate = (id: string, fallback: string) => string;
@@ -57,6 +59,8 @@ const emptyState: ManualProgressionState = {
   nextMilestoneIndex: 0,
   nextRequiredXp: 0,
   nextImage: "",
+  nextProgressXp: 0,
+  nextProgressRequiredXp: 0,
 };
 
 const openListeners = new Set<() => void>();
@@ -307,10 +311,12 @@ const NextMilestoneProgress = ({
   milestoneName: string;
   t: Translate;
 }) => {
-  const progress = Math.min(
-    100,
-    (state.effectiveXp / state.nextRequiredXp) * 100,
-  );
+  const progress = state.nextProgressRequiredXp > 0
+    ? Math.min(
+        100,
+        (state.nextProgressXp / state.nextProgressRequiredXp) * 100,
+      )
+    : 0;
 
   return (
     <PanelSection title={t("NextMilestone", "Next milestone")}>
@@ -320,8 +326,8 @@ const NextMilestoneProgress = ({
           <strong>{milestoneName}</strong>
         </div>
         <div className={styles.nextMilestoneValue}>
-          <strong>{formatXp(state.effectiveXp)}</strong>
-          <span> / {formatXp(state.nextRequiredXp)} XP</span>
+          <strong>{formatXp(state.nextProgressXp)}</strong>
+          <span> / {formatXp(state.nextProgressRequiredXp)} XP</span>
         </div>
       </div>
       <div
@@ -332,10 +338,10 @@ const NextMilestoneProgress = ({
           "XP progress to the next milestone",
         )}
         aria-valuemin={0}
-        aria-valuemax={state.nextRequiredXp}
+        aria-valuemax={state.nextProgressRequiredXp}
         aria-valuenow={Math.min(
-          state.effectiveXp,
-          state.nextRequiredXp,
+          state.nextProgressXp,
+          state.nextProgressRequiredXp,
         )}
       >
         <div

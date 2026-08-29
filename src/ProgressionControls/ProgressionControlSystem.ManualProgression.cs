@@ -469,6 +469,17 @@ namespace Kobbyist.ProgressionControls
                 .OrderBy(definition => definition.Index)
                 .ThenBy(definition => definition.RequiredXp)
                 .FirstOrDefault();
+            var achievedMilestoneThreshold = definitions
+                .Where(definition =>
+                    definition.Index <= achievedMilestone)
+                .OrderByDescending(definition => definition.Index)
+                .ThenByDescending(definition => definition.RequiredXp)
+                .Select(definition => definition.RequiredXp)
+                .FirstOrDefault();
+            var nextProgress = MilestoneTierProgress.Calculate(
+                effectiveXp,
+                achievedMilestoneThreshold,
+                nextMilestone?.RequiredXp ?? 0);
 
             return new ManualProgressionViewState
             {
@@ -489,6 +500,8 @@ namespace Kobbyist.ProgressionControls
                     nextMilestone?.RequiredXp ?? 0,
                 NextImage =
                     nextMilestone?.Image ?? string.Empty,
+                NextProgressXp = nextProgress.CurrentXp,
+                NextProgressRequiredXp = nextProgress.RequiredXp,
             };
         }
 
