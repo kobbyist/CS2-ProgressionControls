@@ -225,8 +225,9 @@ needed by the adapter:
   rewards and unlocks intact.
 - MilestoneSystem.TryGetMilestone is private, so the implementation uses the
   same read-only MilestoneData query shape instead of reflection.
-- PrefabSystem.GetPrefab<T>(Entity) is public and MilestonePrefab.m_Image is
-  public, allowing the standalone panel to reuse native milestone art.
+- PrefabSystem.GetPrefab<T>(Entity) is public. MilestonePrefab.m_Image plus its
+  background, accent, and text colors are public, allowing the standalone
+  panel to reuse the native milestone artwork and palette.
 - SystemUpdatePhase.UIUpdate and UpdateSystem.UpdateAt<T> are present for
   supported UISystemBase registration.
 - ValueBinding<string> and TriggerBinding<T> constructors accept their

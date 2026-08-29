@@ -64,11 +64,17 @@ namespace Kobbyist.ProgressionControls
         [DataMember(Name = "nextImage", Order = 11)]
         public string NextImage { get; set; }
 
-        [DataMember(Name = "nextProgressXp", Order = 12)]
-        public long NextProgressXp { get; set; }
+        [DataMember(Name = "nextRangeXp", Order = 12)]
+        public long NextRangeXp { get; set; }
 
-        [DataMember(Name = "nextProgressRequiredXp", Order = 13)]
-        public int NextProgressRequiredXp { get; set; }
+        [DataMember(Name = "nextBackgroundColor", Order = 13)]
+        public ManualProgressionColorView NextBackgroundColor { get; set; }
+
+        [DataMember(Name = "nextAccentColor", Order = 14)]
+        public ManualProgressionColorView NextAccentColor { get; set; }
+
+        [DataMember(Name = "nextTextColor", Order = 15)]
+        public ManualProgressionColorView NextTextColor { get; set; }
 
         public static ManualProgressionViewState Empty =>
             new ManualProgressionViewState
@@ -76,6 +82,34 @@ namespace Kobbyist.ProgressionControls
                 Dialog = "none",
                 Milestones = Array.Empty<ManualProgressionMilestoneView>(),
             };
+    }
+
+    [DataContract]
+    internal struct ManualProgressionColorView
+    {
+        public ManualProgressionColorView(
+            float red,
+            float green,
+            float blue,
+            float alpha)
+        {
+            Red = red;
+            Green = green;
+            Blue = blue;
+            Alpha = alpha;
+        }
+
+        [DataMember(Name = "r", Order = 1)]
+        public float Red { get; set; }
+
+        [DataMember(Name = "g", Order = 2)]
+        public float Green { get; set; }
+
+        [DataMember(Name = "b", Order = 3)]
+        public float Blue { get; set; }
+
+        [DataMember(Name = "a", Order = 4)]
+        public float Alpha { get; set; }
     }
 
     [DataContract]

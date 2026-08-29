@@ -30,6 +30,7 @@ namespace Kobbyist.ProgressionControls
                 { "Kobbyist.ProgressionControls.UI.Claiming", "Claiming..." },
                 { "Kobbyist.ProgressionControls.UI.Complete", "Every milestone has been reached." },
                 { "Kobbyist.ProgressionControls.UI.NextMilestone", "Next milestone" },
+                { "Kobbyist.ProgressionControls.UI.MilestoneLabel", "Milestone" },
                 { "Kobbyist.ProgressionControls.UI.XpProgress", "XP progress to the next milestone" },
                 { "Kobbyist.ProgressionControls.UI.RecoveryTitle", "What should happen to your held XP?" },
                 { "Kobbyist.ProgressionControls.UI.DisableTitle", "Release or discard held XP?" },

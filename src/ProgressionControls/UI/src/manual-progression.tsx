@@ -19,8 +19,15 @@ const nativeWarningIcon = "Media/Misc/Warning.svg";
 const stateBinding = bindValue<string>(
   bindingGroup,
   "manualProgressionState",
-  '{"available":false,"active":false,"heldXp":0,"cityXp":0,"effectiveXp":0,"claimPending":false,"dialog":"none","milestones":[],"nextMilestoneIndex":0,"nextRequiredXp":0,"nextImage":"","nextProgressXp":0,"nextProgressRequiredXp":0}',
+  '{"available":false,"active":false,"heldXp":0,"cityXp":0,"effectiveXp":0,"claimPending":false,"dialog":"none","milestones":[],"nextMilestoneIndex":0,"nextRequiredXp":0,"nextImage":"","nextRangeXp":0,"nextBackgroundColor":{"r":0,"g":0,"b":0,"a":0},"nextAccentColor":{"r":0,"g":0,"b":0,"a":0},"nextTextColor":{"r":0,"g":0,"b":0,"a":0}}',
 );
+
+interface ManualProgressionColor {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
 
 interface ManualMilestone {
   index: number;
@@ -41,8 +48,10 @@ interface ManualProgressionState {
   nextMilestoneIndex: number;
   nextRequiredXp: number;
   nextImage: string;
-  nextProgressXp: number;
-  nextProgressRequiredXp: number;
+  nextRangeXp: number;
+  nextBackgroundColor: ManualProgressionColor;
+  nextAccentColor: ManualProgressionColor;
+  nextTextColor: ManualProgressionColor;
 }
 
 type Translate = (id: string, fallback: string) => string;
@@ -59,8 +68,10 @@ const emptyState: ManualProgressionState = {
   nextMilestoneIndex: 0,
   nextRequiredXp: 0,
   nextImage: "",
-  nextProgressXp: 0,
-  nextProgressRequiredXp: 0,
+  nextRangeXp: 0,
+  nextBackgroundColor: { r: 0, g: 0, b: 0, a: 0 },
+  nextAccentColor: { r: 0, g: 0, b: 0, a: 0 },
+  nextTextColor: { r: 0, g: 0, b: 0, a: 0 },
 };
 
 const openListeners = new Set<() => void>();
@@ -86,6 +97,20 @@ function parseState(value: string): ManualProgressionState {
 
 function formatXp(value: number) {
   return Math.max(0, value).toLocaleString();
+}
+
+function colorToCss(
+  color: ManualProgressionColor | undefined,
+  fallback: string,
+) {
+  if (!color || !Number.isFinite(color.a) || color.a <= 0) {
+    return fallback;
+  }
+
+  const channel = (value: number) =>
+    Math.round(Math.min(1, Math.max(0, value)) * 255);
+  const alpha = Math.min(1, Math.max(0, color.a));
+  return `rgba(${channel(color.r)}, ${channel(color.g)}, ${channel(color.b)}, ${alpha})`;
 }
 
 export const ManualProgressionToolbarButton = () => {
@@ -154,6 +179,14 @@ export const ManualProgressionOverlay = () => {
         >
           <XpLedger heldXp={state.heldXp} t={t} />
 
+          {state.nextMilestoneIndex > 0 ? (
+            <NextMilestoneBanner
+              state={state}
+              milestoneName={milestoneName(state.nextMilestoneIndex)}
+              t={t}
+            />
+          ) : null}
+
           {readyCount > 0 ? (
             <>
               <PanelSection
@@ -184,17 +217,11 @@ export const ManualProgressionOverlay = () => {
                 </Scrollable>
               </PanelSection>
             </>
-          ) : state.nextMilestoneIndex > 0 ? (
-            <NextMilestoneProgress
-              state={state}
-              milestoneName={milestoneName(state.nextMilestoneIndex)}
-              t={t}
-            />
-          ) : (
+          ) : state.nextMilestoneIndex <= 0 ? (
             <div className={styles.completeState}>
               {t("Complete", "Every milestone has been reached.")}
             </div>
-          )}
+          ) : null}
         </CompactModPanel>
       </div>
 
@@ -220,16 +247,10 @@ const XpLedger = ({
 
 const MilestoneIcon = ({
   image,
-  compact = false,
 }: {
   image: string;
-  compact?: boolean;
 }) => (
-  <div
-    className={
-      compact ? styles.milestoneIconCompact : styles.milestoneIcon
-    }
-  >
+  <div className={styles.milestoneIcon}>
     {image ? (
       <img src={image} alt="" aria-hidden="true" />
     ) : (
@@ -302,7 +323,7 @@ const MilestoneRow = ({
   );
 };
 
-const NextMilestoneProgress = ({
+const NextMilestoneBanner = ({
   state,
   milestoneName,
   t,
@@ -311,43 +332,75 @@ const NextMilestoneProgress = ({
   milestoneName: string;
   t: Translate;
 }) => {
-  const progress = state.nextProgressRequiredXp > 0
+  const visibleXp = state.nextRequiredXp > 0
+    ? state.nextRangeXp
+    : 0;
+  const progress = state.nextRequiredXp > 0
     ? Math.min(
         100,
-        (state.nextProgressXp / state.nextProgressRequiredXp) * 100,
+        (visibleXp / state.nextRequiredXp) * 100,
       )
     : 0;
+  const backgroundColor = colorToCss(
+    state.nextBackgroundColor,
+    "#b9cdd1",
+  );
+  const accentColor = colorToCss(
+    state.nextAccentColor,
+    "#45d98b",
+  );
+  const textColor = colorToCss(
+    state.nextTextColor,
+    "#101c27",
+  );
 
   return (
     <PanelSection title={t("NextMilestone", "Next milestone")}>
-      <div className={styles.nextMilestoneBody}>
-        <MilestoneIcon image={state.nextImage} compact />
-        <div className={styles.nextMilestoneCopy}>
+      <div
+        className={styles.nextMilestoneBanner}
+        style={{ backgroundColor, color: textColor }}
+      >
+        {state.nextImage ? (
+          <img
+            src={state.nextImage}
+            className={styles.milestoneArtwork}
+            alt=""
+            aria-hidden="true"
+          />
+        ) : (
+          <Icon
+            src={nativeMilestoneIcon}
+            className={styles.milestoneArtworkFallback}
+          />
+        )}
+        <div
+          className={styles.milestoneRangeTrack}
+          role="progressbar"
+          aria-label={t(
+            "XpProgress",
+            "XP progress to the next milestone",
+          )}
+          aria-valuemin={0}
+          aria-valuemax={state.nextRequiredXp}
+          aria-valuenow={visibleXp}
+        >
+          <div
+            className={styles.milestoneRangeFill}
+            style={{
+              backgroundColor: accentColor,
+              width: progress + "%",
+            }}
+          />
+          <div className={styles.milestoneRangeValue}>
+            {formatXp(visibleXp)} / {formatXp(state.nextRequiredXp)} XP
+          </div>
+        </div>
+        <div className={styles.nextMilestoneIdentity}>
+          <span>
+            {t("MilestoneLabel", "Milestone")} {state.nextMilestoneIndex}
+          </span>
           <strong>{milestoneName}</strong>
         </div>
-        <div className={styles.nextMilestoneValue}>
-          <strong>{formatXp(state.nextProgressXp)}</strong>
-          <span> / {formatXp(state.nextProgressRequiredXp)} XP</span>
-        </div>
-      </div>
-      <div
-        className={styles.progressTrack}
-        role="progressbar"
-        aria-label={t(
-          "XpProgress",
-          "XP progress to the next milestone",
-        )}
-        aria-valuemin={0}
-        aria-valuemax={state.nextProgressRequiredXp}
-        aria-valuenow={Math.min(
-          state.nextProgressXp,
-          state.nextProgressRequiredXp,
-        )}
-      >
-        <div
-          className={styles.progressFill}
-          style={{ width: progress + "%" }}
-        />
       </div>
     </PanelSection>
   );

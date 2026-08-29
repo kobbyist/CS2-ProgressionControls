@@ -104,8 +104,7 @@
   margin: 0 7rem 0 3rem;
 }
 
-.milestoneIcon,
-.milestoneIconCompact {
+.milestoneIcon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -114,23 +113,10 @@
   flex: 0 0 32rem;
 }
 
-.milestoneIconCompact {
-  width: 30rem;
-  height: 30rem;
-  flex-basis: 30rem;
-}
-
 .milestoneIcon img,
 .milestoneIcon > div {
   width: 30rem;
   height: 30rem;
-  object-fit: contain;
-}
-
-.milestoneIconCompact img,
-.milestoneIconCompact > div {
-  width: 28rem;
-  height: 28rem;
   object-fit: contain;
 }
 
@@ -198,62 +184,94 @@
   text-align: center;
 }
 
-.nextMilestoneBody {
+.nextMilestoneBanner {
+  position: relative;
+  min-height: 102rem;
+  overflow: hidden;
+  padding: 9rem 10rem 10rem;
+  box-sizing: border-box;
+}
+
+.milestoneArtwork,
+.milestoneArtworkFallback {
+  position: absolute;
+  right: -8rem;
+  bottom: -3rem;
+  width: 218rem;
+  height: 78rem;
+  object-fit: contain;
+  object-position: right bottom;
+  pointer-events: none;
+}
+
+.milestoneArtworkFallback {
+  right: 10rem;
+  bottom: 8rem;
+  width: 58rem;
+  height: 58rem;
+  opacity: 0.45;
+}
+
+.milestoneRangeTrack {
+  position: relative;
+  z-index: 2;
+  height: 21rem;
+  overflow: hidden;
+  border: 2rem solid rgba(7, 17, 25, 0.9);
+  border-radius: 12rem;
+  background-color: rgba(12, 28, 40, 0.94);
+  box-sizing: border-box;
+}
+
+.milestoneRangeFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  transition: width 180ms ease-out;
+}
+
+.milestoneRangeValue {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
-  min-height: 48rem;
-  padding: 5rem 9rem;
+  justify-content: center;
+  color: inherit;
+  font-size: var(--fontSizeXS);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
 }
 
-.nextMilestoneCopy {
+.nextMilestoneIdentity {
+  position: relative;
+  z-index: 2;
   display: flex;
-  flex: 1;
-  min-width: 0;
-  margin-left: 8rem;
+  width: 58%;
+  flex-direction: column;
+  margin-top: 10rem;
+  text-transform: uppercase;
 }
 
-.nextMilestoneCopy strong {
+.nextMilestoneIdentity span {
+  font-size: 9rem;
+  letter-spacing: 0.45rem;
+  line-height: 1;
+}
+
+.nextMilestoneIdentity strong {
+  margin-top: 5rem;
   overflow: hidden;
-  color: rgba(254, 254, 254, 0.92);
-  font-size: var(--fontSizeS);
-  font-weight: 500;
-  line-height: 1.1;
+  font-size: var(--fontSizeM);
+  font-weight: 600;
+  letter-spacing: 0.2rem;
+  line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.nextMilestoneValue {
-  margin-left: 10rem;
-  flex: 0 0 auto;
-  color: rgba(254, 254, 254, 0.52);
-  font-size: var(--fontSizeXS);
-  line-height: 1;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.nextMilestoneValue strong {
-  color: rgba(254, 254, 254, 0.9);
-  font-weight: 700;
-}
-
-.progressTrack {
-  height: 5rem;
-  margin: 1rem 9rem 8rem;
-  overflow: hidden;
-  border-radius: 3rem;
-  background-color: rgba(7, 15, 20, 0.68);
-}
-
-.progressFill {
-  height: 100%;
-  border-radius: inherit;
-  background-color: #54d7ff;
-  transition: width 180ms ease-out;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .progressFill {
+  .milestoneRangeFill {
     transition: none;
   }
 }

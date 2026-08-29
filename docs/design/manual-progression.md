@@ -72,11 +72,17 @@ The in-game screenshots supplied during the August 2026 UI review are the active
 visual reference. The panel follows the compact CS2 utility-mod convention:
 
 - a cyan rounded-square toolbar tile with a white native trophy glyph;
-- a 360 rem translucent panel with a 34 rem header;
+- a 320 rem translucent panel with a 36 rem header;
 - game typography variables instead of custom display type;
+- a compact next-target banner using the milestone's native illustration,
+  palette, and cumulative XP range;
 - 46 rem milestone rows with native milestone images;
-- one cyan Claim action on the first claimable row; and
-- a compact next-milestone row with an unbroken XP ratio.
+- one cyan Claim action on the first claimable row.
+
+The next-target banner stays visible when its milestone is already claimable,
+so it can show a full range above the ordered claim queue. Reward capsules and
+unlock lists remain in the vanilla progression screen rather than being
+duplicated in this compact panel.
 
 Large status eyebrows, metric cards, decorative gradients, oversized empty states,
 and the earlier blue-gold concept artwork are intentionally excluded.

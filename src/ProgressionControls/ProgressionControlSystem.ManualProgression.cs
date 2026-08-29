@@ -6,6 +6,7 @@ using Game.Prefabs;
 using Kobbyist.ProgressionControls.Core;
 using Unity.Collections;
 using Unity.Entities;
+using UnityEngine;
 
 namespace Kobbyist.ProgressionControls
 {
@@ -469,18 +470,9 @@ namespace Kobbyist.ProgressionControls
                 .OrderBy(definition => definition.Index)
                 .ThenBy(definition => definition.RequiredXp)
                 .FirstOrDefault();
-            var achievedMilestoneThreshold = definitions
-                .Where(definition =>
-                    definition.Index <= achievedMilestone)
-                .OrderByDescending(definition => definition.Index)
-                .ThenByDescending(definition => definition.RequiredXp)
-                .Select(definition => definition.RequiredXp)
-                .FirstOrDefault();
-            var nextProgress = MilestoneTierProgress.Calculate(
+            var nextRange = MilestoneRangeProgress.Calculate(
                 effectiveXp,
-                achievedMilestoneThreshold,
                 nextMilestone?.RequiredXp ?? 0);
-
             return new ManualProgressionViewState
             {
                 Available = true,
@@ -497,11 +489,16 @@ namespace Kobbyist.ProgressionControls
                 NextMilestoneIndex =
                     nextMilestone?.Index ?? 0,
                 NextRequiredXp =
-                    nextMilestone?.RequiredXp ?? 0,
+                    nextRange.RequiredXp,
                 NextImage =
                     nextMilestone?.Image ?? string.Empty,
-                NextProgressXp = nextProgress.CurrentXp,
-                NextProgressRequiredXp = nextProgress.RequiredXp,
+                NextRangeXp = nextRange.CurrentXp,
+                NextBackgroundColor =
+                    nextMilestone?.BackgroundColor ?? default,
+                NextAccentColor =
+                    nextMilestone?.AccentColor ?? default,
+                NextTextColor =
+                    nextMilestone?.TextColor ?? default,
             };
         }
 
@@ -571,6 +568,12 @@ namespace Kobbyist.ProgressionControls
                     }
 
                     var image = string.Empty;
+                    var backgroundColor = default(
+                        ManualProgressionColorView);
+                    var accentColor = default(
+                        ManualProgressionColorView);
+                    var textColor = default(
+                        ManualProgressionColorView);
                     try
                     {
                         var prefab =
@@ -579,6 +582,12 @@ namespace Kobbyist.ProgressionControls
                         if (prefab != null)
                         {
                             image = prefab.m_Image ?? string.Empty;
+                            backgroundColor = ToColorView(
+                                prefab.m_BackgroundColor);
+                            accentColor = ToColorView(
+                                prefab.m_AccentColor);
+                            textColor = ToColorView(
+                                prefab.m_TextColor);
                         }
                     }
                     catch (Exception)
@@ -589,7 +598,10 @@ namespace Kobbyist.ProgressionControls
                         new ManualMilestoneRuntimeDefinition(
                             milestoneData.m_Index,
                             milestoneData.m_XpRequried,
-                            image));
+                            image,
+                            backgroundColor,
+                            accentColor,
+                            textColor));
                 }
 
                 return result
@@ -599,16 +611,32 @@ namespace Kobbyist.ProgressionControls
             }
         }
 
+        private static ManualProgressionColorView ToColorView(
+            Color color)
+        {
+            return new ManualProgressionColorView(
+                color.r,
+                color.g,
+                color.b,
+                color.a);
+        }
+
         private sealed class ManualMilestoneRuntimeDefinition
         {
             public ManualMilestoneRuntimeDefinition(
                 int index,
                 int requiredXp,
-                string image)
+                string image,
+                ManualProgressionColorView backgroundColor,
+                ManualProgressionColorView accentColor,
+                ManualProgressionColorView textColor)
             {
                 Index = index;
                 RequiredXp = requiredXp;
                 Image = image;
+                BackgroundColor = backgroundColor;
+                AccentColor = accentColor;
+                TextColor = textColor;
             }
 
             public int Index { get; }
@@ -616,6 +644,12 @@ namespace Kobbyist.ProgressionControls
             public int RequiredXp { get; }
 
             public string Image { get; }
+
+            public ManualProgressionColorView BackgroundColor { get; }
+
+            public ManualProgressionColorView AccentColor { get; }
+
+            public ManualProgressionColorView TextColor { get; }
         }
     }
 }
