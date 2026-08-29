@@ -6,6 +6,11 @@ scope are not yet an implementation commitment.
 
 ## Selected direction
 
+### Implementation order
+
+Manual progression is implemented. Visibility and feedback is the next feature
+area. XP source mix remains selected, but follows visibility and feedback.
+
 ### XP source mix
 
 Replace the single vanilla-XP multiplier with controls for meaningful source
