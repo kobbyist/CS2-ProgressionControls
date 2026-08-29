@@ -55,6 +55,7 @@ namespace Kobbyist.ProgressionControls
         private uint m_InitializationStartedFrame;
         private uint m_NextPopulationEvaluationFrame;
         private uint m_NextPopulationXpAwardFrame;
+        private string m_InitializationDelayReason;
         private bool m_HasActiveCity;
         private bool m_InitializationDelayLogged;
         private bool m_HasPopulationEvaluationCadence;
@@ -264,12 +265,22 @@ namespace Kobbyist.ProgressionControls
 
             var hasLoadedSaveName = TryResolveLoadedSaveName(
                 out var loadedSaveName,
+                out var loadedSaveDescriptorAvailable,
                 out var loadedSaveNameError);
-            if (loadedSaveNameError != null)
+            // A valid load descriptor belongs to one exact save checkpoint.
+            // Wait for its metadata instead of establishing a fresh baseline
+            // that could discard mod-owned state from that checkpoint.
+            if (loadedSaveNameError != null ||
+                !ProgressionInitializationPolicy.IsSaveIdentityReady(
+                    loadedSaveDescriptorAvailable,
+                    hasLoadedSaveName))
             {
-                Mod.Log.Warn(
-                    $"Could not resolve the loaded save identity: {loadedSaveNameError}");
+                m_InitializationDelayReason =
+                    loadedSaveNameError ??
+                    "The loaded save identity is not ready";
+                return false;
             }
+            m_InitializationDelayReason = null;
 
             ProgressionStateSnapshot persisted = null;
             if (hasLoadedSaveName)
@@ -397,6 +408,7 @@ namespace Kobbyist.ProgressionControls
             m_HasPopulationXpAwardCadence = false;
             m_InitializationStartedFrame = 0;
             m_InitializationDelayLogged = false;
+            m_InitializationDelayReason = null;
             m_InitializationPending = false;
             m_VanillaXpScaler.Configure(
                 enabled: false,
@@ -862,8 +874,12 @@ namespace Kobbyist.ProgressionControls
             }
 
             m_InitializationDelayLogged = true;
+            var reason = string.IsNullOrWhiteSpace(
+                m_InitializationDelayReason)
+                ? "The active city session is not ready"
+                : m_InitializationDelayReason;
             Mod.Log.Warn(
-                "Progression integration is waiting for the active city session and will remain fail-open until it becomes available");
+                $"Progression integration is waiting and will remain fail-open: {reason}");
         }
 
         private void HandleGameSaveLoad(
@@ -996,9 +1012,11 @@ namespace Kobbyist.ProgressionControls
 
         private bool TryResolveLoadedSaveName(
             out string saveName,
+            out bool loadedSaveDescriptorAvailable,
             out string error)
         {
             saveName = null;
+            loadedSaveDescriptorAvailable = false;
             error = null;
             try
             {
@@ -1013,6 +1031,7 @@ namespace Kobbyist.ProgressionControls
                 {
                     return false;
                 }
+                loadedSaveDescriptorAvailable = true;
 
                 var database = AssetDatabase.global;
                 if (database == null)

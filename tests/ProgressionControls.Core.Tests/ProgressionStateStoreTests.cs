@@ -69,6 +69,36 @@ public sealed class ProgressionStateStoreTests
     }
 
     [TestMethod]
+    public void AtomicWriteTemporaryPathDoesNotRepeatLongCheckpointName()
+    {
+        var directory = Path.Combine(
+            "C:\\",
+            new string('d', 132));
+        var checkpointName =
+            "7959976." +
+            new string('a', 64) + "." +
+            new string('b', 32) +
+            ".pending";
+        var checkpointPath = Path.Combine(directory, checkpointName);
+
+        var temporaryPath =
+            ProgressionStateStore.CreateAtomicWriteTemporaryPath(
+                checkpointPath,
+                new string('c', 32));
+
+        Assert.AreEqual(
+            Path.GetDirectoryName(checkpointPath),
+            Path.GetDirectoryName(temporaryPath));
+        Assert.IsTrue(
+            temporaryPath.Length < 260,
+            $"Atomic write path was {temporaryPath.Length} characters");
+        Assert.IsFalse(
+            Path.GetFileName(temporaryPath).Contains(
+                Path.GetFileName(checkpointPath),
+                StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public void FailedSaveDiscardRemovesPreparedCheckpoint()
     {
         var store = CreateStore();

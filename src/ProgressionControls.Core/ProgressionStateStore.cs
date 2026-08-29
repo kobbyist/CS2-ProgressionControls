@@ -928,8 +928,9 @@ namespace Kobbyist.ProgressionControls.Core
         {
             error = null;
             var directory = Path.GetDirectoryName(path);
-            var temporaryPath =
-                path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            var temporaryPath = CreateAtomicWriteTemporaryPath(
+                path,
+                Guid.NewGuid().ToString("N"));
 
             try
             {
@@ -980,6 +981,18 @@ namespace Kobbyist.ProgressionControls.Core
                     }
                 }
             }
+        }
+
+        internal static string CreateAtomicWriteTemporaryPath(
+            string path,
+            string operationId)
+        {
+            var directory = Path.GetDirectoryName(path);
+            var temporaryName =
+                "." + operationId + ".tmp";
+            return string.IsNullOrEmpty(directory)
+                ? temporaryName
+                : Path.Combine(directory, temporaryName);
         }
 
         private static bool TryPromote(
