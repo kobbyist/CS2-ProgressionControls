@@ -367,6 +367,10 @@ const NextMilestoneBanner = ({
             className={styles.milestoneArtworkFallback}
           />
         )}
+        <div className={styles.milestoneRangeReadout}>
+          <strong>{formatXp(visibleXp)}</strong>
+          <span>/ {formatXp(state.nextRequiredXp)} XP</span>
+        </div>
         <div
           className={styles.milestoneRangeTrack}
           role="progressbar"
@@ -378,24 +382,10 @@ const NextMilestoneBanner = ({
           aria-valuemax={state.nextRequiredXp}
           aria-valuenow={visibleXp}
         >
-          <div className={styles.milestoneRangeValue}>
-            {formatXp(visibleXp)} / {formatXp(state.nextRequiredXp)} XP
-          </div>
           <div
-            className={styles.milestoneRangeBounds}
+            className={styles.milestoneRangeFill}
             style={{ width: progress + "%" }}
-          >
-            <div
-              className={styles.milestoneRangeFill}
-              style={{
-                width: progress > 0 ? 10000 / progress + "%" : "0%",
-              }}
-            >
-              <div className={styles.milestoneRangeProgressValue}>
-                {formatXp(visibleXp)} / {formatXp(state.nextRequiredXp)} XP
-              </div>
-            </div>
-          </div>
+          />
         </div>
         <div className={styles.nextMilestoneIdentity}>
           <span>

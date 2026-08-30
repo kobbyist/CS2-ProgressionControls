@@ -78,7 +78,7 @@ visual reference. The panel follows the compact CS2 utility-mod convention:
 - a 320 rem translucent panel with a 36 rem header;
 - game typography variables instead of custom display type;
 - a compact next-target banner using the milestone's native illustration,
-  palette, and cumulative XP range;
+  palette, a solid cumulative XP readout, and a slim green progress rail;
 - 46 rem milestone rows with native milestone images;
 - one cyan Claim action on the first claimable row.
 

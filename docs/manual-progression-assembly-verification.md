@@ -227,8 +227,9 @@ needed by the adapter:
   same read-only MilestoneData query shape instead of reflection.
 - PrefabSystem.GetPrefab<T>(Entity) is public. MilestonePrefab.m_Image plus its
   background and text colors allow the standalone panel to reuse the native
-  milestone artwork and card palette. The XP range instead follows the native
-  progression-bar theme: green fill, dark track, and clipped light/dark labels.
+  milestone artwork and card palette. The XP range uses the native green fill
+  on a dark track. Its solid readout sits on the card background because
+  Gameface renders overlapping clipped labels poorly at this compact size.
 - SystemUpdatePhase.UIUpdate and UpdateSystem.UpdateAt<T> are present for
   supported UISystemBase registration.
 - ValueBinding<string> and TriggerBinding<T> constructors accept their
