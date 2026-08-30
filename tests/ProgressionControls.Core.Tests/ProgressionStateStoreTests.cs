@@ -332,7 +332,7 @@ public sealed class ProgressionStateStoreTests
     }
 
     [TestMethod]
-    public void SavedClaimIsAvailableAfterOneFrameLoadDrift()
+    public void HeldXpMakesMilestoneClaimableAfterOneFrameLoadDrift()
     {
         var store = CreateStore();
         var snapshot = new ProgressionStateSnapshot(
@@ -468,6 +468,30 @@ public sealed class ProgressionStateStoreTests
         Assert.IsFalse(store.TryLoad(
             CityId,
             simulationFrame: 421,
+            "Save/A",
+            out _,
+            out var loadError));
+        StringAssert.Contains(loadError, "not durably marked");
+    }
+
+    [TestMethod]
+    public void UnconfirmedNearbyCheckpointBlocksOlderFallback()
+    {
+        var store = CreateStore();
+        PrepareAndCommit(
+            store,
+            Snapshot(frame: 420, pendingPopulationXp: 10),
+            "Save/A");
+        Assert.IsTrue(store.TryPrepare(
+            Snapshot(frame: 421, pendingPopulationXp: 20),
+            "Save/A",
+            out _,
+            out var prepareError),
+            prepareError);
+
+        Assert.IsFalse(store.TryLoad(
+            CityId,
+            simulationFrame: 422,
             "Save/A",
             out _,
             out var loadError));

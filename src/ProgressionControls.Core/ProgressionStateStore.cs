@@ -147,6 +147,8 @@ namespace Kobbyist.ProgressionControls.Core
         private const uint MaximumLoadFrameDrift = 4096;
         private const string PendingExtension = ".pending";
         private const string StateExtension = ".json";
+        private const string UnconfirmedCheckpointError =
+            "Ignored a prepared progression checkpoint because it was not durably marked as completed";
         private static readonly TimeSpan UnconfirmedPendingRetention =
             TimeSpan.FromDays(7);
 
@@ -242,7 +244,7 @@ namespace Kobbyist.ProgressionControls.Core
                 cityId,
                 simulationFrame,
                 out var pendingEnumerationError);
-            PendingCheckpointCandidate recoverable = null;
+            CheckpointCandidate recoverable = null;
             string pendingError = pendingEnumerationError;
             var unconfirmedPendingFound = false;
             foreach (var pendingPath in pendingPaths)
@@ -280,10 +282,11 @@ namespace Kobbyist.ProgressionControls.Core
                 if (recoverable == null ||
                     pendingWriteTimeUtc > recoverable.LastWriteTimeUtc)
                 {
-                    recoverable = new PendingCheckpointCandidate(
+                    recoverable = new CheckpointCandidate(
                         pendingPath,
                         pendingSnapshot,
-                        pendingWriteTimeUtc);
+                        pendingWriteTimeUtc,
+                        isPending: true);
                 }
             }
 
@@ -337,7 +340,7 @@ namespace Kobbyist.ProgressionControls.Core
             error = committedError ?? pendingError ?? nearbyError;
             if (error == null && unconfirmedPendingFound)
             {
-                error = "Ignored a prepared progression checkpoint because it was not durably marked as completed";
+                error = UnconfirmedCheckpointError;
             }
 
             return false;
@@ -373,7 +376,8 @@ namespace Kobbyist.ProgressionControls.Core
                 return false;
             }
 
-            CheckpointLoadCandidate best = null;
+            CheckpointCandidate best = null;
+            uint? newestUnconfirmedFrame = null;
             var saveKey = GetSaveKey(saveName);
             var committedSuffix =
                 "." + saveKey + StateExtension;
@@ -419,9 +423,19 @@ namespace Kobbyist.ProgressionControls.Core
                         MaximumLoadFrameDrift ||
                     !GetSaveNames(model).Contains(
                         saveName,
-                        StringComparer.Ordinal) ||
-                    (isPending && !IsCompletionConfirmed(model)))
+                        StringComparer.Ordinal))
                 {
+                    continue;
+                }
+
+                if (isPending && !IsCompletionConfirmed(model))
+                {
+                    if (!newestUnconfirmedFrame.HasValue ||
+                        candidateFrame > newestUnconfirmedFrame.Value)
+                    {
+                        newestUnconfirmedFrame = candidateFrame;
+                    }
+
                     continue;
                 }
 
@@ -439,12 +453,21 @@ namespace Kobbyist.ProgressionControls.Core
                     (candidateFrame == best.Snapshot.SimulationFrame &&
                         lastWriteTimeUtc > best.LastWriteTimeUtc))
                 {
-                    best = new CheckpointLoadCandidate(
+                    best = new CheckpointCandidate(
                         path,
                         candidateSnapshot,
                         lastWriteTimeUtc,
                         isPending);
                 }
+            }
+
+            if (newestUnconfirmedFrame.HasValue &&
+                (best == null ||
+                    newestUnconfirmedFrame.Value >=
+                        best.Snapshot.SimulationFrame))
+            {
+                error = UnconfirmedCheckpointError;
+                return false;
             }
 
             if (best == null)
@@ -1495,28 +1518,9 @@ namespace Kobbyist.ProgressionControls.Core
             }
         }
 
-        private sealed class PendingCheckpointCandidate
+        private sealed class CheckpointCandidate
         {
-            public PendingCheckpointCandidate(
-                string path,
-                ProgressionStateSnapshot snapshot,
-                DateTime lastWriteTimeUtc)
-            {
-                Path = path;
-                Snapshot = snapshot;
-                LastWriteTimeUtc = lastWriteTimeUtc;
-            }
-
-            public string Path { get; }
-
-            public ProgressionStateSnapshot Snapshot { get; }
-
-            public DateTime LastWriteTimeUtc { get; }
-        }
-
-        private sealed class CheckpointLoadCandidate
-        {
-            public CheckpointLoadCandidate(
+            public CheckpointCandidate(
                 string path,
                 ProgressionStateSnapshot snapshot,
                 DateTime lastWriteTimeUtc,
