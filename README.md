@@ -79,6 +79,9 @@ Turning manual claims off with held XP asks whether to release it to vanilla
 progression, discard it permanently, or cancel. Turn manual claims off and make
 that choice before disabling or removing the mod.
 
+The [manual milestone claims design](docs/design/manual-milestone-claims.md)
+records the transaction, recovery, and game-integration rules.
+
 ## Save safety
 
 Progression Controls does not add required components to the city save. XP and
@@ -86,9 +89,9 @@ milestones already written to the city remain normal game state. A city remains
 loadable after disabling or removing the mod, and future progression returns to
 vanilla behavior.
 
-Unclaimed manual-milestone XP is external. Before removing the mod, use the
-manual-claims disable prompt to release or discard it. Reinstalling the mod can
-offer recovery only while the matching checkpoint still exists.
+Held XP from manual milestone claims is external. Before removing the mod, use
+the manual-claims disable prompt to release or discard it. Reinstalling the mod
+can offer recovery only while the matching checkpoint still exists.
 
 Minimal population-record, fractional-XP, and pending population-XP batch state
 is stored outside the city save and keyed to the exact save checkpoint.
@@ -99,9 +102,9 @@ for deleted saves are retired as well.
 
 Existing checkpoints from earlier mod versions do not contain a save name. The
 new retention policy keeps the newest 16 of these legacy checkpoints per city
-and removes older ones after a successful save. Loading a checkpoint that is no
-longer available establishes a safe population baseline and does not grant
-retroactive XP.
+and removes older ones after a successful save. Loading a save whose progression
+checkpoint is no longer available establishes a safe population baseline and
+does not grant retroactive XP.
 
 ## License
 

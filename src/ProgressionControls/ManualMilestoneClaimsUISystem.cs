@@ -3,7 +3,7 @@ using Game.UI;
 
 namespace Kobbyist.ProgressionControls
 {
-    internal partial class ManualProgressionUISystem : UISystemBase
+    internal partial class ManualMilestoneClaimsUISystem : UISystemBase
     {
         internal const string BindingGroup =
             "Kobbyist.ProgressionControls";
@@ -19,9 +19,9 @@ namespace Kobbyist.ProgressionControls
                 World.GetOrCreateSystemManaged<ProgressionControlSystem>();
             m_StateBinding = new ValueBinding<string>(
                 BindingGroup,
-                "manualProgressionState",
-                ManualProgressionViewStateJson.Serialize(
-                    ManualProgressionViewState.Empty));
+                "manualMilestoneClaimsState",
+                ManualMilestoneClaimsViewStateJson.Serialize(
+                    ManualMilestoneClaimsViewState.Empty));
 
             AddBinding(m_StateBinding);
             AddBinding(new TriggerBinding<int>(
@@ -31,9 +31,9 @@ namespace Kobbyist.ProgressionControls
                     .RequestManualMilestoneClaim(index)));
             AddBinding(new TriggerBinding<string>(
                 BindingGroup,
-                "resolveManualProgression",
+                "resolveManualMilestoneClaims",
                 decision => m_ProgressionControlSystem
-                    .RequestManualProgressionDecision(decision)));
+                    .RequestManualMilestoneClaimsDecision(decision)));
         }
 
         protected override void OnUpdate()
@@ -41,11 +41,11 @@ namespace Kobbyist.ProgressionControls
             base.OnUpdate();
 
             var state = m_ProgressionControlSystem == null
-                ? ManualProgressionViewState.Empty
+                ? ManualMilestoneClaimsViewState.Empty
                 : m_ProgressionControlSystem
-                    .GetManualProgressionViewState();
+                    .GetManualMilestoneClaimsViewState();
             m_StateBinding.Update(
-                ManualProgressionViewStateJson.Serialize(state));
+                ManualMilestoneClaimsViewStateJson.Serialize(state));
         }
     }
 }

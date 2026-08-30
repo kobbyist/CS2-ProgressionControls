@@ -20,7 +20,7 @@ namespace Kobbyist.ProgressionControls
             return new Dictionary<string, string>
             {
                 { m_Setting.GetSettingsLocaleID(), "Progression Controls" },
-                { "Kobbyist.ProgressionControls.UI.Open", "Open Progression Controls" },
+                { "Kobbyist.ProgressionControls.UI.Toggle", "Progression Controls" },
                 { "Kobbyist.ProgressionControls.UI.Title", "Progression Controls" },
                 { "Kobbyist.ProgressionControls.UI.HeldXp", "Held XP" },
                 { "Kobbyist.ProgressionControls.UI.MilestoneQueue", "Earned milestones" },
@@ -49,7 +49,7 @@ namespace Kobbyist.ProgressionControls
                 { m_Setting.GetOptionLabelLocaleID(nameof(KobbyistProgressionControlsSettings.EnableCustomProgression)), "Enable custom progression" },
                 { m_Setting.GetOptionDescLocaleID(nameof(KobbyistProgressionControlsSettings.EnableCustomProgression)), "Enables population-based progression for future milestone XP. Turn this off to restore vanilla progression and make the mod fully dormant. Existing city XP is never recalculated." },
                 { m_Setting.GetOptionLabelLocaleID(nameof(KobbyistProgressionControlsSettings.ManualMilestoneClaims)), "Manual milestone claims" },
-                { m_Setting.GetOptionDescLocaleID(nameof(KobbyistProgressionControlsSettings.ManualMilestoneClaims)), "Hold XP that would unlock future milestones until you claim them. Unclaimed XP is stored by Progression Controls outside the city save. Turn this option off before disabling or removing the mod, then choose whether to release or discard the held XP. Off by default." },
+                { m_Setting.GetOptionDescLocaleID(nameof(KobbyistProgressionControlsSettings.ManualMilestoneClaims)), "Hold XP that would unlock future milestones until you claim them. Unclaimed XP is stored outside the city save and depends on the matching Progression Controls checkpoint. Reinstalling can recover it only while that checkpoint remains available. Turn this option off before disabling or removing the mod, then choose whether to release or discard the held XP. Off by default." },
                 { m_Setting.GetOptionLabelLocaleID(nameof(KobbyistProgressionControlsSettings.Preset)), "Preset" },
                 { m_Setting.GetOptionDescLocaleID(nameof(KobbyistProgressionControlsSettings.Preset)), "Population Balanced\nAwards 1.5 XP per resident above the population record and retains 50% of vanilla XP. This keeps more of the original progression mix.\n\nPopulation Heavy\nAwards 1.5 XP per resident above the population record and retains 25% of vanilla XP. Population growth becomes the main progression source.\n\nPopulation Only\nAwards 1.5 XP per resident above the population record and ignores vanilla XP.\n\nCustom\nAppears automatically after you edit an XP rule.\n\nTurn off Enable custom progression to restore vanilla progression. Turn on Show Advanced to customize XP rules, record-detection responsiveness, and population XP notification frequency." },
                 { m_Setting.GetEnumValueLocaleID(ProgressionPreset.PopulationBalanced), "Population Balanced" },

@@ -78,7 +78,7 @@ namespace Kobbyist.ProgressionControls
                     ProgressionControlSystem,
                     XPSystem>(
                     SystemUpdatePhase.ModificationEnd);
-                updateSystem.UpdateAt<ManualProgressionUISystem>(
+                updateSystem.UpdateAt<ManualMilestoneClaimsUISystem>(
                     SystemUpdatePhase.UIUpdate);
             }
             catch (Exception exception)

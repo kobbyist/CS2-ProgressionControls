@@ -24,7 +24,7 @@ Changes only affect XP earned from that point onward, so the mod never rewrites 
 
 ## Manual milestone claims
 
-Manual milestone claims are a separate option and are off by default. When enabled, Progression Controls stops city XP one point below the next milestone and stores the remainder in a save-specific external checkpoint. The in-game panel lists every milestone supported by your total earned XP, with only the next milestone enabled.
+Manual milestone claims are a separate option and are off by default. When enabled, Progression Controls stops city XP one point below the next milestone and stores the remainder in a save-specific external checkpoint. The in-game panel lists every milestone supported by city XP plus held XP, with only the next milestone enabled.
 
 Claiming releases exactly enough XP for the next threshold. The game still grants its normal money, development points, unlocks, and milestone event.
 

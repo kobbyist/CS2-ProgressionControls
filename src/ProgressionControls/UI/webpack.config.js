@@ -1,7 +1,6 @@
 const path = require("path");
 const MOD = require("./mod.json");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const { CSSPresencePlugin } = require("./tools/css-presence");
 const TerserPlugin = require("terser-webpack-plugin");
 
 const banner = [
@@ -23,12 +22,8 @@ module.exports = {
     "react-dom": "ReactDOM",
     "cs2/modding": "cs2/modding",
     "cs2/api": "cs2/api",
-    "cs2/bindings": "cs2/bindings",
     "cs2/l10n": "cs2/l10n",
     "cs2/ui": "cs2/ui",
-    "cs2/input": "cs2/input",
-    "cs2/utils": "cs2/utils",
-    "cohtml/cohtml": "cohtml/cohtml",
   },
   module: {
     rules: [
@@ -90,8 +85,5 @@ module.exports = {
   experiments: {
     outputModule: true,
   },
-  plugins: [
-    new MiniCssExtractPlugin(),
-    new CSSPresencePlugin(),
-  ],
+  plugins: [new MiniCssExtractPlugin()],
 };

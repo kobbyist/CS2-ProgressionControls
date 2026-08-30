@@ -9,9 +9,7 @@ no official offline/package-only command.
 With CS2 closed, build the production project first:
 
 ```powershell
-$unityEditorPath = '<matching Unity Editor directory>'
-$env:DOTNET_ROOT = Join-Path $unityEditorPath 'Data\NetCoreRuntime'
-$env:DOTNET_MULTILEVEL_LOOKUP = '0'
+$env:DOTNET_ROLL_FORWARD = 'Major'
 dotnet build .\src\ProgressionControls\ProgressionControls.csproj `
   --configuration Release
 ```
@@ -56,6 +54,7 @@ Do not invoke these profiles as part of routine builds. Publishing requires
 explicit approval because it authenticates with the configured Paradox account
 and changes external state.
 
-The listing is **Public** as Paradox Mods mod `154015`. Before publishing each
-new version, verify that the Paradox-installed package passes the same startup,
-settings, save, and removal smoke checks as the local package.
+`PublishConfiguration.xml` targets the Public listing for Paradox Mods mod
+`154015`. Before publishing each new version, confirm that the live listing
+still matches the configuration and that the Paradox-installed package passes
+the same startup, settings, save, and removal smoke checks as the local package.

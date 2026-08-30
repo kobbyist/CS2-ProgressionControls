@@ -7,7 +7,8 @@ This versioned report records evidence for a specific game build, not a
 workstation configuration. Installation paths are redacted. Regenerate and
 commit the report whenever the supported game build changes.
 
-- Generated at: `2026-07-23T14:21:32.9100802+00:00`
+- Metadata generated at: `2026-07-23T14:21:32.9100802+00:00`
+- Behavioral notes updated through: `2026-08-30`
 - Managed directory: `(redacted; pass -IncludeManagedPath to include it)`
 - Reported CS2 game version: `1.6.0f1`
 - Cities2.exe product version: `2022.3.71f1 (c9bf13b0b844)`
@@ -166,12 +167,13 @@ advance between those boundaries: its completed checkpoint records frame
 8,086,231, while its serialized `SaveGameData` contains frame 8,087,469. The
 loader therefore permits a bounded drift of at most 4,096 frames, but only for
 the same city session and exact logical save name. Exact matches remain
-preferred; future and older checkpoints are not eligible.
+preferred. Future checkpoints and checkpoints more than 4,096 frames older are
+not eligible.
 
-Schema 0, 2, and 3 checkpoints remain loadable. Because schema 0 predates save-name
-indexing, their cleanup uses a deterministic fallback: retain the newest 16 per
-city session by last-write time, then simulation frame, then path. Cleanup is
-best-effort and is isolated from the completed game-save result.
+Schema 0, 2, 3, and 4 checkpoints remain loadable. Because schema 0 predates
+save-name indexing, its cleanup uses a deterministic fallback: retain the newest
+16 per city session by last-write time, then simulation frame, then path.
+Cleanup is best-effort and is isolated from the completed game-save result.
 
 ### Data path and evaluation cadence
 
@@ -186,7 +188,7 @@ best-effort and is isolated from the completed game-save result.
   every 64 frames. The 16,384/day maximum runs every 16 frames and therefore
   never samples faster than the vanilla population aggregate can update.
 - Changing cadence affects only observation latency and batch size. It does not
-  reset the population record, fractional XP, or total earned XP.
+  reset the population record, fractional XP, or total population XP earned.
 
 ### Options UI slider metadata
 
@@ -341,3 +343,48 @@ Local 1.6.0f1 metadata and IL remain authoritative for the implementation:
 - Declared fields:
   - `System.Int32 m_Index`
   - `Unity.Entities.Entity m_Milestone`
+
+### Manual milestone claims boundaries
+
+Local metadata confirms the remaining game-facing types used by manual
+milestone claims:
+
+- `Game.Simulation.MilestoneSystem` is a `GameSystemBase`. It declares the
+  milestone-data, milestone-level, and city-XP queries plus the next-milestone,
+  next-threshold, reached-event, and unlock-event state used by vanilla
+  progression.
+- `Game.City.MilestoneLevel.m_AchievedMilestone` is the achieved milestone
+  index read by the adapter.
+- `Game.Prefabs.MilestoneData.m_IsVictory` marks the terminal milestone.
+  `MilestoneUISystem.GetVictoryMilestone` scans the milestone query for that
+  flag. Manual claims use it as positive evidence before releasing final
+  surplus XP.
+- `Game.Prefabs.MilestonePrefab` exposes the milestone index, cumulative XP
+  threshold, image, background color, accent color, and text color.
+- `Game.UI.InGame.MilestoneUISystem` is a `UISystemBase`. Its declared bindings
+  include achieved milestone, next-milestone XP, total XP, milestone details,
+  unlock details, and XP-message events.
+- `SystemUpdatePhase.UIUpdate` and `UpdateSystem.UpdateAt<T>` support the
+  standalone UI system registration used by the mod.
+- `ValueBinding<string>` and `TriggerBinding<T>` accept optional writer and
+  reader arguments, matching the implemented value and request bindings.
+
+Mono.Cecil inspection of this `Game.dll` established the behavior required by
+the adapter:
+
+- `MilestoneSystem.OnCreate` queries `MilestoneLevel`, `XP`, and
+  `MilestoneData`.
+- `MilestoneData.m_XpRequried` is the cumulative threshold for the achieved and
+  next milestone.
+- `MilestoneSystem.OnUpdate` compares city XP with the next threshold and
+  increments `MilestoneLevel.m_AchievedMilestone` by one.
+- The private `NextMilestone(int)` path creates the normal milestone-reached
+  event and unlock work. Progression Controls can therefore change XP while
+  leaving vanilla rewards and unlocks intact.
+- `MilestoneSystem.TryGetMilestone` is private. The adapter uses the same
+  read-only `MilestoneData` query shape instead of reflection.
+- `PrefabSystem.GetPrefab<T>(Entity)` is public. The panel can read the native
+  milestone image, background color, and text color without patching the
+  vanilla milestone screen.
+
+No installed game code was executed during this inspection.

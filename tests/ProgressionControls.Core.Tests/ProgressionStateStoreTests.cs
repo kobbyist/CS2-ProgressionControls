@@ -359,7 +359,14 @@ public sealed class ProgressionStateStoreTests
             cityXp: 99,
             restored.HeldMilestoneXp,
             claimPending: false,
-            new[] { new ManualMilestoneDefinition(4, 100) });
+            claimsActive: true,
+            new[]
+            {
+                new ManualMilestoneDefinition(1, 25),
+                new ManualMilestoneDefinition(2, 50),
+                new ManualMilestoneDefinition(3, 75),
+                new ManualMilestoneDefinition(4, 100, isFinal: true),
+            });
         Assert.AreEqual(1, queue.Count);
         Assert.IsTrue(queue[0].CanClaim);
     }

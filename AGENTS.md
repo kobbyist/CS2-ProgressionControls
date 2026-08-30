@@ -42,18 +42,3 @@ implementation.
   risk.
 - When public references and local assemblies disagree, local assemblies govern
   exact implementation details.
-
-## Agent skills
-
-### Issue tracker
-
-Issues are tracked in GitHub Issues. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Triage uses the canonical label vocabulary, with `wontfix` mapped to
-`not-planned`. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-This is a single-context repository. See `docs/agents/domain.md`.

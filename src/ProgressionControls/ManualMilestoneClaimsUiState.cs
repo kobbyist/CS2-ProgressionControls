@@ -7,14 +7,14 @@ using System.Text;
 
 namespace Kobbyist.ProgressionControls
 {
-    internal enum ManualProgressionDialogKind
+    internal enum ManualMilestoneClaimsDialogKind
     {
         None,
         Disable,
         Restore,
     }
 
-    internal enum ManualProgressionDecision
+    internal enum ManualMilestoneClaimsDecision
     {
         None,
         Release,
@@ -25,7 +25,7 @@ namespace Kobbyist.ProgressionControls
     }
 
     [DataContract]
-    internal sealed class ManualProgressionViewState
+    internal sealed class ManualMilestoneClaimsViewState
     {
         [DataMember(Name = "available", Order = 1)]
         public bool Available { get; set; }
@@ -49,7 +49,7 @@ namespace Kobbyist.ProgressionControls
         public string Dialog { get; set; }
 
         [DataMember(Name = "milestones", Order = 8)]
-        public ManualProgressionMilestoneView[] Milestones
+        public ManualMilestoneClaimView[] Milestones
         {
             get;
             set;
@@ -68,23 +68,23 @@ namespace Kobbyist.ProgressionControls
         public long NextRangeXp { get; set; }
 
         [DataMember(Name = "nextBackgroundColor", Order = 13)]
-        public ManualProgressionColorView NextBackgroundColor { get; set; }
+        public MilestoneCardColorView NextBackgroundColor { get; set; }
 
         [DataMember(Name = "nextTextColor", Order = 14)]
-        public ManualProgressionColorView NextTextColor { get; set; }
+        public MilestoneCardColorView NextTextColor { get; set; }
 
-        public static ManualProgressionViewState Empty =>
-            new ManualProgressionViewState
+        public static ManualMilestoneClaimsViewState Empty =>
+            new ManualMilestoneClaimsViewState
             {
                 Dialog = "none",
-                Milestones = Array.Empty<ManualProgressionMilestoneView>(),
+                Milestones = Array.Empty<ManualMilestoneClaimView>(),
             };
     }
 
     [DataContract]
-    internal struct ManualProgressionColorView
+    internal struct MilestoneCardColorView
     {
-        public ManualProgressionColorView(
+        public MilestoneCardColorView(
             float red,
             float green,
             float blue,
@@ -110,7 +110,7 @@ namespace Kobbyist.ProgressionControls
     }
 
     [DataContract]
-    internal sealed class ManualProgressionMilestoneView
+    internal sealed class ManualMilestoneClaimView
     {
         [DataMember(Name = "index", Order = 1)]
         public int Index { get; set; }
@@ -125,19 +125,19 @@ namespace Kobbyist.ProgressionControls
         public string Image { get; set; }
     }
 
-    internal static class ManualProgressionViewStateJson
+    internal static class ManualMilestoneClaimsViewStateJson
     {
         private static readonly DataContractJsonSerializer s_Serializer =
             new DataContractJsonSerializer(
-                typeof(ManualProgressionViewState));
+                typeof(ManualMilestoneClaimsViewState));
 
-        public static string Serialize(ManualProgressionViewState state)
+        public static string Serialize(ManualMilestoneClaimsViewState state)
         {
             using (var stream = new MemoryStream())
             {
                 s_Serializer.WriteObject(
                     stream,
-                    state ?? ManualProgressionViewState.Empty);
+                    state ?? ManualMilestoneClaimsViewState.Empty);
                 return Encoding.UTF8.GetString(stream.ToArray());
             }
         }

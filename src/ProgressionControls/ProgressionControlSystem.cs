@@ -79,7 +79,7 @@ namespace Kobbyist.ProgressionControls
                 World.GetOrCreateSystemManaged<SimulationSystem>();
             m_XPSystem =
                 World.GetOrCreateSystemManaged<XPSystem>();
-            CreateManualProgression();
+            CreateManualMilestoneClaims();
             m_StateStore = new ProgressionStateStore(
                 Path.Combine(
                     EnvPath.kUserDataPath,
@@ -148,7 +148,7 @@ namespace Kobbyist.ProgressionControls
 
             var settings = Mod.Settings;
             var manualProcessingRequired =
-                UpdateManualProgression(settings);
+                UpdateManualMilestoneClaims(settings);
             var customProgressionEnabled =
                 settings.EnableCustomProgression;
             var currentFrame =
@@ -355,7 +355,7 @@ namespace Kobbyist.ProgressionControls
                     $"Established progression baseline at population {baseline}");
             }
 
-            InitializeManualProgression(
+            InitializeManualMilestoneClaims(
                 persisted,
                 baseGameXp.m_XP,
                 settings);
@@ -415,7 +415,7 @@ namespace Kobbyist.ProgressionControls
                 percentage: 100);
             m_PopulationXpBatch.Clear();
             m_PendingVanillaXp.Clear();
-            ResetManualProgression();
+            ResetManualMilestoneClaims();
         }
 
         private ProgressionConfiguration ResolveInitialConfiguration(
@@ -627,7 +627,8 @@ namespace Kobbyist.ProgressionControls
                 (long)EntityManager.GetComponentData<XP>(city).m_XP;
             var nextRequiredXp = TryGetNextMilestone(
                 GetAchievedMilestone(),
-                out var nextMilestone)
+                out var nextMilestone,
+                out var finalMilestoneReached)
                 ? nextMilestone.RequiredXp
                 : 0;
             var queue =
@@ -644,7 +645,8 @@ namespace Kobbyist.ProgressionControls
                     gain.amount = RouteManualPositiveXp(
                         gain.amount,
                         projectedCityXp,
-                        nextRequiredXp);
+                        nextRequiredXp,
+                        finalMilestoneReached);
                 }
 
                 if (gain.amount == 0)
@@ -668,7 +670,8 @@ namespace Kobbyist.ProgressionControls
                     queue,
                     city,
                     ref projectedCityXp,
-                    nextRequiredXp);
+                    nextRequiredXp,
+                    finalMilestoneReached);
                 m_NextPopulationXpAwardFrame =
                     currentFrame +
                     (uint)m_PopulationXpAwardInterval;
@@ -698,7 +701,8 @@ namespace Kobbyist.ProgressionControls
                 (long)EntityManager.GetComponentData<XP>(city).m_XP;
             var nextRequiredXp = TryGetNextMilestone(
                 GetAchievedMilestone(),
-                out var nextMilestone)
+                out var nextMilestone,
+                out var finalMilestoneReached)
                 ? nextMilestone.RequiredXp
                 : 0;
             var queue =
@@ -710,7 +714,8 @@ namespace Kobbyist.ProgressionControls
                     queue,
                     city,
                     ref projectedCityXp,
-                    nextRequiredXp);
+                    nextRequiredXp,
+                    finalMilestoneReached);
             }
         }
 
@@ -718,7 +723,8 @@ namespace Kobbyist.ProgressionControls
             NativeQueue<XPGain> queue,
             Entity city,
             ref long projectedCityXp,
-            int nextRequiredXp)
+            int nextRequiredXp,
+            bool finalMilestoneReached)
         {
             // XPSystem emits one XPMessage per XPGain, so a scheduled
             // window submits at most one population gain.
@@ -732,7 +738,8 @@ namespace Kobbyist.ProgressionControls
             amount = RouteManualPositiveXp(
                 amount,
                 projectedCityXp,
-                nextRequiredXp);
+                nextRequiredXp,
+                finalMilestoneReached);
             if (amount <= 0)
             {
                 return;
@@ -1209,7 +1216,7 @@ namespace Kobbyist.ProgressionControls
                 m_PopulationXpBatch.Clear();
                 m_VanillaXpScaler.ClearRemainder();
                 m_PendingVanillaXp.Clear();
-                ResetManualProgression();
+                ResetManualMilestoneClaims();
                 return true;
             }
             catch (Exception exception)

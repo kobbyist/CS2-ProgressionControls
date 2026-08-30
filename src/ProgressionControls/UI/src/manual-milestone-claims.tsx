@@ -7,7 +7,7 @@ import {
   PanelSection,
   TopLeftEntryButton,
 } from "./compact-mod-ui";
-import styles from "./manual-progression.module.scss";
+import styles from "./manual-milestone-claims.module.scss";
 import progressionControlsIcon from "./progression-controls.svg";
 
 const bindingGroup = "Kobbyist.ProgressionControls";
@@ -18,11 +18,11 @@ const nativeWarningIcon = "Media/Misc/Warning.svg";
 
 const stateBinding = bindValue<string>(
   bindingGroup,
-  "manualProgressionState",
+  "manualMilestoneClaimsState",
   '{"available":false,"active":false,"heldXp":0,"cityXp":0,"effectiveXp":0,"claimPending":false,"dialog":"none","milestones":[],"nextMilestoneIndex":0,"nextRequiredXp":0,"nextImage":"","nextRangeXp":0,"nextBackgroundColor":{"r":0,"g":0,"b":0,"a":0},"nextTextColor":{"r":0,"g":0,"b":0,"a":0}}',
 );
 
-interface ManualProgressionColor {
+interface ManualMilestoneClaimsColor {
   r: number;
   g: number;
   b: number;
@@ -36,7 +36,7 @@ interface ManualMilestone {
   image: string;
 }
 
-interface ManualProgressionState {
+interface ManualMilestoneClaimsState {
   available: boolean;
   active: boolean;
   heldXp: number;
@@ -49,13 +49,13 @@ interface ManualProgressionState {
   nextRequiredXp: number;
   nextImage: string;
   nextRangeXp: number;
-  nextBackgroundColor: ManualProgressionColor;
-  nextTextColor: ManualProgressionColor;
+  nextBackgroundColor: ManualMilestoneClaimsColor;
+  nextTextColor: ManualMilestoneClaimsColor;
 }
 
 type Translate = (id: string, fallback: string) => string;
 
-const emptyState: ManualProgressionState = {
+const emptyState: ManualMilestoneClaimsState = {
   available: false,
   active: false,
   heldXp: 0,
@@ -72,15 +72,15 @@ const emptyState: ManualProgressionState = {
   nextTextColor: { r: 0, g: 0, b: 0, a: 0 },
 };
 
-const openListeners = new Set<() => void>();
+const toggleListeners = new Set<() => void>();
 
-function requestPanelOpen() {
-  openListeners.forEach((listener) => listener());
+function requestPanelToggle() {
+  toggleListeners.forEach((listener) => listener());
 }
 
-function parseState(value: string): ManualProgressionState {
+function parseState(value: string): ManualMilestoneClaimsState {
   try {
-    const parsed = JSON.parse(value) as Partial<ManualProgressionState>;
+    const parsed = JSON.parse(value) as Partial<ManualMilestoneClaimsState>;
     return {
       ...emptyState,
       ...parsed,
@@ -98,7 +98,7 @@ function formatXp(value: number) {
 }
 
 function colorToCss(
-  color: ManualProgressionColor | undefined,
+  color: ManualMilestoneClaimsColor | undefined,
   fallback: string,
 ) {
   if (!color || !Number.isFinite(color.a) || color.a <= 0) {
@@ -111,7 +111,7 @@ function colorToCss(
   return `rgba(${channel(color.r)}, ${channel(color.g)}, ${channel(color.b)}, ${alpha})`;
 }
 
-export const ManualProgressionToolbarButton = () => {
+export const ManualMilestoneClaimsToolbarButton = () => {
   const rawState = useValue(stateBinding);
   const state = useMemo(() => parseState(rawState), [rawState]);
   const { translate } = useLocalization();
@@ -122,30 +122,30 @@ export const ManualProgressionToolbarButton = () => {
 
   const title =
     translate(
-      "Kobbyist.ProgressionControls.UI.Open",
-      "Open Progression Controls",
-    ) ?? "Open Progression Controls";
+      "Kobbyist.ProgressionControls.UI.Toggle",
+      "Progression Controls",
+    ) ?? "Progression Controls";
 
   return (
     <TopLeftEntryButton
       icon={nativeToolbarIcon}
       title={title}
-      onSelect={requestPanelOpen}
+      onSelect={requestPanelToggle}
     />
   );
 };
 
-export const ManualProgressionOverlay = () => {
+export const ManualMilestoneClaimsOverlay = () => {
   const rawState = useValue(stateBinding);
   const state = useMemo(() => parseState(rawState), [rawState]);
   const [open, setOpen] = useState(false);
   const { translate } = useLocalization();
 
   useEffect(() => {
-    const openPanel = () => setOpen(true);
-    openListeners.add(openPanel);
+    const togglePanel = () => setOpen((current) => !current);
+    toggleListeners.add(togglePanel);
     return () => {
-      openListeners.delete(openPanel);
+      toggleListeners.delete(togglePanel);
     };
   }, []);
 
@@ -326,7 +326,7 @@ const NextMilestoneBanner = ({
   milestoneName,
   t,
 }: {
-  state: ManualProgressionState;
+  state: ManualMilestoneClaimsState;
   milestoneName: string;
   t: Translate;
 }) => {
@@ -402,12 +402,12 @@ const DecisionDialog = ({
   state,
   t,
 }: {
-  state: ManualProgressionState;
+  state: ManualMilestoneClaimsState;
   t: Translate;
 }) => {
   const restoring = state.dialog === "restore";
   const resolve = (decision: string) =>
-    trigger(bindingGroup, "resolveManualProgression", decision);
+    trigger(bindingGroup, "resolveManualMilestoneClaims", decision);
   const title = restoring
     ? t("RecoveryTitle", "Held XP found")
     : t("DisableTitle", "Turn off manual milestone claims?");

@@ -18,14 +18,14 @@ namespace Kobbyist.ProgressionControls
         private PrefabSystem m_PrefabSystem;
         private EntityQuery m_MilestoneLevelQuery;
         private EntityQuery m_MilestoneQuery;
-        private ManualProgressionDialogKind m_ManualProgressionDialog;
-        private ManualProgressionDecision m_RequestedManualDecision;
+        private ManualMilestoneClaimsDialogKind m_ManualMilestoneClaimsDialog;
+        private ManualMilestoneClaimsDecision m_RequestedManualMilestoneClaimsDecision;
         private int m_RequestedManualMilestone;
         private bool m_ManualClaimsActive;
         private bool m_ManualRecoveryDeferred;
         private bool m_HeldXpReleaseSaturationLogged;
 
-        private void CreateManualProgression()
+        private void CreateManualMilestoneClaims()
         {
             m_PrefabSystem =
                 World.GetOrCreateSystemManaged<PrefabSystem>();
@@ -35,12 +35,12 @@ namespace Kobbyist.ProgressionControls
                 ComponentType.ReadOnly<MilestoneData>());
         }
 
-        private void InitializeManualProgression(
+        private void InitializeManualMilestoneClaims(
             ProgressionStateSnapshot persisted,
             int cityXp,
             KobbyistProgressionControlsSettings settings)
         {
-            ResetManualProgression();
+            ResetManualMilestoneClaims();
 
             if (persisted != null &&
                 !m_ManualMilestoneClaimBank.TryRestore(
@@ -76,27 +76,27 @@ namespace Kobbyist.ProgressionControls
                 recovery == PendingClaimRecovery.WaitingForVanilla;
             if (!requested && m_ManualMilestoneClaimBank.HeldXp > 0)
             {
-                m_ManualProgressionDialog =
-                    ManualProgressionDialogKind.Restore;
+                m_ManualMilestoneClaimsDialog =
+                    ManualMilestoneClaimsDialogKind.Restore;
             }
         }
 
-        private void ResetManualProgression()
+        private void ResetManualMilestoneClaims()
         {
             m_ManualMilestoneClaimBank.TryRestore(
                 0,
                 PendingMilestoneClaim.None);
-            m_ManualProgressionDialog =
-                ManualProgressionDialogKind.None;
-            m_RequestedManualDecision =
-                ManualProgressionDecision.None;
+            m_ManualMilestoneClaimsDialog =
+                ManualMilestoneClaimsDialogKind.None;
+            m_RequestedManualMilestoneClaimsDecision =
+                ManualMilestoneClaimsDecision.None;
             m_RequestedManualMilestone = 0;
             m_ManualClaimsActive = false;
             m_ManualRecoveryDeferred = false;
             m_HeldXpReleaseSaturationLogged = false;
         }
 
-        private bool UpdateManualProgression(
+        private bool UpdateManualMilestoneClaims(
             KobbyistProgressionControlsSettings settings)
         {
             ConfirmPendingManualClaim();
@@ -108,18 +108,18 @@ namespace Kobbyist.ProgressionControls
             {
                 m_ManualRecoveryDeferred = false;
                 m_ManualClaimsActive = true;
-                m_ManualProgressionDialog =
-                    ManualProgressionDialogKind.None;
+                m_ManualMilestoneClaimsDialog =
+                    ManualMilestoneClaimsDialogKind.None;
             }
             else if (m_ManualClaimsActive &&
-                m_ManualProgressionDialog ==
-                    ManualProgressionDialogKind.None)
+                m_ManualMilestoneClaimsDialog ==
+                    ManualMilestoneClaimsDialogKind.None)
             {
                 if (m_ManualMilestoneClaimBank.HeldXp > 0 ||
                     m_ManualMilestoneClaimBank.IsClaimPending)
                 {
-                    m_ManualProgressionDialog =
-                        ManualProgressionDialogKind.Disable;
+                    m_ManualMilestoneClaimsDialog =
+                        ManualMilestoneClaimsDialogKind.Disable;
                 }
                 else
                 {
@@ -129,11 +129,11 @@ namespace Kobbyist.ProgressionControls
             else if (!m_ManualClaimsActive &&
                 !m_ManualRecoveryDeferred &&
                 m_ManualMilestoneClaimBank.HeldXp > 0 &&
-                m_ManualProgressionDialog ==
-                    ManualProgressionDialogKind.None)
+                m_ManualMilestoneClaimsDialog ==
+                    ManualMilestoneClaimsDialogKind.None)
             {
-                m_ManualProgressionDialog =
-                    ManualProgressionDialogKind.Restore;
+                m_ManualMilestoneClaimsDialog =
+                    ManualMilestoneClaimsDialogKind.Restore;
             }
 
             if (m_ManualClaimsActive &&
@@ -141,7 +141,9 @@ namespace Kobbyist.ProgressionControls
                 !m_ManualMilestoneClaimBank.IsClaimPending &&
                 !TryGetNextMilestone(
                     GetAchievedMilestone(),
-                    out _))
+                    out _,
+                    out var finalMilestoneReached) &&
+                finalMilestoneReached)
             {
                 if (!ReleaseHeldXpToCity())
                 {
@@ -164,71 +166,71 @@ namespace Kobbyist.ProgressionControls
             }
         }
 
-        internal void RequestManualProgressionDecision(string decision)
+        internal void RequestManualMilestoneClaimsDecision(string decision)
         {
             if (string.IsNullOrWhiteSpace(decision) ||
                 !Enum.TryParse(
                     decision,
                     ignoreCase: true,
-                    out ManualProgressionDecision parsed) ||
-                parsed == ManualProgressionDecision.None)
+                    out ManualMilestoneClaimsDecision parsed) ||
+                parsed == ManualMilestoneClaimsDecision.None)
             {
                 return;
             }
 
-            m_RequestedManualDecision = parsed;
+            m_RequestedManualMilestoneClaimsDecision = parsed;
         }
 
         private void ApplyRequestedManualDecision(
             KobbyistProgressionControlsSettings settings)
         {
-            var decision = m_RequestedManualDecision;
-            m_RequestedManualDecision =
-                ManualProgressionDecision.None;
-            if (decision == ManualProgressionDecision.None ||
-                m_ManualProgressionDialog ==
-                    ManualProgressionDialogKind.None)
+            var decision = m_RequestedManualMilestoneClaimsDecision;
+            m_RequestedManualMilestoneClaimsDecision =
+                ManualMilestoneClaimsDecision.None;
+            if (decision == ManualMilestoneClaimsDecision.None ||
+                m_ManualMilestoneClaimsDialog ==
+                    ManualMilestoneClaimsDialogKind.None)
             {
                 return;
             }
 
-            if (decision == ManualProgressionDecision.Cancel)
+            if (decision == ManualMilestoneClaimsDecision.Cancel)
             {
                 settings.EnableCustomProgression = true;
                 settings.ManualMilestoneClaims = true;
                 settings.ApplyAndSave();
                 m_ManualClaimsActive = true;
-                m_ManualProgressionDialog =
-                    ManualProgressionDialogKind.None;
+                m_ManualMilestoneClaimsDialog =
+                    ManualMilestoneClaimsDialogKind.None;
                 return;
             }
 
-            if (m_ManualProgressionDialog ==
-                ManualProgressionDialogKind.Restore)
+            if (m_ManualMilestoneClaimsDialog ==
+                ManualMilestoneClaimsDialogKind.Restore)
             {
-                if (decision == ManualProgressionDecision.Restore)
+                if (decision == ManualMilestoneClaimsDecision.Restore)
                 {
                     settings.EnableCustomProgression = true;
                     settings.ManualMilestoneClaims = true;
                     settings.ApplyAndSave();
                     m_ManualClaimsActive = true;
-                    m_ManualProgressionDialog =
-                        ManualProgressionDialogKind.None;
+                    m_ManualMilestoneClaimsDialog =
+                        ManualMilestoneClaimsDialogKind.None;
                 }
                 else if (decision ==
-                    ManualProgressionDecision.Discard)
+                    ManualMilestoneClaimsDecision.Discard)
                 {
                     m_ManualMilestoneClaimBank.DiscardHeldXp();
-                    m_ManualProgressionDialog =
-                        ManualProgressionDialogKind.None;
+                    m_ManualMilestoneClaimsDialog =
+                        ManualMilestoneClaimsDialogKind.None;
                     m_ManualClaimsActive = false;
                 }
                 else if (decision ==
-                    ManualProgressionDecision.Later)
+                    ManualMilestoneClaimsDecision.Later)
                 {
                     m_ManualRecoveryDeferred = true;
-                    m_ManualProgressionDialog =
-                        ManualProgressionDialogKind.None;
+                    m_ManualMilestoneClaimsDialog =
+                        ManualMilestoneClaimsDialogKind.None;
                     m_ManualClaimsActive = false;
                 }
 
@@ -237,35 +239,35 @@ namespace Kobbyist.ProgressionControls
 
             if (m_ManualMilestoneClaimBank.IsClaimPending)
             {
-                m_ManualProgressionDialog =
-                    ManualProgressionDialogKind.Disable;
+                m_ManualMilestoneClaimsDialog =
+                    ManualMilestoneClaimsDialogKind.Disable;
                 return;
             }
 
-            if (decision == ManualProgressionDecision.Release)
+            if (decision == ManualMilestoneClaimsDecision.Release)
             {
                 if (!ReleaseHeldXpToCity())
                 {
-                    m_ManualProgressionDialog =
-                        ManualProgressionDialogKind.Disable;
+                    m_ManualMilestoneClaimsDialog =
+                        ManualMilestoneClaimsDialogKind.Disable;
                     return;
                 }
 
                 settings.ManualMilestoneClaims = false;
                 settings.ApplyAndSave();
                 m_ManualClaimsActive = false;
-                m_ManualProgressionDialog =
-                    ManualProgressionDialogKind.None;
+                m_ManualMilestoneClaimsDialog =
+                    ManualMilestoneClaimsDialogKind.None;
             }
             else if (decision ==
-                ManualProgressionDecision.Discard)
+                ManualMilestoneClaimsDecision.Discard)
             {
                 m_ManualMilestoneClaimBank.DiscardHeldXp();
                 settings.ManualMilestoneClaims = false;
                 settings.ApplyAndSave();
                 m_ManualClaimsActive = false;
-                m_ManualProgressionDialog =
-                    ManualProgressionDialogKind.None;
+                m_ManualMilestoneClaimsDialog =
+                    ManualMilestoneClaimsDialogKind.None;
             }
         }
 
@@ -333,12 +335,25 @@ namespace Kobbyist.ProgressionControls
         private int RouteManualPositiveXp(
             int amount,
             long projectedCityXp,
-            int nextRequiredXp)
+            int nextRequiredXp,
+            bool finalMilestoneReached)
         {
             if (!m_ManualClaimsActive ||
                 amount <= 0 ||
-                nextRequiredXp <= 0)
+                finalMilestoneReached)
             {
+                return amount;
+            }
+
+            if (nextRequiredXp <= 0)
+            {
+                if (m_ManualMilestoneClaimBank.TryHoldPositiveXp(amount))
+                {
+                    return 0;
+                }
+
+                Mod.Log.Warn(
+                    "Could not hold milestone XP while milestone definitions were unavailable; forwarded the gain unchanged");
                 return amount;
             }
 
@@ -379,7 +394,8 @@ namespace Kobbyist.ProgressionControls
             var achievedMilestone = GetAchievedMilestone();
             if (!TryGetNextMilestone(
                     achievedMilestone,
-                    out var next) ||
+                    out var next,
+                    out _) ||
                 next.Index != requestedIndex)
             {
                 Mod.Log.Warn(
@@ -397,6 +413,7 @@ namespace Kobbyist.ProgressionControls
                 cityXp,
                 m_ManualMilestoneClaimBank.HeldXp,
                 claimPending: false,
+                claimsActive: m_ManualClaimsActive,
                 GetMilestoneDefinitions());
             var first = queueEntries.FirstOrDefault();
             if (first == null ||
@@ -424,14 +441,14 @@ namespace Kobbyist.ProgressionControls
                 $"Released {releasedXp} held XP for milestone {requestedIndex}");
         }
 
-        internal ManualProgressionViewState
-            GetManualProgressionViewState()
+        internal ManualMilestoneClaimsViewState
+            GetManualMilestoneClaimsViewState()
         {
             if (!m_HasActiveCity ||
                 !TryGetActiveCity(out var city) ||
                 !EntityManager.HasComponent<Game.City.XP>(city))
             {
-                return ManualProgressionViewState.Empty;
+                return ManualMilestoneClaimsViewState.Empty;
             }
 
             var cityXp = Math.Max(
@@ -444,17 +461,19 @@ namespace Kobbyist.ProgressionControls
                 cityXp,
                 m_ManualMilestoneClaimBank.HeldXp,
                 m_ManualMilestoneClaimBank.IsClaimPending,
+                m_ManualClaimsActive,
                 definitions.Select(definition =>
                     new ManualMilestoneDefinition(
                         definition.Index,
-                        definition.RequiredXp)));
+                        definition.RequiredXp,
+                        definition.IsFinal)));
             var images = definitions
                 .GroupBy(definition => definition.Index)
                 .ToDictionary(
                     group => group.Key,
                     group => group.First().Image);
             var milestones = queue.Select(entry =>
-                new ManualProgressionMilestoneView
+                new ManualMilestoneClaimView
                 {
                     Index = entry.Index,
                     RequiredXp = entry.RequiredXp,
@@ -479,7 +498,7 @@ namespace Kobbyist.ProgressionControls
             var nextRange = MilestoneRangeProgress.Calculate(
                 effectiveXp,
                 nextMilestone?.RequiredXp ?? 0);
-            return new ManualProgressionViewState
+            return new ManualMilestoneClaimsViewState
             {
                 Available = true,
                 Active = m_ManualClaimsActive,
@@ -488,7 +507,7 @@ namespace Kobbyist.ProgressionControls
                 EffectiveXp = effectiveXp,
                 ClaimPending =
                     m_ManualMilestoneClaimBank.IsClaimPending,
-                Dialog = m_ManualProgressionDialog
+                Dialog = m_ManualMilestoneClaimsDialog
                     .ToString()
                     .ToLowerInvariant(),
                 Milestones = milestones,
@@ -522,15 +541,37 @@ namespace Kobbyist.ProgressionControls
 
         private bool TryGetNextMilestone(
             int achievedMilestone,
-            out ManualMilestoneRuntimeDefinition milestone)
+            out ManualMilestoneRuntimeDefinition milestone,
+            out bool finalMilestoneReached)
         {
-            milestone = GetMilestoneRuntimeDefinitions()
-                .Where(candidate =>
-                    candidate.Index > achievedMilestone)
-                .OrderBy(candidate => candidate.Index)
-                .ThenBy(candidate => candidate.RequiredXp)
-                .FirstOrDefault();
-            return milestone != null;
+            var runtimeDefinitions = GetMilestoneRuntimeDefinitions();
+            var definitions = runtimeDefinitions
+                .Select(definition =>
+                    new ManualMilestoneDefinition(
+                        definition.Index,
+                        definition.RequiredXp,
+                        definition.IsFinal))
+                .ToArray();
+            if (!ManualMilestoneQueue.TryGetNext(
+                    achievedMilestone,
+                    definitions,
+                    out var next,
+                    out finalMilestoneReached))
+            {
+                milestone = null;
+                return false;
+            }
+
+            milestone = runtimeDefinitions.FirstOrDefault(candidate =>
+                candidate.Index == next.Index &&
+                candidate.RequiredXp == next.RequiredXp);
+            if (milestone != null)
+            {
+                return true;
+            }
+
+            finalMilestoneReached = false;
+            return false;
         }
 
         private IReadOnlyList<ManualMilestoneDefinition>
@@ -540,7 +581,8 @@ namespace Kobbyist.ProgressionControls
                 .Select(definition =>
                     new ManualMilestoneDefinition(
                         definition.Index,
-                        definition.RequiredXp))
+                        definition.RequiredXp,
+                        definition.IsFinal))
                 .ToArray();
         }
 
@@ -559,7 +601,13 @@ namespace Kobbyist.ProgressionControls
                 m_MilestoneQuery.ToComponentDataArray<
                     MilestoneData>(Allocator.Temp))
             {
-                var count = Math.Min(entities.Length, data.Length);
+                if (entities.Length != data.Length)
+                {
+                    return Array.Empty<
+                        ManualMilestoneRuntimeDefinition>();
+                }
+
+                var count = data.Length;
                 var result =
                     new List<ManualMilestoneRuntimeDefinition>(count);
                 for (var index = 0; index < count; index++)
@@ -568,14 +616,15 @@ namespace Kobbyist.ProgressionControls
                     if (milestoneData.m_Index <= 0 ||
                         milestoneData.m_XpRequried <= 0)
                     {
-                        continue;
+                        return Array.Empty<
+                            ManualMilestoneRuntimeDefinition>();
                     }
 
                     var image = string.Empty;
                     var backgroundColor = default(
-                        ManualProgressionColorView);
+                        MilestoneCardColorView);
                     var textColor = default(
-                        ManualProgressionColorView);
+                        MilestoneCardColorView);
                     try
                     {
                         var prefab =
@@ -598,6 +647,7 @@ namespace Kobbyist.ProgressionControls
                         new ManualMilestoneRuntimeDefinition(
                             milestoneData.m_Index,
                             milestoneData.m_XpRequried,
+                            milestoneData.m_IsVictory,
                             image,
                             backgroundColor,
                             textColor));
@@ -610,10 +660,10 @@ namespace Kobbyist.ProgressionControls
             }
         }
 
-        private static ManualProgressionColorView ToColorView(
+        private static MilestoneCardColorView ToColorView(
             Color color)
         {
-            return new ManualProgressionColorView(
+            return new MilestoneCardColorView(
                 color.r,
                 color.g,
                 color.b,
@@ -625,12 +675,14 @@ namespace Kobbyist.ProgressionControls
             public ManualMilestoneRuntimeDefinition(
                 int index,
                 int requiredXp,
+                bool isFinal,
                 string image,
-                ManualProgressionColorView backgroundColor,
-                ManualProgressionColorView textColor)
+                MilestoneCardColorView backgroundColor,
+                MilestoneCardColorView textColor)
             {
                 Index = index;
                 RequiredXp = requiredXp;
+                IsFinal = isFinal;
                 Image = image;
                 BackgroundColor = backgroundColor;
                 TextColor = textColor;
@@ -640,11 +692,13 @@ namespace Kobbyist.ProgressionControls
 
             public int RequiredXp { get; }
 
+            public bool IsFinal { get; }
+
             public string Image { get; }
 
-            public ManualProgressionColorView BackgroundColor { get; }
+            public MilestoneCardColorView BackgroundColor { get; }
 
-            public ManualProgressionColorView TextColor { get; }
+            public MilestoneCardColorView TextColor { get; }
         }
     }
 }

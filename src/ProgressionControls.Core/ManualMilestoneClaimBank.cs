@@ -116,6 +116,17 @@ namespace Kobbyist.ProgressionControls.Core
             return true;
         }
 
+        public bool TryHoldPositiveXp(int amount)
+        {
+            if (amount < 0 || HeldXp > long.MaxValue - amount)
+            {
+                return false;
+            }
+
+            HeldXp += amount;
+            return true;
+        }
+
         public bool TryBeginClaim(
             int milestoneIndex,
             int requiredXp,

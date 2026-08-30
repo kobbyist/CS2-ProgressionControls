@@ -47,6 +47,16 @@ public sealed class ManualMilestoneClaimBankTests
     }
 
     [TestMethod]
+    public void UnknownMilestoneThresholdHoldsTheCompleteGain()
+    {
+        var bank = new ManualMilestoneClaimBank();
+
+        Assert.IsTrue(bank.TryHoldPositiveXp(25));
+
+        Assert.AreEqual(25L, bank.HeldXp);
+    }
+
+    [TestMethod]
     public void ClaimReleasesOnlyThresholdDelta()
     {
         var bank = new ManualMilestoneClaimBank();
