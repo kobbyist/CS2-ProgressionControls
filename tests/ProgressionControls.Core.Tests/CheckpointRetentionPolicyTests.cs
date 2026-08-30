@@ -185,6 +185,52 @@ public sealed class CheckpointRetentionPolicyTests
     }
 
     [TestMethod]
+    public void IndexedOwnerTieBreakUsesSimulationFrameThenId()
+    {
+        var timestamp = new DateTime(
+            2026,
+            8,
+            30,
+            12,
+            0,
+            0,
+            DateTimeKind.Utc);
+        var candidates = new[]
+        {
+            Indexed("current", CityA, 100, "Save/A"),
+            new CheckpointRetentionCandidate(
+                "lower-frame",
+                CityA,
+                10,
+                timestamp,
+                "Save/B"),
+            new CheckpointRetentionCandidate(
+                "higher-frame-b",
+                CityA,
+                20,
+                timestamp,
+                "Save/B"),
+            new CheckpointRetentionCandidate(
+                "higher-frame-a",
+                CityA,
+                20,
+                timestamp,
+                "Save/B"),
+        };
+
+        var deleted = CheckpointRetentionPolicy.SelectForDeletion(
+            candidates,
+            currentId: "current",
+            liveSaveNames: new[] { "Save/A", "Save/B" },
+            liveSaveEnumerationTrusted: true,
+            legacyLimitPerCity: 16);
+
+        CollectionAssert.AreEquivalent(
+            new[] { "higher-frame-b", "lower-frame" },
+            deleted.Select(candidate => candidate.Id).ToArray());
+    }
+
+    [TestMethod]
     public void InvalidRequestDoesNotSelectAnyDeletion()
     {
         var candidates = new[]

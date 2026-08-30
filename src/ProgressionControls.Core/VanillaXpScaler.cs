@@ -12,6 +12,9 @@ namespace Kobbyist.ProgressionControls.Core
 
         public int RemainderHundredths => m_RemainderHundredths;
 
+        public bool TransformsPositiveXp =>
+            m_Enabled && m_Percentage != 100;
+
         public bool Configure(bool enabled, int percentage)
         {
             var boundedPercentage = Math.Max(0, Math.Min(100, percentage));

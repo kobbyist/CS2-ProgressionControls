@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
@@ -24,9 +23,90 @@ namespace Kobbyist.ProgressionControls
         Later,
     }
 
+    internal readonly struct ManualMilestoneClaimsViewKey :
+        IEquatable<ManualMilestoneClaimsViewKey>
+    {
+        public ManualMilestoneClaimsViewKey(
+            bool available,
+            int cityXp,
+            int achievedMilestone,
+            long heldXp,
+            bool claimPending,
+            bool active,
+            ManualMilestoneClaimsDialogKind dialog,
+            int catalogRevision)
+        {
+            Available = available;
+            CityXp = cityXp;
+            AchievedMilestone = achievedMilestone;
+            HeldXp = heldXp;
+            ClaimPending = claimPending;
+            Active = active;
+            Dialog = dialog;
+            CatalogRevision = catalogRevision;
+        }
+
+        public bool Available { get; }
+
+        public int CityXp { get; }
+
+        public int AchievedMilestone { get; }
+
+        public long HeldXp { get; }
+
+        public bool ClaimPending { get; }
+
+        public bool Active { get; }
+
+        public ManualMilestoneClaimsDialogKind Dialog { get; }
+
+        public int CatalogRevision { get; }
+
+        public bool Equals(ManualMilestoneClaimsViewKey other)
+        {
+            return Available == other.Available &&
+                CityXp == other.CityXp &&
+                AchievedMilestone == other.AchievedMilestone &&
+                HeldXp == other.HeldXp &&
+                ClaimPending == other.ClaimPending &&
+                Active == other.Active &&
+                Dialog == other.Dialog &&
+                CatalogRevision == other.CatalogRevision;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is ManualMilestoneClaimsViewKey other &&
+                Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hash = Available.GetHashCode();
+                hash = hash * 397 ^ CityXp;
+                hash = hash * 397 ^ AchievedMilestone;
+                hash = hash * 397 ^ HeldXp.GetHashCode();
+                hash = hash * 397 ^ ClaimPending.GetHashCode();
+                hash = hash * 397 ^ Active.GetHashCode();
+                hash = hash * 397 ^ (int)Dialog;
+                hash = hash * 397 ^ CatalogRevision;
+                return hash;
+            }
+        }
+    }
+
     [DataContract]
     internal sealed class ManualMilestoneClaimsViewState
     {
+        private static readonly ManualMilestoneClaimsViewState s_Empty =
+            new ManualMilestoneClaimsViewState
+            {
+                Dialog = "none",
+                Milestones = Array.Empty<ManualMilestoneClaimView>(),
+            };
+
         [DataMember(Name = "available", Order = 1)]
         public bool Available { get; set; }
 
@@ -73,12 +153,7 @@ namespace Kobbyist.ProgressionControls
         [DataMember(Name = "nextTextColor", Order = 14)]
         public MilestoneCardColorView NextTextColor { get; set; }
 
-        public static ManualMilestoneClaimsViewState Empty =>
-            new ManualMilestoneClaimsViewState
-            {
-                Dialog = "none",
-                Milestones = Array.Empty<ManualMilestoneClaimView>(),
-            };
+        public static ManualMilestoneClaimsViewState Empty => s_Empty;
     }
 
     [DataContract]
@@ -138,7 +213,10 @@ namespace Kobbyist.ProgressionControls
                 s_Serializer.WriteObject(
                     stream,
                     state ?? ManualMilestoneClaimsViewState.Empty);
-                return Encoding.UTF8.GetString(stream.ToArray());
+                return Encoding.UTF8.GetString(
+                    stream.GetBuffer(),
+                    index: 0,
+                    count: (int)stream.Length);
             }
         }
     }

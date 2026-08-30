@@ -153,6 +153,7 @@ namespace Kobbyist.ProgressionControls.Core
             TimeSpan.FromDays(7);
 
         private readonly string m_RootPath;
+        private readonly DataContractJsonSerializer m_Serializer;
 
         public ProgressionStateStore(string rootPath)
         {
@@ -164,6 +165,8 @@ namespace Kobbyist.ProgressionControls.Core
             }
 
             m_RootPath = rootPath;
+            m_Serializer =
+                new DataContractJsonSerializer(typeof(StateFileModel));
         }
 
         public bool TryLoad(
@@ -630,7 +633,10 @@ namespace Kobbyist.ProgressionControls.Core
                 return result;
             }
 
-            var candidates = ReadRetentionCandidates(result);
+            var candidates = ReadRetentionCandidates(
+                result,
+                out var pendingFiles,
+                out var cityDirectories);
             var currentCandidate = candidates.FirstOrDefault(candidate =>
                 string.Equals(
                     candidate.Id,
@@ -697,8 +703,9 @@ namespace Kobbyist.ProgressionControls.Core
                 currentSaveName,
                 liveSaveNames,
                 liveSaveEnumerationTrusted,
-                result);
-            RemoveEmptyCityDirectories(result);
+                result,
+                pendingFiles);
+            RemoveEmptyCityDirectories(result, cityDirectories);
             return result;
         }
 
@@ -747,25 +754,9 @@ namespace Kobbyist.ProgressionControls.Core
             string currentSaveName,
             IReadOnlyCollection<string> liveSaveNames,
             bool liveSaveEnumerationTrusted,
-            ProgressionStateCleanupResult result)
+            ProgressionStateCleanupResult result,
+            IReadOnlyList<PendingCheckpointFile> pendingFiles)
         {
-            string[] cityDirectories;
-            try
-            {
-                if (!Directory.Exists(m_RootPath))
-                {
-                    return;
-                }
-
-                cityDirectories = Directory.GetDirectories(m_RootPath);
-            }
-            catch (Exception exception)
-                when (IsExpectedStorageException(exception))
-            {
-                result.RecordError(exception.Message);
-                return;
-            }
-
             var live = liveSaveNames == null
                 ? new HashSet<string>(StringComparer.Ordinal)
                 : new HashSet<string>(
@@ -777,92 +768,70 @@ namespace Kobbyist.ProgressionControls.Core
             var unconfirmedCutoff =
                 DateTime.UtcNow - UnconfirmedPendingRetention;
 
-            foreach (var cityDirectory in cityDirectories)
+            foreach (var pendingFile in pendingFiles)
             {
-                if (!Guid.TryParseExact(
-                    Path.GetFileName(cityDirectory),
-                    "N",
-                    out var cityId))
+                var pendingPath = pendingFile.Path;
+                if (!TryGetLastWriteTimeUtc(
+                    pendingPath,
+                    out var lastWriteTimeUtc,
+                    out var timeError))
+                {
+                    result.RecordError(timeError);
+                    continue;
+                }
+
+                var valid = TryReadStateFileModel(
+                    pendingPath,
+                    out var model,
+                    out var readError,
+                    out _) &&
+                    TryCreateSnapshot(
+                        model,
+                        pendingFile.CityId,
+                        model.SimulationFrame,
+                        out _);
+                if (!valid && readError != null)
+                {
+                    result.RecordError(readError);
+                }
+
+                var confirmed = valid &&
+                    IsCompletionConfirmed(model);
+                var owners = valid
+                    ? GetSaveNames(model)
+                    : Array.Empty<string>();
+                var shouldDelete =
+                    (!confirmed &&
+                        lastWriteTimeUtc <= unconfirmedCutoff) ||
+                    (confirmed &&
+                        liveEnumerationCanDelete &&
+                        owners.Count > 0 &&
+                        !owners.Any(live.Contains));
+                if (!shouldDelete)
                 {
                     continue;
                 }
 
-                string[] pendingPaths;
-                try
+                if (TryDeleteFile(pendingPath, out var deleteError))
                 {
-                    pendingPaths = Directory.GetFiles(
-                        cityDirectory,
-                        "*" + PendingExtension,
-                        SearchOption.TopDirectoryOnly);
+                    result.RecordPendingRemoval();
                 }
-                catch (Exception exception)
-                    when (IsExpectedStorageException(exception))
+                else
                 {
-                    result.RecordError(exception.Message);
-                    continue;
-                }
-
-                foreach (var pendingPath in pendingPaths)
-                {
-                    if (!TryGetLastWriteTimeUtc(
-                        pendingPath,
-                        out var lastWriteTimeUtc,
-                        out var timeError))
-                    {
-                        result.RecordError(timeError);
-                        continue;
-                    }
-
-                    var valid = TryReadStateFileModel(
-                        pendingPath,
-                        out var model,
-                        out var readError,
-                        out _) &&
-                        TryCreateSnapshot(
-                            model,
-                            cityId,
-                            model.SimulationFrame,
-                            out _);
-                    if (!valid && readError != null)
-                    {
-                        result.RecordError(readError);
-                    }
-
-                    var confirmed = valid &&
-                        IsCompletionConfirmed(model);
-                    var owners = valid
-                        ? GetSaveNames(model)
-                        : Array.Empty<string>();
-                    var shouldDelete =
-                        (!confirmed &&
-                            lastWriteTimeUtc <= unconfirmedCutoff) ||
-                        (confirmed &&
-                            liveEnumerationCanDelete &&
-                            owners.Count > 0 &&
-                            !owners.Any(live.Contains));
-                    if (!shouldDelete)
-                    {
-                        continue;
-                    }
-
-                    if (TryDeleteFile(pendingPath, out var deleteError))
-                    {
-                        result.RecordPendingRemoval();
-                    }
-                    else
-                    {
-                        result.RecordError(deleteError);
-                    }
+                    result.RecordError(deleteError);
                 }
             }
         }
 
         private List<CheckpointRetentionCandidate>
             ReadRetentionCandidates(
-                ProgressionStateCleanupResult result)
+                ProgressionStateCleanupResult result,
+                out List<PendingCheckpointFile> pendingFiles,
+                out string[] cityDirectories)
         {
             var candidates = new List<CheckpointRetentionCandidate>();
-            string[] cityDirectories;
+            pendingFiles = new List<PendingCheckpointFile>();
+            cityDirectories = Array.Empty<string>();
             try
             {
                 if (!Directory.Exists(m_RootPath))
@@ -889,12 +858,12 @@ namespace Kobbyist.ProgressionControls.Core
                     continue;
                 }
 
-                string[] statePaths;
+                string[] checkpointPaths;
                 try
                 {
-                    statePaths = Directory.GetFiles(
+                    checkpointPaths = Directory.GetFiles(
                         cityDirectory,
-                        "*" + StateExtension,
+                        "*",
                         SearchOption.TopDirectoryOnly);
                 }
                 catch (Exception exception)
@@ -904,8 +873,24 @@ namespace Kobbyist.ProgressionControls.Core
                     continue;
                 }
 
-                foreach (var statePath in statePaths)
+                foreach (var statePath in checkpointPaths)
                 {
+                    if (statePath.EndsWith(
+                        PendingExtension,
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        pendingFiles.Add(new PendingCheckpointFile(
+                            statePath,
+                            cityId));
+                        continue;
+                    }
+                    if (!statePath.EndsWith(
+                        StateExtension,
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
                     if (!TryReadStateFileModel(
                             statePath,
                             out var model,
@@ -956,7 +941,7 @@ namespace Kobbyist.ProgressionControls.Core
             return candidates;
         }
 
-        private static bool TryReadCheckpoint(
+        private bool TryReadCheckpoint(
             string path,
             Guid cityId,
             uint simulationFrame,
@@ -994,7 +979,7 @@ namespace Kobbyist.ProgressionControls.Core
             return true;
         }
 
-        private static bool TryReadOwnedCheckpoint(
+        private bool TryReadOwnedCheckpoint(
             string path,
             Guid cityId,
             uint simulationFrame,
@@ -1027,7 +1012,7 @@ namespace Kobbyist.ProgressionControls.Core
             return false;
         }
 
-        private static bool TryReadStateFileModel(
+        private bool TryReadStateFileModel(
             string path,
             out StateFileModel model,
             out string error,
@@ -1038,8 +1023,6 @@ namespace Kobbyist.ProgressionControls.Core
             malformed = false;
             try
             {
-                var serializer =
-                    new DataContractJsonSerializer(typeof(StateFileModel));
                 using (var stream = new FileStream(
                     path,
                     FileMode.Open,
@@ -1047,7 +1030,7 @@ namespace Kobbyist.ProgressionControls.Core
                     FileShare.Read))
                 {
                     model =
-                        (StateFileModel)serializer.ReadObject(stream);
+                        (StateFileModel)m_Serializer.ReadObject(stream);
                 }
 
                 if (model == null)
@@ -1070,7 +1053,7 @@ namespace Kobbyist.ProgressionControls.Core
             }
         }
 
-        private static bool TryWriteModel(
+        private bool TryWriteModel(
             StateFileModel model,
             string path,
             out string error)
@@ -1084,15 +1067,13 @@ namespace Kobbyist.ProgressionControls.Core
             try
             {
                 Directory.CreateDirectory(directory);
-                var serializer =
-                    new DataContractJsonSerializer(typeof(StateFileModel));
                 using (var stream = new FileStream(
                     temporaryPath,
                     FileMode.CreateNew,
                     FileAccess.Write,
                     FileShare.None))
                 {
-                    serializer.WriteObject(stream, model);
+                    m_Serializer.WriteObject(stream, model);
                     stream.Flush(flushToDisk: true);
                 }
 
@@ -1223,25 +1204,9 @@ namespace Kobbyist.ProgressionControls.Core
         }
 
         private void RemoveEmptyCityDirectories(
-            ProgressionStateCleanupResult result)
+            ProgressionStateCleanupResult result,
+            IReadOnlyList<string> cityDirectories)
         {
-            string[] cityDirectories;
-            try
-            {
-                if (!Directory.Exists(m_RootPath))
-                {
-                    return;
-                }
-
-                cityDirectories = Directory.GetDirectories(m_RootPath);
-            }
-            catch (Exception exception)
-                when (IsExpectedStorageException(exception))
-            {
-                result.RecordError(exception.Message);
-                return;
-            }
-
             foreach (var cityDirectory in cityDirectories)
             {
                 if (!Guid.TryParseExact(
@@ -1539,6 +1504,19 @@ namespace Kobbyist.ProgressionControls.Core
             public DateTime LastWriteTimeUtc { get; }
 
             public bool IsPending { get; }
+        }
+
+        private sealed class PendingCheckpointFile
+        {
+            public PendingCheckpointFile(string path, Guid cityId)
+            {
+                Path = path;
+                CityId = cityId;
+            }
+
+            public string Path { get; }
+
+            public Guid CityId { get; }
         }
 
         [DataContract]

@@ -40,6 +40,7 @@ public sealed class VanillaXpScalerTests
 
         Assert.AreEqual(53, scaler.Scale(53));
         Assert.AreEqual(0, scaler.RemainderHundredths);
+        Assert.IsFalse(scaler.TransformsPositiveXp);
     }
 
     [TestMethod]
@@ -50,6 +51,17 @@ public sealed class VanillaXpScalerTests
 
         Assert.AreEqual(53, scaler.Scale(53));
         Assert.AreEqual(0, scaler.RemainderHundredths);
+        Assert.IsFalse(scaler.TransformsPositiveXp);
+    }
+
+    [TestMethod]
+    public void PartialScaleRequiresQueueTransformation()
+    {
+        var scaler = new VanillaXpScaler();
+
+        scaler.Configure(enabled: true, percentage: 25);
+
+        Assert.IsTrue(scaler.TransformsPositiveXp);
     }
 
     [TestMethod]

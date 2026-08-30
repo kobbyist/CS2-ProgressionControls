@@ -99,26 +99,24 @@ namespace Kobbyist.ProgressionControls.Core
                 current.Id,
             };
 
-            foreach (var saveName in indexed
-                .SelectMany(candidate => candidate.SaveNames)
-                .Distinct(StringComparer.Ordinal))
+            var ownerBySaveName =
+                new Dictionary<string, CheckpointRetentionCandidate>(
+                    StringComparer.Ordinal);
+            foreach (var candidate in indexed)
             {
-                var owner = indexed.FirstOrDefault(candidate =>
-                    string.Equals(
-                        candidate.Id,
-                        current.Id,
-                        StringComparison.Ordinal) &&
-                    candidate.OwnsSave(saveName)) ??
-                    indexed
-                        .Where(candidate => candidate.OwnsSave(saveName))
-                        .OrderByDescending(candidate =>
-                            candidate.LastWriteTimeUtc)
-                        .ThenByDescending(candidate =>
-                            candidate.SimulationFrame)
-                        .ThenBy(
-                            candidate => candidate.Id,
-                            StringComparer.Ordinal)
-                        .First();
+                foreach (var saveName in candidate.SaveNames)
+                {
+                    if (!ownerBySaveName.TryGetValue(
+                            saveName,
+                            out var owner) ||
+                        IsPreferredOwner(candidate, owner, current.Id))
+                    {
+                        ownerBySaveName[saveName] = candidate;
+                    }
+                }
+            }
+            foreach (var owner in ownerBySaveName.Values)
+            {
                 retained.Add(owner.Id);
             }
 
@@ -166,6 +164,41 @@ namespace Kobbyist.ProgressionControls.Core
                 .Where(candidate => delete.Contains(candidate.Id))
                 .OrderBy(candidate => candidate.Id, StringComparer.Ordinal)
                 .ToList();
+        }
+
+        private static bool IsPreferredOwner(
+            CheckpointRetentionCandidate candidate,
+            CheckpointRetentionCandidate currentOwner,
+            string currentId)
+        {
+            var candidateIsCurrent = string.Equals(
+                candidate.Id,
+                currentId,
+                StringComparison.Ordinal);
+            var ownerIsCurrent = string.Equals(
+                currentOwner.Id,
+                currentId,
+                StringComparison.Ordinal);
+            if (candidateIsCurrent || ownerIsCurrent)
+            {
+                return candidateIsCurrent && !ownerIsCurrent;
+            }
+
+            var writeTimeComparison = candidate.LastWriteTimeUtc.CompareTo(
+                currentOwner.LastWriteTimeUtc);
+            if (writeTimeComparison != 0)
+            {
+                return writeTimeComparison > 0;
+            }
+
+            var frameComparison = candidate.SimulationFrame.CompareTo(
+                currentOwner.SimulationFrame);
+            return frameComparison != 0
+                ? frameComparison > 0
+                : string.Compare(
+                    candidate.Id,
+                    currentOwner.Id,
+                    StringComparison.Ordinal) < 0;
         }
     }
 }

@@ -32,6 +32,39 @@ public sealed class ManualMilestoneQueueTests
     }
 
     [TestMethod]
+    public void ValidatedCatalogCanServeRepeatedQueries()
+    {
+        Assert.IsTrue(ManualMilestoneCatalog.TryCreate(
+            Milestones.Reverse(),
+            out var catalog));
+
+        var firstQueue = catalog.Build(
+            achievedMilestone: 1,
+            cityXp: 199,
+            heldXp: 151,
+            claimPending: false,
+            claimsActive: true);
+        var secondQueue = catalog.Build(
+            achievedMilestone: 2,
+            cityXp: 299,
+            heldXp: 101,
+            claimPending: false,
+            claimsActive: true);
+
+        Assert.AreEqual(1, catalog.Definitions[0].Index);
+        Assert.AreEqual(2, firstQueue.Count);
+        Assert.AreEqual(2, firstQueue[0].Index);
+        Assert.AreEqual(2, secondQueue.Count);
+        Assert.AreEqual(3, secondQueue[0].Index);
+        Assert.IsTrue(catalog.TryGetNext(
+            achievedMilestone: 2,
+            out var next,
+            out var finalMilestoneReached));
+        Assert.AreEqual(3, next.Index);
+        Assert.IsFalse(finalMilestoneReached);
+    }
+
+    [TestMethod]
     public void PendingClaimDisablesEveryQueueEntry()
     {
         var queue = ManualMilestoneQueue.Build(

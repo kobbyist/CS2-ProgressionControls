@@ -62,33 +62,19 @@ namespace Kobbyist.ProgressionControls.Core
             bool claimsActive,
             IEnumerable<ManualMilestoneDefinition> milestones)
         {
-            if (achievedMilestone < 0 ||
-                cityXp < 0 ||
-                heldXp < 0 ||
-                !TryOrderMilestones(milestones, out var ordered))
+            if (!ManualMilestoneCatalog.TryCreate(
+                milestones,
+                out var catalog))
             {
                 return Array.Empty<ManualMilestoneQueueEntry>();
             }
 
-            var effectiveXp = heldXp > long.MaxValue - cityXp
-                ? long.MaxValue
-                : heldXp + cityXp;
-            var unachieved = ordered
-                .Where(milestone =>
-                    milestone.Index > achievedMilestone)
-                .ToArray();
-            var claimable = unachieved
-                .Where(milestone => milestone.RequiredXp <= effectiveXp)
-                .ToArray();
-            return claimable
-                .Select((milestone, index) =>
-                    new ManualMilestoneQueueEntry(
-                        milestone.Index,
-                        milestone.RequiredXp,
-                        canClaim: claimsActive &&
-                            index == 0 &&
-                            !claimPending))
-                .ToArray();
+            return catalog.Build(
+                achievedMilestone,
+                cityXp,
+                heldXp,
+                claimPending,
+                claimsActive);
         }
 
         public static bool TryGetNext(
@@ -97,22 +83,112 @@ namespace Kobbyist.ProgressionControls.Core
             out ManualMilestoneDefinition nextMilestone,
             out bool finalMilestoneReached)
         {
-            nextMilestone = null;
-            finalMilestoneReached = false;
-            if (achievedMilestone < 0 ||
-                !TryOrderMilestones(milestones, out var ordered))
+            if (!ManualMilestoneCatalog.TryCreate(
+                milestones,
+                out var catalog))
+            {
+                nextMilestone = null;
+                finalMilestoneReached = false;
+                return false;
+            }
+
+            return catalog.TryGetNext(
+                achievedMilestone,
+                out nextMilestone,
+                out finalMilestoneReached);
+        }
+    }
+
+    internal sealed class ManualMilestoneCatalog
+    {
+        private readonly ManualMilestoneDefinition[] m_Ordered;
+
+        private ManualMilestoneCatalog(
+            ManualMilestoneDefinition[] ordered)
+        {
+            m_Ordered = ordered;
+        }
+
+        public IReadOnlyList<ManualMilestoneDefinition> Definitions =>
+            m_Ordered;
+
+        public static bool TryCreate(
+            IEnumerable<ManualMilestoneDefinition> milestones,
+            out ManualMilestoneCatalog catalog)
+        {
+            catalog = null;
+            if (!TryOrderMilestones(milestones, out var ordered))
             {
                 return false;
             }
 
-            nextMilestone = ordered.FirstOrDefault(milestone =>
-                milestone.Index > achievedMilestone);
-            if (nextMilestone != null)
+            catalog = new ManualMilestoneCatalog(ordered);
+            return true;
+        }
+
+        public IReadOnlyList<ManualMilestoneQueueEntry> Build(
+            int achievedMilestone,
+            int cityXp,
+            long heldXp,
+            bool claimPending,
+            bool claimsActive)
+        {
+            if (achievedMilestone < 0 || cityXp < 0 || heldXp < 0)
             {
-                return true;
+                return Array.Empty<ManualMilestoneQueueEntry>();
             }
 
-            var finalMilestone = ordered[ordered.Length - 1];
+            var effectiveXp = heldXp > long.MaxValue - cityXp
+                ? long.MaxValue
+                : heldXp + cityXp;
+            List<ManualMilestoneQueueEntry> result = null;
+            foreach (var milestone in m_Ordered)
+            {
+                if (milestone.Index <= achievedMilestone ||
+                    milestone.RequiredXp > effectiveXp)
+                {
+                    continue;
+                }
+
+                if (result == null)
+                {
+                    result = new List<ManualMilestoneQueueEntry>();
+                }
+                result.Add(new ManualMilestoneQueueEntry(
+                    milestone.Index,
+                    milestone.RequiredXp,
+                    canClaim: claimsActive &&
+                        result.Count == 0 &&
+                        !claimPending));
+            }
+
+            return result == null
+                ? Array.Empty<ManualMilestoneQueueEntry>()
+                : result.ToArray();
+        }
+
+        public bool TryGetNext(
+            int achievedMilestone,
+            out ManualMilestoneDefinition nextMilestone,
+            out bool finalMilestoneReached)
+        {
+            nextMilestone = null;
+            finalMilestoneReached = false;
+            if (achievedMilestone < 0)
+            {
+                return false;
+            }
+
+            foreach (var milestone in m_Ordered)
+            {
+                if (milestone.Index > achievedMilestone)
+                {
+                    nextMilestone = milestone;
+                    return true;
+                }
+            }
+
+            var finalMilestone = m_Ordered[m_Ordered.Length - 1];
             finalMilestoneReached = finalMilestone.IsFinal &&
                 finalMilestone.Index == achievedMilestone;
             return false;

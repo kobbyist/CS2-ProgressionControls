@@ -1,7 +1,7 @@
 import { bindValue, trigger, useValue } from "cs2/api";
 import { useLocalization } from "cs2/l10n";
 import { Button, Icon, Scrollable } from "cs2/ui";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CompactModPanel,
   PanelSection,
@@ -15,11 +15,18 @@ const nativeMilestoneIcon = "Media/Game/Icons/Milestone.svg";
 const nativeToolbarIcon = progressionControlsIcon;
 const nativeLockIcon = "Media/Glyphs/Lock.svg";
 const nativeWarningIcon = "Media/Misc/Warning.svg";
+const emptyStateJson =
+  '{"available":false,"active":false,"heldXp":0,"cityXp":0,"effectiveXp":0,"claimPending":false,"dialog":"none","milestones":[],"nextMilestoneIndex":0,"nextRequiredXp":0,"nextImage":"","nextRangeXp":0,"nextBackgroundColor":{"r":0,"g":0,"b":0,"a":0},"nextTextColor":{"r":0,"g":0,"b":0,"a":0}}';
 
 const stateBinding = bindValue<string>(
   bindingGroup,
   "manualMilestoneClaimsState",
-  '{"available":false,"active":false,"heldXp":0,"cityXp":0,"effectiveXp":0,"claimPending":false,"dialog":"none","milestones":[],"nextMilestoneIndex":0,"nextRequiredXp":0,"nextImage":"","nextRangeXp":0,"nextBackgroundColor":{"r":0,"g":0,"b":0,"a":0},"nextTextColor":{"r":0,"g":0,"b":0,"a":0}}',
+  emptyStateJson,
+);
+const availabilityBinding = bindValue<boolean>(
+  bindingGroup,
+  "manualMilestoneClaimsAvailable",
+  false,
 );
 
 interface ManualMilestoneClaimsColor {
@@ -72,6 +79,9 @@ const emptyState: ManualMilestoneClaimsState = {
   nextTextColor: { r: 0, g: 0, b: 0, a: 0 },
 };
 
+let cachedRawState: string | undefined;
+let cachedParsedState = emptyState;
+
 const toggleListeners = new Set<() => void>();
 
 function requestPanelToggle() {
@@ -79,9 +89,14 @@ function requestPanelToggle() {
 }
 
 function parseState(value: string): ManualMilestoneClaimsState {
+  if (value === cachedRawState) {
+    return cachedParsedState;
+  }
+
+  cachedRawState = value;
   try {
     const parsed = JSON.parse(value) as Partial<ManualMilestoneClaimsState>;
-    return {
+    cachedParsedState = {
       ...emptyState,
       ...parsed,
       milestones: Array.isArray(parsed.milestones)
@@ -89,8 +104,10 @@ function parseState(value: string): ManualMilestoneClaimsState {
         : [],
     };
   } catch {
-    return emptyState;
+    cachedParsedState = emptyState;
   }
+
+  return cachedParsedState;
 }
 
 function formatXp(value: number) {
@@ -112,11 +129,10 @@ function colorToCss(
 }
 
 export const ManualMilestoneClaimsToolbarButton = () => {
-  const rawState = useValue(stateBinding);
-  const state = useMemo(() => parseState(rawState), [rawState]);
+  const available = useValue(availabilityBinding);
   const { translate } = useLocalization();
 
-  if (!state.available) {
+  if (!available) {
     return null;
   }
 
@@ -136,8 +152,7 @@ export const ManualMilestoneClaimsToolbarButton = () => {
 };
 
 export const ManualMilestoneClaimsOverlay = () => {
-  const rawState = useValue(stateBinding);
-  const state = useMemo(() => parseState(rawState), [rawState]);
+  const state = parseState(useValue(stateBinding));
   const [open, setOpen] = useState(false);
   const { translate } = useLocalization();
 
@@ -148,6 +163,17 @@ export const ManualMilestoneClaimsOverlay = () => {
       toggleListeners.delete(togglePanel);
     };
   }, []);
+
+  useEffect(() => {
+    trigger(bindingGroup, "setManualMilestoneClaimsPanelOpen", open);
+  }, [open]);
+
+  useEffect(
+    () => () => {
+      trigger(bindingGroup, "setManualMilestoneClaimsPanelOpen", false);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (state.dialog !== "none") {

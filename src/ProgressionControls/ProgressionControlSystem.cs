@@ -416,6 +416,7 @@ namespace Kobbyist.ProgressionControls
             m_PopulationXpBatch.Clear();
             m_PendingVanillaXp.Clear();
             ResetManualMilestoneClaims();
+            ResetMilestoneCatalog();
         }
 
         private ProgressionConfiguration ResolveInitialConfiguration(
@@ -616,6 +617,16 @@ namespace Kobbyist.ProgressionControls
             uint currentFrame,
             bool allowPopulationAward)
         {
+            var populationAwardDue = allowPopulationAward &&
+                IsPopulationXpAwardDue(currentFrame);
+            if (!m_VanillaXpScaler.TransformsPositiveXp &&
+                !m_ManualClaimsActive &&
+                m_RequestedManualMilestone <= 0 &&
+                !populationAwardDue)
+            {
+                return;
+            }
+
             if (!TryGetActiveCity(out var city) ||
                 !EntityManager.HasComponent<XP>(city))
             {
@@ -625,12 +636,16 @@ namespace Kobbyist.ProgressionControls
 
             var projectedCityXp =
                 (long)EntityManager.GetComponentData<XP>(city).m_XP;
-            var nextRequiredXp = TryGetNextMilestone(
-                GetAchievedMilestone(),
-                out var nextMilestone,
-                out var finalMilestoneReached)
-                ? nextMilestone.RequiredXp
-                : 0;
+            var nextRequiredXp = 0;
+            var finalMilestoneReached = false;
+            if (m_ManualClaimsActive &&
+                TryGetNextMilestone(
+                    GetAchievedMilestone(),
+                    out var nextMilestone,
+                    out finalMilestoneReached))
+            {
+                nextRequiredXp = nextMilestone.RequiredXp;
+            }
             var queue =
                 m_XPSystem.GetQueue(out JobHandle queueWriters);
             queueWriters.Complete();
@@ -663,8 +678,7 @@ namespace Kobbyist.ProgressionControls
                 queue.Enqueue(gain);
             }
 
-            if (allowPopulationAward &&
-                IsPopulationXpAwardDue(currentFrame))
+            if (populationAwardDue)
             {
                 EnqueueNextPopulationXpAward(
                     queue,
@@ -699,12 +713,16 @@ namespace Kobbyist.ProgressionControls
 
             var projectedCityXp =
                 (long)EntityManager.GetComponentData<XP>(city).m_XP;
-            var nextRequiredXp = TryGetNextMilestone(
-                GetAchievedMilestone(),
-                out var nextMilestone,
-                out var finalMilestoneReached)
-                ? nextMilestone.RequiredXp
-                : 0;
+            var nextRequiredXp = 0;
+            var finalMilestoneReached = false;
+            if (m_ManualClaimsActive &&
+                TryGetNextMilestone(
+                    GetAchievedMilestone(),
+                    out var nextMilestone,
+                    out finalMilestoneReached))
+            {
+                nextRequiredXp = nextMilestone.RequiredXp;
+            }
             var queue =
                 m_XPSystem.GetQueue(out JobHandle queueWriters);
             queueWriters.Complete();
