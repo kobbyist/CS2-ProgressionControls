@@ -330,7 +330,7 @@ namespace Kobbyist.ProgressionControls
                 }
 
                 Mod.Log.Info(
-                    $"Restored progression state for city {m_CityId:N} at frame {simulationFrame}");
+                    $"Restored progression state for city {m_CityId:N} from checkpoint frame {persisted.SimulationFrame} at load frame {simulationFrame}");
             }
             else
             {

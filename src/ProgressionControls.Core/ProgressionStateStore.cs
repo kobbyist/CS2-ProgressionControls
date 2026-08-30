@@ -144,6 +144,7 @@ namespace Kobbyist.ProgressionControls.Core
         private const int MultiOwnerSchemaVersion = 3;
         private const int IndexedSchemaVersion = 2;
         private const int LegacyCheckpointLimitPerCity = 16;
+        private const uint MaximumLoadFrameDrift = 4096;
         private const string PendingExtension = ".pending";
         private const string StateExtension = ".json";
         private static readonly TimeSpan UnconfirmedPendingRetention =
@@ -317,13 +318,154 @@ namespace Kobbyist.ProgressionControls.Core
                 return true;
             }
 
-            error = committedError ?? pendingError;
+            string nearbyError = null;
+            if (committedError == null &&
+                pendingError == null &&
+                !unconfirmedPendingFound &&
+                !string.IsNullOrWhiteSpace(saveName) &&
+                TryLoadNearbyOwnedCheckpoint(
+                    cityId,
+                    simulationFrame,
+                    saveName,
+                    out snapshot,
+                    out nearbyError))
+            {
+                error = committedError ?? pendingError ?? nearbyError;
+                return true;
+            }
+
+            error = committedError ?? pendingError ?? nearbyError;
             if (error == null && unconfirmedPendingFound)
             {
                 error = "Ignored a prepared progression checkpoint because it was not durably marked as completed";
             }
 
             return false;
+        }
+
+        private bool TryLoadNearbyOwnedCheckpoint(
+            Guid cityId,
+            uint simulationFrame,
+            string saveName,
+            out ProgressionStateSnapshot snapshot,
+            out string error)
+        {
+            snapshot = null;
+            error = null;
+            var directory = GetCityDirectory(cityId);
+            if (!Directory.Exists(directory) || simulationFrame == 0)
+            {
+                return false;
+            }
+
+            string[] paths;
+            try
+            {
+                paths = Directory.GetFiles(
+                    directory,
+                    "*",
+                    SearchOption.TopDirectoryOnly);
+            }
+            catch (Exception exception)
+                when (IsExpectedStorageException(exception))
+            {
+                error = exception.Message;
+                return false;
+            }
+
+            CheckpointLoadCandidate best = null;
+            var saveKey = GetSaveKey(saveName);
+            var committedSuffix =
+                "." + saveKey + StateExtension;
+            var pendingMarker = "." + saveKey + ".";
+            foreach (var path in paths)
+            {
+                var fileName = Path.GetFileName(path);
+                var isPending = path.EndsWith(
+                    PendingExtension,
+                    StringComparison.OrdinalIgnoreCase);
+                var isCommitted = path.EndsWith(
+                    StateExtension,
+                    StringComparison.OrdinalIgnoreCase);
+                if ((!isPending && !isCommitted) ||
+                    (isPending && fileName.IndexOf(
+                        pendingMarker,
+                        StringComparison.Ordinal) < 0) ||
+                    (isCommitted && !fileName.EndsWith(
+                        committedSuffix,
+                        StringComparison.Ordinal)))
+                {
+                    continue;
+                }
+
+                if (!TryReadStateFileModel(
+                        path,
+                        out var model,
+                        out var readError,
+                        out _) ||
+                    !TryCreateSnapshot(
+                        model,
+                        cityId,
+                        model?.SimulationFrame ?? 0,
+                        out var candidateSnapshot))
+                {
+                    RecordFirstError(ref error, readError);
+                    continue;
+                }
+
+                var candidateFrame = candidateSnapshot.SimulationFrame;
+                if (candidateFrame >= simulationFrame ||
+                    simulationFrame - candidateFrame >
+                        MaximumLoadFrameDrift ||
+                    !GetSaveNames(model).Contains(
+                        saveName,
+                        StringComparer.Ordinal) ||
+                    (isPending && !IsCompletionConfirmed(model)))
+                {
+                    continue;
+                }
+
+                if (!TryGetLastWriteTimeUtc(
+                    path,
+                    out var lastWriteTimeUtc,
+                    out var writeTimeError))
+                {
+                    RecordFirstError(ref error, writeTimeError);
+                    continue;
+                }
+
+                if (best == null ||
+                    candidateFrame > best.Snapshot.SimulationFrame ||
+                    (candidateFrame == best.Snapshot.SimulationFrame &&
+                        lastWriteTimeUtc > best.LastWriteTimeUtc))
+                {
+                    best = new CheckpointLoadCandidate(
+                        path,
+                        candidateSnapshot,
+                        lastWriteTimeUtc,
+                        isPending);
+                }
+            }
+
+            if (best == null)
+            {
+                return false;
+            }
+
+            snapshot = best.Snapshot;
+            if (best.IsPending &&
+                !TryPromote(
+                    best.Path,
+                    GetStatePath(
+                        cityId,
+                        best.Snapshot.SimulationFrame,
+                        saveName),
+                    out var promoteError))
+            {
+                error = promoteError;
+            }
+
+            return true;
         }
 
         public bool TryPrepare(
@@ -1370,6 +1512,29 @@ namespace Kobbyist.ProgressionControls.Core
             public ProgressionStateSnapshot Snapshot { get; }
 
             public DateTime LastWriteTimeUtc { get; }
+        }
+
+        private sealed class CheckpointLoadCandidate
+        {
+            public CheckpointLoadCandidate(
+                string path,
+                ProgressionStateSnapshot snapshot,
+                DateTime lastWriteTimeUtc,
+                bool isPending)
+            {
+                Path = path;
+                Snapshot = snapshot;
+                LastWriteTimeUtc = lastWriteTimeUtc;
+                IsPending = isPending;
+            }
+
+            public string Path { get; }
+
+            public ProgressionStateSnapshot Snapshot { get; }
+
+            public DateTime LastWriteTimeUtc { get; }
+
+            public bool IsPending { get; }
         }
 
         [DataContract]

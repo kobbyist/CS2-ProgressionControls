@@ -55,6 +55,12 @@ recorded threshold. Both fail-safe release and player-requested release are
 all-or-nothing: if vanilla city XP cannot hold the complete amount, external
 state is retained unchanged.
 
+The game's save-start callback runs before city serialization, so the frame in
+a completed checkpoint can be slightly earlier than the frame written into the
+save. Loading prefers an exact frame. If none exists, it can restore only the
+closest earlier checkpoint for the same city and exact save name within 4,096
+simulation frames. Future and older checkpoints are rejected.
+
 ## Integration boundaries
 
 - No Harmony patches.

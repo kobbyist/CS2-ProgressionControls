@@ -332,6 +332,149 @@ public sealed class ProgressionStateStoreTests
     }
 
     [TestMethod]
+    public void SavedClaimIsAvailableAfterOneFrameLoadDrift()
+    {
+        var store = CreateStore();
+        var snapshot = new ProgressionStateSnapshot(
+            CityId,
+            simulationFrame: 310,
+            new PopulationProgressionState(
+                maximumPopulation: 1234,
+                fractionalXp: 0m),
+            vanillaRemainderHundredths: 0,
+            pendingPopulationXp: 0,
+            heldMilestoneXp: 1);
+        PrepareAndCommit(store, snapshot, "Save/A");
+
+        Assert.IsTrue(store.TryLoad(
+            CityId,
+            simulationFrame: 311,
+            "Save/A",
+            out var restored,
+            out var loadError),
+            loadError);
+
+        var queue = ManualMilestoneQueue.Build(
+            achievedMilestone: 3,
+            cityXp: 99,
+            restored.HeldMilestoneXp,
+            claimPending: false,
+            new[] { new ManualMilestoneDefinition(4, 100) });
+        Assert.AreEqual(1, queue.Count);
+        Assert.IsTrue(queue[0].CanClaim);
+    }
+
+    [TestMethod]
+    public void LoadDriftSelectsClosestEarlierCheckpoint()
+    {
+        var store = CreateStore();
+        var earlier = Snapshot(
+            frame: 320,
+            pendingPopulationXp: 10);
+        var closest = Snapshot(
+            frame: 329,
+            pendingPopulationXp: 20);
+        PrepareAndCommit(store, earlier, "Save/A");
+        PrepareAndCommit(store, closest, "Save/A");
+
+        Assert.IsTrue(store.TryLoad(
+            CityId,
+            simulationFrame: 330,
+            "Save/A",
+            out var restored,
+            out var loadError),
+            loadError);
+        AssertSnapshot(closest, restored);
+    }
+
+    [TestMethod]
+    public void LoadDriftDoesNotUseStaleCheckpoint()
+    {
+        var store = CreateStore();
+        PrepareAndCommit(
+            store,
+            Snapshot(frame: 340, pendingPopulationXp: 10),
+            "Save/A");
+
+        Assert.IsFalse(store.TryLoad(
+            CityId,
+            simulationFrame: 4437,
+            "Save/A",
+            out _,
+            out _));
+    }
+
+    [TestMethod]
+    public void LoadDriftAcceptsCheckpointAtMaximumDistance()
+    {
+        var store = CreateStore();
+        var snapshot = Snapshot(
+            frame: 500,
+            pendingPopulationXp: 10);
+        PrepareAndCommit(store, snapshot, "Save/A");
+
+        Assert.IsTrue(store.TryLoad(
+            CityId,
+            simulationFrame: 4596,
+            "Save/A",
+            out var restored,
+            out var loadError),
+            loadError);
+        AssertSnapshot(snapshot, restored);
+    }
+
+    [TestMethod]
+    public void LoadDriftRecoversConfirmedPendingCheckpoint()
+    {
+        var store = CreateStore();
+        var snapshot = Snapshot(
+            frame: 410,
+            pendingPopulationXp: 25);
+        Assert.IsTrue(store.TryPrepare(
+            snapshot,
+            "Save/A",
+            out var preparation,
+            out var prepareError),
+            prepareError);
+        MarkCompletedWithFailedPromotion(store, preparation);
+
+        Assert.IsTrue(store.TryLoad(
+            CityId,
+            simulationFrame: 411,
+            "Save/A",
+            out var restored,
+            out var loadError),
+            loadError);
+        AssertSnapshot(snapshot, restored);
+        Assert.AreEqual(0, PendingFiles().Count);
+        Assert.AreEqual(1, CheckpointFiles().Count);
+    }
+
+    [TestMethod]
+    public void UnconfirmedExactCheckpointBlocksOlderFallback()
+    {
+        var store = CreateStore();
+        PrepareAndCommit(
+            store,
+            Snapshot(frame: 420, pendingPopulationXp: 10),
+            "Save/A");
+        Assert.IsTrue(store.TryPrepare(
+            Snapshot(frame: 421, pendingPopulationXp: 20),
+            "Save/A",
+            out _,
+            out var prepareError),
+            prepareError);
+
+        Assert.IsFalse(store.TryLoad(
+            CityId,
+            simulationFrame: 421,
+            "Save/A",
+            out _,
+            out var loadError));
+        StringAssert.Contains(loadError, "not durably marked");
+    }
+
+    [TestMethod]
     public void DivergentSameFrameSavesRetainSeparateSnapshots()
     {
         var store = CreateStore();

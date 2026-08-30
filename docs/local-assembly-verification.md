@@ -161,6 +161,13 @@ save enumeration is trusted and includes the current save, cleanup removes
 committed and confirmed-pending checkpoints for deleted saves. Unconfirmed
 pending records older than seven days are also removed.
 
+Runtime evidence from the `29-August-16-37-42` save confirms the frame can
+advance between those boundaries: its completed checkpoint records frame
+8,086,231, while its serialized `SaveGameData` contains frame 8,087,469. The
+loader therefore permits a bounded drift of at most 4,096 frames, but only for
+the same city session and exact logical save name. Exact matches remain
+preferred; future and older checkpoints are not eligible.
+
 Schema 0, 2, and 3 checkpoints remain loadable. Because schema 0 predates save-name
 indexing, their cleanup uses a deterministic fallback: retain the newest 16 per
 city session by last-write time, then simulation frame, then path. Cleanup is
