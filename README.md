@@ -100,11 +100,11 @@ the mod keeps the checkpoint for that save name and retires older checkpoints
 for overwritten saves. When the game save list can be read safely, checkpoints
 for deleted saves are retired as well.
 
-Existing checkpoints from earlier mod versions do not contain a save name. The
-new retention policy keeps the newest 16 of these legacy checkpoints per city
-and removes older ones after a successful save. Loading a save whose progression
-checkpoint is no longer available establishes a safe population baseline and
-does not grant retroactive XP.
+Checkpoints written by public version 0.1.1 remain readable and are replaced by
+the current format after the next successful save. Checkpoints from 0.1.0 and
+unpublished development formats are ignored and left untouched. Loading without
+a supported checkpoint establishes a safe population baseline and does not grant
+retroactive XP.
 
 ## License
 

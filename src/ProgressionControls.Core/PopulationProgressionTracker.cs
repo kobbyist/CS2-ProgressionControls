@@ -22,50 +22,14 @@ namespace Kobbyist.ProgressionControls.Core
             FractionalXp < 1m;
     }
 
-    public sealed class PopulationObservationResult
-    {
-        internal PopulationObservationResult(
-            bool accepted,
-            bool establishedBaseline,
-            long awardedXp,
-            int newRecordDelta,
-            int maximumPopulation,
-            int populationToResume)
-        {
-            Accepted = accepted;
-            EstablishedBaseline = establishedBaseline;
-            AwardedXp = awardedXp;
-            NewRecordDelta = newRecordDelta;
-            MaximumPopulation = maximumPopulation;
-            PopulationToResume = populationToResume;
-        }
-
-        public bool Accepted { get; }
-
-        public bool EstablishedBaseline { get; }
-
-        public long AwardedXp { get; }
-
-        public int NewRecordDelta { get; }
-
-        public int MaximumPopulation { get; }
-
-        public int PopulationToResume { get; }
-    }
-
     public sealed class PopulationProgressionTracker
     {
         private bool m_Initialized;
-        private bool m_HasConfiguredRate;
         private int m_MaximumPopulation;
         private decimal m_FractionalXp;
         private decimal m_ConfiguredRate;
 
-        public bool IsInitialized => m_Initialized;
-
         public int MaximumPopulation => m_MaximumPopulation;
-
-        public decimal FractionalXp => m_FractionalXp;
 
         public static bool TryRestore(
             PopulationProgressionState state,
@@ -85,7 +49,6 @@ namespace Kobbyist.ProgressionControls.Core
                 m_Initialized = true,
                 m_MaximumPopulation = state.MaximumPopulation,
                 m_FractionalXp = state.FractionalXp,
-                m_HasConfiguredRate = true,
                 m_ConfiguredRate = configuration.XpPerResident,
             };
             return true;
@@ -103,7 +66,7 @@ namespace Kobbyist.ProgressionControls.Core
                 m_FractionalXp);
         }
 
-        public PopulationObservationResult Rebaseline(
+        public bool TryRebaseline(
             int currentPopulation,
             int knownMaximumPopulation,
             ProgressionConfiguration configuration)
@@ -112,7 +75,7 @@ namespace Kobbyist.ProgressionControls.Core
                 knownMaximumPopulation < 0 ||
                 configuration == null)
             {
-                return Rejected();
+                return false;
             }
 
             m_Initialized = true;
@@ -123,22 +86,18 @@ namespace Kobbyist.ProgressionControls.Core
                     knownMaximumPopulation));
             m_FractionalXp = 0m;
             m_ConfiguredRate = configuration.XpPerResident;
-            m_HasConfiguredRate = true;
-
-            return Accepted(
-                establishedBaseline: true,
-                awardedXp: 0,
-                newRecordDelta: 0,
-                currentPopulation);
+            return true;
         }
 
-        public PopulationObservationResult Observe(
+        public bool TryObserve(
             int currentPopulation,
-            ProgressionConfiguration configuration)
+            ProgressionConfiguration configuration,
+            out long awardedXp)
         {
+            awardedXp = 0;
             if (currentPopulation < 0 || configuration == null)
             {
-                return Rejected();
+                return false;
             }
 
             if (!m_Initialized)
@@ -146,56 +105,32 @@ namespace Kobbyist.ProgressionControls.Core
                 EstablishBaseline(
                     currentPopulation,
                     configuration.XpPerResident);
-                return Accepted(
-                    establishedBaseline: true,
-                    awardedXp: 0,
-                    newRecordDelta: 0,
-                    currentPopulation);
+                return true;
             }
 
-            var rateChanged =
-                !m_HasConfiguredRate ||
-                m_ConfiguredRate != configuration.XpPerResident;
-
-            if (rateChanged)
+            if (m_ConfiguredRate != configuration.XpPerResident)
             {
                 m_ConfiguredRate = configuration.XpPerResident;
-                m_HasConfiguredRate = true;
                 m_FractionalXp = 0m;
                 m_MaximumPopulation = Math.Max(
                     m_MaximumPopulation,
                     currentPopulation);
-
-                return Accepted(
-                    establishedBaseline: true,
-                    awardedXp: 0,
-                    newRecordDelta: 0,
-                    currentPopulation);
+                return true;
             }
 
             if (currentPopulation <= m_MaximumPopulation)
             {
-                return Accepted(
-                    establishedBaseline: false,
-                    awardedXp: 0,
-                    newRecordDelta: 0,
-                    currentPopulation);
+                return true;
             }
 
-            var newRecordDelta =
-                currentPopulation - m_MaximumPopulation;
             var exactXp =
-                newRecordDelta * m_ConfiguredRate + m_FractionalXp;
-            var awardedXp = decimal.ToInt64(decimal.Truncate(exactXp));
-
+                (currentPopulation - m_MaximumPopulation) *
+                    m_ConfiguredRate +
+                m_FractionalXp;
+            awardedXp = decimal.ToInt64(decimal.Truncate(exactXp));
             m_FractionalXp = exactXp - awardedXp;
             m_MaximumPopulation = currentPopulation;
-
-            return Accepted(
-                establishedBaseline: false,
-                awardedXp,
-                newRecordDelta,
-                currentPopulation);
+            return true;
         }
 
         private void EstablishBaseline(
@@ -206,38 +141,6 @@ namespace Kobbyist.ProgressionControls.Core
             m_MaximumPopulation = currentPopulation;
             m_FractionalXp = 0m;
             m_ConfiguredRate = configuredRate;
-            m_HasConfiguredRate = true;
-        }
-
-        private PopulationObservationResult Accepted(
-            bool establishedBaseline,
-            long awardedXp,
-            int newRecordDelta,
-            int currentPopulation)
-        {
-            return new PopulationObservationResult(
-                accepted: true,
-                establishedBaseline,
-                awardedXp,
-                newRecordDelta,
-                m_MaximumPopulation,
-                PopulationToResume(currentPopulation));
-        }
-
-        private PopulationObservationResult Rejected()
-        {
-            return new PopulationObservationResult(
-                accepted: false,
-                establishedBaseline: false,
-                awardedXp: 0,
-                newRecordDelta: 0,
-                m_MaximumPopulation,
-                populationToResume: 0);
-        }
-
-        private int PopulationToResume(int currentPopulation)
-        {
-            return Math.Max(0, m_MaximumPopulation - currentPopulation);
         }
     }
 }

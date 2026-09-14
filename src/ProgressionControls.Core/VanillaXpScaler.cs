@@ -1,5 +1,3 @@
-using System;
-
 namespace Kobbyist.ProgressionControls.Core
 {
     public sealed class VanillaXpScaler
@@ -15,18 +13,16 @@ namespace Kobbyist.ProgressionControls.Core
         public bool TransformsPositiveXp =>
             m_Enabled && m_Percentage != 100;
 
-        public bool Configure(bool enabled, int percentage)
+        public void Configure(bool enabled, int percentage)
         {
-            var boundedPercentage = Math.Max(0, Math.Min(100, percentage));
-            if (m_Enabled == enabled && m_Percentage == boundedPercentage)
+            if (m_Enabled == enabled && m_Percentage == percentage)
             {
-                return false;
+                return;
             }
 
             m_Enabled = enabled;
-            m_Percentage = boundedPercentage;
+            m_Percentage = percentage;
             m_RemainderHundredths = 0;
-            return true;
         }
 
         public int Scale(int amount)
@@ -41,9 +37,7 @@ namespace Kobbyist.ProgressionControls.Core
             var scaled = numerator / ScaleDivisor;
             m_RemainderHundredths = (int)(numerator % ScaleDivisor);
 
-            return (int)Math.Max(
-                int.MinValue,
-                Math.Min(int.MaxValue, scaled));
+            return (int)scaled;
         }
 
         public bool TryRestoreRemainder(int remainderHundredths)

@@ -16,7 +16,7 @@ namespace Kobbyist.ProgressionControls.Core
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            if (requiredXp <= 0)
+            if (requiredXp < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(requiredXp));
             }
@@ -52,53 +52,6 @@ namespace Kobbyist.ProgressionControls.Core
         public bool CanClaim { get; }
     }
 
-    internal static class ManualMilestoneQueue
-    {
-        public static IReadOnlyList<ManualMilestoneQueueEntry> Build(
-            int achievedMilestone,
-            int cityXp,
-            long heldXp,
-            bool claimPending,
-            bool claimsActive,
-            IEnumerable<ManualMilestoneDefinition> milestones)
-        {
-            if (!ManualMilestoneCatalog.TryCreate(
-                milestones,
-                out var catalog))
-            {
-                return Array.Empty<ManualMilestoneQueueEntry>();
-            }
-
-            return catalog.Build(
-                achievedMilestone,
-                cityXp,
-                heldXp,
-                claimPending,
-                claimsActive);
-        }
-
-        public static bool TryGetNext(
-            int achievedMilestone,
-            IEnumerable<ManualMilestoneDefinition> milestones,
-            out ManualMilestoneDefinition nextMilestone,
-            out bool finalMilestoneReached)
-        {
-            if (!ManualMilestoneCatalog.TryCreate(
-                milestones,
-                out var catalog))
-            {
-                nextMilestone = null;
-                finalMilestoneReached = false;
-                return false;
-            }
-
-            return catalog.TryGetNext(
-                achievedMilestone,
-                out nextMilestone,
-                out finalMilestoneReached);
-        }
-    }
-
     internal sealed class ManualMilestoneCatalog
     {
         private readonly ManualMilestoneDefinition[] m_Ordered;
@@ -108,9 +61,6 @@ namespace Kobbyist.ProgressionControls.Core
         {
             m_Ordered = ordered;
         }
-
-        public IReadOnlyList<ManualMilestoneDefinition> Definitions =>
-            m_Ordered;
 
         public static bool TryCreate(
             IEnumerable<ManualMilestoneDefinition> milestones,

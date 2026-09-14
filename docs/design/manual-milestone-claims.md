@@ -15,7 +15,8 @@ unlocks.
 ## Persistence and recovery
 
 Schema 5 stores held XP and a pending claim's milestone index, released XP, and
-threshold. Schema 4 remains readable with those fields empty.
+threshold. Schema 2 from public version 0.1.1 remains readable with those fields
+empty.
 
 A pending claim is transactional. Loading confirms it when the milestone has
 advanced, waits when city XP reached the threshold, or returns the released XP
@@ -38,13 +39,14 @@ amount, the external state remains unchanged.
 - `ProgressionControlSystem` runs before `XPSystem`.
 - Simulation code reads `MilestoneData` and `MilestoneLevel`; UI requests are
   validated again by the simulation system.
-- A usable milestone catalog has contiguous indexes starting at 1, strictly
-  increasing cumulative thresholds, and one final `m_IsVictory` marker on the
-  highest definition.
+- A usable milestone catalog has contiguous indexes starting at 1,
+  non-negative and strictly increasing cumulative thresholds, and one final
+  `m_IsVictory` marker on the highest definition.
 - Missing or invalid catalog data cannot prove final completion. Held and new
   positive XP stay external until a valid catalog is available.
 - Final surplus XP is released only after the achieved definition carries the
-  validated final marker.
+  validated final marker and vanilla's canonical locked-milestone query is
+  empty.
 
 Installed signatures and IL evidence are recorded in
 [local-assembly-verification.md](../local-assembly-verification.md).

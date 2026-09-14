@@ -29,6 +29,7 @@ namespace Kobbyist.ProgressionControls
                 { "Kobbyist.ProgressionControls.UI.Claim", "Claim" },
                 { "Kobbyist.ProgressionControls.UI.Claiming", "Claiming..." },
                 { "Kobbyist.ProgressionControls.UI.Complete", "Every milestone has been reached." },
+                { "Kobbyist.ProgressionControls.UI.MilestoneDataUnavailable", "Milestone data is unavailable." },
                 { "Kobbyist.ProgressionControls.UI.NextMilestone", "Next milestone" },
                 { "Kobbyist.ProgressionControls.UI.MilestoneLabel", "Milestone" },
                 { "Kobbyist.ProgressionControls.UI.XpProgress", "XP progress to the next milestone" },

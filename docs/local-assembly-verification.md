@@ -152,7 +152,7 @@ Static metadata and IL inspection confirms:
 
 A city session identifier is therefore stable across ordinary loads but is not
 enough to distinguish separate save checkpoints. Production external state is
-keyed by `{sessionGuid}/{simulationFrame}.{sha256(saveName)}.json`. Schema 4
+keyed by `{sessionGuid}/{simulationFrame}.{sha256(saveName)}.json`. Schema 5
 stores the exact logical save name inside the checkpoint as a collision check.
 Separate saves retain separate snapshots even when divergent branches reach the
 same simulation frame. A pending checkpoint is captured and flushed before
@@ -170,10 +170,11 @@ the same city session and exact logical save name. Exact matches remain
 preferred. Future checkpoints and checkpoints more than 4,096 frames older are
 not eligible.
 
-Schema 0, 2, 3, and 4 checkpoints remain loadable. Because schema 0 predates
-save-name indexing, its cleanup uses a deterministic fallback: retain the newest
-16 per city session by last-write time, then simulation frame, then path.
-Cleanup is best-effort and is isolated from the completed game-save result.
+Only schema 2 and schema 5 checkpoints are loadable. Schema 2 was published in
+version 0.1.1 and remains discoverable through its frame-only filename. Schema 0
+from version 0.1.0 and unpublished schemas 3 and 4 are ignored and left
+untouched. Cleanup processes only supported checkpoints and remains isolated
+from the completed game-save result.
 
 ### Data path and evaluation cadence
 
@@ -359,6 +360,12 @@ milestone claims:
   `MilestoneUISystem.GetVictoryMilestone` scans the milestone query for that
   flag. Manual claims use it as positive evidence before releasing final
   surplus XP.
+- `MilestoneUISystem` builds its display catalog from entities with
+  `PrefabData` and `MilestoneData`, excluding `Deleted` and `Temp`. Its
+  `IsMaxMilestoneReached` result also requires that the equivalent query with
+  `Locked` is empty. Manual claims mirror both query shapes and require the
+  catalog's final marker and vanilla's locked-query result before reporting
+  terminal completion or releasing final surplus XP.
 - `Game.Prefabs.MilestonePrefab` exposes the milestone index, cumulative XP
   threshold, image, background color, accent color, and text color.
 - `Game.UI.InGame.MilestoneUISystem` is a `UISystemBase`. Its declared bindings

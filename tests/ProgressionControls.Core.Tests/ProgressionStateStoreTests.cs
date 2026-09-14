@@ -69,6 +69,22 @@ public sealed class ProgressionStateStoreTests
     }
 
     [TestMethod]
+    public void LoadRequiresExactSaveName()
+    {
+        var store = CreateStore();
+
+        Assert.IsFalse(store.TryLoad(
+            CityId,
+            100,
+            saveName: null,
+            out _,
+            out var loadError));
+        Assert.AreEqual(
+            "The loaded save name is required",
+            loadError);
+    }
+
+    [TestMethod]
     public void AtomicWriteTemporaryPathDoesNotRepeatLongCheckpointName()
     {
         var directory = Path.Combine(
@@ -354,19 +370,21 @@ public sealed class ProgressionStateStoreTests
             out var loadError),
             loadError);
 
-        var queue = ManualMilestoneQueue.Build(
-            achievedMilestone: 3,
-            cityXp: 99,
-            restored.HeldMilestoneXp,
-            claimPending: false,
-            claimsActive: true,
+        Assert.IsTrue(ManualMilestoneCatalog.TryCreate(
             new[]
             {
                 new ManualMilestoneDefinition(1, 25),
                 new ManualMilestoneDefinition(2, 50),
                 new ManualMilestoneDefinition(3, 75),
                 new ManualMilestoneDefinition(4, 100, isFinal: true),
-            });
+            },
+            out var catalog));
+        var queue = catalog.Build(
+            achievedMilestone: 3,
+            cityXp: 99,
+            restored.HeldMilestoneXp,
+            claimPending: false,
+            claimsActive: true);
         Assert.AreEqual(1, queue.Count);
         Assert.IsTrue(queue[0].CanClaim);
     }
@@ -707,8 +725,12 @@ public sealed class ProgressionStateStoreTests
         Assert.AreEqual(12, restored.PendingPopulationXp);
     }
 
-    [TestMethod]
-    public void SchemaFourCheckpointRemainsLoadable()
+    [DataTestMethod]
+    [DataRow(0)]
+    [DataRow(3)]
+    [DataRow(4)]
+    public void UnsupportedCheckpointSchemaIsIgnoredAndPreserved(
+        int schemaVersion)
     {
         var store = CreateStore();
         var snapshot = Snapshot(
@@ -723,16 +745,60 @@ public sealed class ProgressionStateStoreTests
             path,
             json.Replace(
                 @"""SchemaVersion"":5",
-                @"""SchemaVersion"":4"));
+                $@"""SchemaVersion"":{schemaVersion}"));
 
-        Assert.IsTrue(store.TryLoad(
+        Assert.IsFalse(store.TryLoad(
             CityId,
             501,
             "Save/A",
-            out var restored,
-            out var loadError),
-            loadError);
-        AssertSnapshot(snapshot, restored);
+            out _,
+            out var loadError));
+        StringAssert.Contains(
+            loadError,
+            "schema or value validation");
+        Assert.IsTrue(File.Exists(path));
+    }
+
+    [TestMethod]
+    public void CleanupLeavesUnsupportedCheckpointSchemasUntouched()
+    {
+        var store = CreateStore();
+        var unsupportedPaths = new List<string>();
+        foreach (var schemaVersion in new[] { 0, 3, 4 })
+        {
+            var snapshot = Snapshot(
+                frame: (uint)(510 + schemaVersion),
+                pendingPopulationXp: 13);
+            PrepareAndCommit(
+                store,
+                snapshot,
+                $"Save/{schemaVersion}");
+            var path = CheckpointFiles()
+                .Single(candidate =>
+                    !unsupportedPaths.Contains(candidate));
+            var json = File.ReadAllText(path);
+            File.WriteAllText(
+                path,
+                json.Replace(
+                    @"""SchemaVersion"":5",
+                    $@"""SchemaVersion"":{schemaVersion}"));
+            unsupportedPaths.Add(path);
+        }
+
+        var current = Snapshot(
+            frame: 600,
+            pendingPopulationXp: 21);
+        PrepareAndCommit(store, current, "Save/Current");
+
+        var cleanup = store.Cleanup(
+            current,
+            "Save/Current",
+            new[] { "Save/Current" },
+            liveSaveEnumerationTrusted: true);
+
+        Assert.AreEqual(0, cleanup.ErrorCount);
+        Assert.AreEqual(0, cleanup.RemovedIndexedCheckpoints);
+        Assert.IsTrue(unsupportedPaths.All(File.Exists));
     }
 
     private ProgressionStateStore CreateStore()

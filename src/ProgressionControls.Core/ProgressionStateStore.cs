@@ -84,9 +84,7 @@ namespace Kobbyist.ProgressionControls.Core
             Snapshot = snapshot;
             SaveName = saveName;
             PendingPath = pendingPath;
-            SupersededPendingPaths = supersededPendingPaths == null
-                ? Array.Empty<string>()
-                : supersededPendingPaths.ToArray();
+            SupersededPendingPaths = supersededPendingPaths;
         }
 
         public ProgressionStateSnapshot Snapshot { get; }
@@ -102,11 +100,7 @@ namespace Kobbyist.ProgressionControls.Core
     {
         public int RemovedIndexedCheckpoints { get; private set; }
 
-        public int RemovedLegacyCheckpoints { get; private set; }
-
         public int RemovedPendingCheckpoints { get; private set; }
-
-        public int RetainedLegacyCheckpoints { get; internal set; }
 
         public int ErrorCount { get; private set; }
 
@@ -115,11 +109,6 @@ namespace Kobbyist.ProgressionControls.Core
         internal void RecordIndexedRemoval()
         {
             RemovedIndexedCheckpoints++;
-        }
-
-        internal void RecordLegacyRemoval()
-        {
-            RemovedLegacyCheckpoints++;
         }
 
         internal void RecordPendingRemoval()
@@ -140,10 +129,7 @@ namespace Kobbyist.ProgressionControls.Core
     internal sealed class ProgressionStateStore
     {
         private const int CurrentSchemaVersion = 5;
-        private const int SaveSpecificSchemaVersion = 4;
-        private const int MultiOwnerSchemaVersion = 3;
         private const int IndexedSchemaVersion = 2;
-        private const int LegacyCheckpointLimitPerCity = 16;
         private const uint MaximumLoadFrameDrift = 4096;
         private const string PendingExtension = ".pending";
         private const string StateExtension = ".json";
@@ -172,20 +158,6 @@ namespace Kobbyist.ProgressionControls.Core
         public bool TryLoad(
             Guid cityId,
             uint simulationFrame,
-            out ProgressionStateSnapshot snapshot,
-            out string error)
-        {
-            return TryLoad(
-                cityId,
-                simulationFrame,
-                saveName: null,
-                out snapshot,
-                out error);
-        }
-
-        public bool TryLoad(
-            Guid cityId,
-            uint simulationFrame,
             string saveName,
             out ProgressionStateSnapshot snapshot,
             out string error)
@@ -197,13 +169,19 @@ namespace Kobbyist.ProgressionControls.Core
                 error = "The active city session identifier is empty";
                 return false;
             }
+            if (string.IsNullOrWhiteSpace(saveName))
+            {
+                error = "The loaded save name is required";
+                return false;
+            }
 
             var legacyPath = GetLegacyStatePath(
                 cityId,
                 simulationFrame);
-            var path = string.IsNullOrWhiteSpace(saveName)
-                ? legacyPath
-                : GetStatePath(cityId, simulationFrame, saveName);
+            var path = GetStatePath(
+                cityId,
+                simulationFrame,
+                saveName);
             ProgressionStateSnapshot committedSnapshot = null;
             var committedWriteTimeUtc = DateTime.MinValue;
             string committedError = null;
@@ -222,11 +200,7 @@ namespace Kobbyist.ProgressionControls.Core
                     out committedWriteTimeUtc,
                     out committedError);
             }
-            else if (!string.Equals(
-                    path,
-                    legacyPath,
-                    StringComparison.OrdinalIgnoreCase) &&
-                File.Exists(legacyPath) &&
+            else if (File.Exists(legacyPath) &&
                 TryReadOwnedCheckpoint(
                     legacyPath,
                     cityId,
@@ -328,7 +302,6 @@ namespace Kobbyist.ProgressionControls.Core
             if (committedError == null &&
                 pendingError == null &&
                 !unconfirmedPendingFound &&
-                !string.IsNullOrWhiteSpace(saveName) &&
                 TryLoadNearbyOwnedCheckpoint(
                     cityId,
                     simulationFrame,
@@ -424,9 +397,10 @@ namespace Kobbyist.ProgressionControls.Core
                 if (candidateFrame >= simulationFrame ||
                     simulationFrame - candidateFrame >
                         MaximumLoadFrameDrift ||
-                    !GetSaveNames(model).Contains(
+                    !string.Equals(
+                        model.SaveName,
                         saveName,
-                        StringComparer.Ordinal))
+                        StringComparison.Ordinal))
                 {
                     continue;
                 }
@@ -551,9 +525,10 @@ namespace Kobbyist.ProgressionControls.Core
                     out _,
                     out var model,
                     out error) ||
-                !GetSaveNames(model).Contains(
+                !string.Equals(
+                    model.SaveName,
                     preparation.SaveName,
-                    StringComparer.Ordinal))
+                    StringComparison.Ordinal))
             {
                 if (error == null)
                 {
@@ -596,13 +571,6 @@ namespace Kobbyist.ProgressionControls.Core
             ProgressionStatePreparation preparation,
             out string error)
         {
-            error = null;
-            if (preparation == null ||
-                string.IsNullOrWhiteSpace(preparation.PendingPath))
-            {
-                return true;
-            }
-
             return TryDeleteFile(preparation.PendingPath, out error);
         }
 
@@ -642,9 +610,10 @@ namespace Kobbyist.ProgressionControls.Core
                     candidate.Id,
                     currentPath,
                     StringComparison.OrdinalIgnoreCase) &&
-                candidate.SaveNames.Contains(
+                string.Equals(
+                    candidate.SaveName,
                     currentSaveName,
-                    StringComparer.Ordinal));
+                    StringComparison.Ordinal));
             if (currentCandidate == null)
             {
                 result.RecordError(
@@ -652,19 +621,11 @@ namespace Kobbyist.ProgressionControls.Core
                 return result;
             }
 
-            result.RetainedLegacyCheckpoints = candidates
-                .Where(candidate => candidate.IsLegacy)
-                .GroupBy(candidate => candidate.CityId)
-                .Sum(group => Math.Min(
-                    LegacyCheckpointLimitPerCity,
-                    group.Count()));
-
             var deletions = CheckpointRetentionPolicy.SelectForDeletion(
                 candidates,
                 currentCandidate.Id,
                 liveSaveNames,
-                liveSaveEnumerationTrusted,
-                LegacyCheckpointLimitPerCity);
+                liveSaveEnumerationTrusted);
             foreach (var candidate in deletions)
             {
                 if (string.Equals(
@@ -683,14 +644,7 @@ namespace Kobbyist.ProgressionControls.Core
                     }
 
                     File.Delete(candidate.Id);
-                    if (candidate.IsLegacy)
-                    {
-                        result.RecordLegacyRemoval();
-                    }
-                    else
-                    {
-                        result.RecordIndexedRemoval();
-                    }
+                    result.RecordIndexedRemoval();
                 }
                 catch (Exception exception)
                     when (IsExpectedStorageException(exception))
@@ -742,12 +696,9 @@ namespace Kobbyist.ProgressionControls.Core
         private static bool IsCompletionConfirmed(StateFileModel model)
         {
             return model != null &&
-                (model.SchemaVersion <= IndexedSchemaVersion ||
-                    ((model.SchemaVersion ==
-                            SaveSpecificSchemaVersion ||
-                        model.SchemaVersion ==
-                            CurrentSchemaVersion) &&
-                    model.CompletionConfirmed));
+                (model.SchemaVersion == IndexedSchemaVersion ||
+                    (model.SchemaVersion == CurrentSchemaVersion &&
+                        model.CompletionConfirmed));
         }
 
         private void CleanupPendingFiles(
@@ -797,16 +748,12 @@ namespace Kobbyist.ProgressionControls.Core
 
                 var confirmed = valid &&
                     IsCompletionConfirmed(model);
-                var owners = valid
-                    ? GetSaveNames(model)
-                    : Array.Empty<string>();
                 var shouldDelete =
                     (!confirmed &&
                         lastWriteTimeUtc <= unconfirmedCutoff) ||
                     (confirmed &&
                         liveEnumerationCanDelete &&
-                        owners.Count > 0 &&
-                        !owners.Any(live.Contains));
+                        !live.Contains(model.SaveName));
                 if (!shouldDelete)
                 {
                     continue;
@@ -931,10 +878,9 @@ namespace Kobbyist.ProgressionControls.Core
                     candidates.Add(
                         new CheckpointRetentionCandidate(
                             statePath,
-                            cityId,
                             simulationFrame,
                             lastWriteTimeUtc,
-                            GetSaveNames(model)));
+                            model.SaveName));
                 }
             }
 
@@ -999,10 +945,10 @@ namespace Kobbyist.ProgressionControls.Core
                 return false;
             }
 
-            var owners = GetSaveNames(model);
-            if (string.IsNullOrWhiteSpace(saveName) ||
-                owners.Count == 0 ||
-                owners.Contains(saveName, StringComparer.Ordinal))
+            if (string.Equals(
+                model.SaveName,
+                saveName,
+                StringComparison.Ordinal))
             {
                 return true;
             }
@@ -1365,37 +1311,6 @@ namespace Kobbyist.ProgressionControls.Core
             };
         }
 
-        private static IReadOnlyCollection<string> GetSaveNames(
-            StateFileModel model)
-        {
-            if (model == null || model.SchemaVersion == 0)
-            {
-                return Array.Empty<string>();
-            }
-
-            if (model.SchemaVersion == IndexedSchemaVersion ||
-                model.SchemaVersion == SaveSpecificSchemaVersion ||
-                model.SchemaVersion == CurrentSchemaVersion)
-            {
-                return string.IsNullOrWhiteSpace(model.SaveName)
-                    ? Array.Empty<string>()
-                    : new[] { model.SaveName };
-            }
-
-            if (model.SchemaVersion != MultiOwnerSchemaVersion)
-            {
-                return Array.Empty<string>();
-            }
-
-            return model.SaveNames == null
-                ? Array.Empty<string>()
-                : model.SaveNames
-                    .Where(name => !string.IsNullOrWhiteSpace(name))
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(name => name, StringComparer.Ordinal)
-                    .ToArray();
-        }
-
         private static bool TryCreateSnapshot(
             StateFileModel model,
             Guid expectedCityId,
@@ -1444,22 +1359,7 @@ namespace Kobbyist.ProgressionControls.Core
 
         private static bool IsSupportedSchema(StateFileModel model)
         {
-            if (model.SchemaVersion == 0)
-            {
-                return true;
-            }
-
-            if (model.SchemaVersion == IndexedSchemaVersion)
-            {
-                return !string.IsNullOrWhiteSpace(model.SaveName);
-            }
-
-            if (model.SchemaVersion == MultiOwnerSchemaVersion)
-            {
-                return GetSaveNames(model).Count > 0;
-            }
-
-            return (model.SchemaVersion == SaveSpecificSchemaVersion ||
+            return (model.SchemaVersion == IndexedSchemaVersion ||
                     model.SchemaVersion == CurrentSchemaVersion) &&
                 !string.IsNullOrWhiteSpace(model.SaveName);
         }
@@ -1545,9 +1445,6 @@ namespace Kobbyist.ProgressionControls.Core
 
             [DataMember(Order = 8, EmitDefaultValue = false)]
             public string SaveName { get; set; }
-
-            [DataMember(Order = 9, EmitDefaultValue = false)]
-            public string[] SaveNames { get; set; }
 
             [DataMember(Order = 10, EmitDefaultValue = false)]
             public bool CompletionConfirmed { get; set; }

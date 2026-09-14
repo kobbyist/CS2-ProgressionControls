@@ -80,18 +80,6 @@ public sealed class VanillaXpScalerTests
     }
 
     [TestMethod]
-    public void PercentageIsBounded()
-    {
-        var scaler = new VanillaXpScaler();
-
-        scaler.Configure(enabled: true, percentage: -10);
-        Assert.AreEqual(0, scaler.Scale(53));
-
-        scaler.Configure(enabled: true, percentage: 110);
-        Assert.AreEqual(53, scaler.Scale(53));
-    }
-
-    [TestMethod]
     public void ValidRemainderCanBeRestored()
     {
         var scaler = new VanillaXpScaler();

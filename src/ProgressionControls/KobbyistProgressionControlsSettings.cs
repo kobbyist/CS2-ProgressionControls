@@ -200,25 +200,10 @@ namespace Kobbyist.ProgressionControls
                 return false;
             }
 
-            var rate = (float)configuration.XpPerResident;
-            var changed =
-                m_XpPerResident != rate ||
-                AppliedPreset != preset ||
-                AppliedXpPerResident != rate ||
-                AppliedVanillaXpPercentage !=
-                    configuration.VanillaXpPercentage ||
-                VanillaXpPercentage !=
-                    configuration.VanillaXpPercentage;
-
-            m_Preset = preset;
-            AppliedPreset = preset;
-            m_XpPerResident = rate;
-            VanillaXpPercentage =
-                configuration.VanillaXpPercentage;
-            AppliedXpPerResident = rate;
-            AppliedVanillaXpPercentage =
-                configuration.VanillaXpPercentage;
-            return changed;
+            return ApplyResolvedRules(new ProgressionSettingsState(
+                preset,
+                (double)configuration.XpPerResident,
+                configuration.VanillaXpPercentage));
         }
 
         internal bool ApplyResolvedRules(

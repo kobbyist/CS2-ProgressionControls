@@ -4,96 +4,59 @@ using System.Linq;
 
 namespace Kobbyist.ProgressionControls.Core
 {
-    public sealed class CheckpointRetentionCandidate
+    internal sealed class CheckpointRetentionCandidate
     {
         public CheckpointRetentionCandidate(
             string id,
-            Guid cityId,
             uint simulationFrame,
             DateTime lastWriteTimeUtc,
             string saveName)
-            : this(
-                id,
-                cityId,
-                simulationFrame,
-                lastWriteTimeUtc,
-                string.IsNullOrEmpty(saveName)
-                    ? Array.Empty<string>()
-                    : new[] { saveName })
-        {
-        }
-
-        public CheckpointRetentionCandidate(
-            string id,
-            Guid cityId,
-            uint simulationFrame,
-            DateTime lastWriteTimeUtc,
-            IEnumerable<string> saveNames)
         {
             Id = id;
-            CityId = cityId;
             SimulationFrame = simulationFrame;
             LastWriteTimeUtc = lastWriteTimeUtc;
-            SaveNames = saveNames == null
-                ? Array.Empty<string>()
-                : saveNames
-                    .Where(name => !string.IsNullOrEmpty(name))
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(name => name, StringComparer.Ordinal)
-                    .ToArray();
+            SaveName = saveName;
         }
 
         public string Id { get; }
-
-        public Guid CityId { get; }
 
         public uint SimulationFrame { get; }
 
         public DateTime LastWriteTimeUtc { get; }
 
-        public IReadOnlyCollection<string> SaveNames { get; }
-
-        public bool IsLegacy => SaveNames.Count == 0;
-
-        public bool OwnsSave(string saveName)
-        {
-            return SaveNames.Contains(saveName, StringComparer.Ordinal);
-        }
+        public string SaveName { get; }
     }
 
-    public static class CheckpointRetentionPolicy
+    internal static class CheckpointRetentionPolicy
     {
         public static IReadOnlyList<CheckpointRetentionCandidate>
             SelectForDeletion(
                 IEnumerable<CheckpointRetentionCandidate> candidates,
                 string currentId,
                 IReadOnlyCollection<string> liveSaveNames,
-                bool liveSaveEnumerationTrusted,
-                int legacyLimitPerCity)
+                bool liveSaveEnumerationTrusted)
         {
             if (candidates == null ||
-                string.IsNullOrEmpty(currentId) ||
-                legacyLimitPerCity < 0)
+                string.IsNullOrEmpty(currentId))
             {
                 return Array.Empty<CheckpointRetentionCandidate>();
             }
 
             var all = candidates
-                .Where(candidate => candidate != null)
+                .Where(candidate =>
+                    candidate != null &&
+                    !string.IsNullOrWhiteSpace(candidate.SaveName))
                 .ToList();
             var current = all.FirstOrDefault(candidate =>
                 string.Equals(
                     candidate.Id,
                     currentId,
                     StringComparison.Ordinal));
-            if (current == null || current.IsLegacy)
+            if (current == null)
             {
                 return Array.Empty<CheckpointRetentionCandidate>();
             }
 
-            var indexed = all
-                .Where(candidate => !candidate.IsLegacy)
-                .ToList();
             var retained = new HashSet<string>(StringComparer.Ordinal)
             {
                 current.Id,
@@ -102,17 +65,14 @@ namespace Kobbyist.ProgressionControls.Core
             var ownerBySaveName =
                 new Dictionary<string, CheckpointRetentionCandidate>(
                     StringComparer.Ordinal);
-            foreach (var candidate in indexed)
+            foreach (var candidate in all)
             {
-                foreach (var saveName in candidate.SaveNames)
+                if (!ownerBySaveName.TryGetValue(
+                        candidate.SaveName,
+                        out var owner) ||
+                    IsPreferredOwner(candidate, owner, current.Id))
                 {
-                    if (!ownerBySaveName.TryGetValue(
-                            saveName,
-                            out var owner) ||
-                        IsPreferredOwner(candidate, owner, current.Id))
-                    {
-                        ownerBySaveName[saveName] = candidate;
-                    }
+                    ownerBySaveName[candidate.SaveName] = candidate;
                 }
             }
             foreach (var owner in ownerBySaveName.Values)
@@ -121,7 +81,7 @@ namespace Kobbyist.ProgressionControls.Core
             }
 
             var delete = new HashSet<string>(
-                indexed
+                all
                     .Where(candidate => !retained.Contains(candidate.Id))
                     .Select(candidate => candidate.Id),
                 StringComparer.Ordinal);
@@ -132,28 +92,14 @@ namespace Kobbyist.ProgressionControls.Core
                     liveSaveNames.Where(name => !string.IsNullOrEmpty(name)),
                     StringComparer.Ordinal);
             if (liveSaveEnumerationTrusted &&
-                current.SaveNames.Any(live.Contains))
+                live.Contains(current.SaveName))
             {
-                foreach (var candidate in indexed.Where(candidate =>
+                foreach (var candidate in all.Where(candidate =>
                     !string.Equals(
                         candidate.Id,
                         current.Id,
                         StringComparison.Ordinal) &&
-                    !candidate.SaveNames.Any(live.Contains)))
-                {
-                    delete.Add(candidate.Id);
-                }
-            }
-
-            foreach (var cityGroup in all
-                .Where(candidate => candidate.IsLegacy)
-                .GroupBy(candidate => candidate.CityId))
-            {
-                foreach (var candidate in cityGroup
-                    .OrderByDescending(item => item.LastWriteTimeUtc)
-                    .ThenByDescending(item => item.SimulationFrame)
-                    .ThenBy(item => item.Id, StringComparer.Ordinal)
-                    .Skip(legacyLimitPerCity))
+                    !live.Contains(candidate.SaveName)))
                 {
                     delete.Add(candidate.Id);
                 }

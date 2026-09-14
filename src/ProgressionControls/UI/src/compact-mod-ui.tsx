@@ -8,26 +8,6 @@ const roundHighlightTheme = getModule(
   "classes",
 ) as { button: string };
 
-interface TopLeftEntryButtonProps {
-  icon: string;
-  title: string;
-  onSelect: () => void;
-}
-
-export const TopLeftEntryButton = ({
-  icon,
-  title,
-  onSelect,
-}: TopLeftEntryButtonProps) => (
-  <Button
-    variant="floating"
-    src={icon}
-    tooltipLabel={title}
-    aria-label={title}
-    onSelect={onSelect}
-  />
-);
-
 interface CompactModPanelProps {
   title: string;
   icon?: string;

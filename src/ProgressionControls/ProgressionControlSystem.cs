@@ -271,9 +271,7 @@ namespace Kobbyist.ProgressionControls
             // Wait for its metadata instead of establishing a fresh baseline
             // that could discard mod-owned state from that checkpoint.
             if (loadedSaveNameError != null ||
-                !ProgressionInitializationPolicy.IsSaveIdentityReady(
-                    loadedSaveDescriptorAvailable,
-                    hasLoadedSaveName))
+                (loadedSaveDescriptorAvailable && !hasLoadedSaveName))
             {
                 m_InitializationDelayReason =
                     loadedSaveNameError ??
@@ -527,18 +525,11 @@ namespace Kobbyist.ProgressionControls
             ProgressionSettingsState requested,
             ProgressionSettingsState normalized)
         {
-            if (requested.Equals(normalized))
+            var changed = settings.ApplyResolvedRules(normalized);
+            if (changed || !requested.Equals(normalized))
             {
-                if (!settings.ApplyResolvedRules(normalized))
-                {
-                    return;
-                }
+                settings.ApplyAndSave();
             }
-            else
-            {
-                settings.ApplyResolvedRules(normalized);
-            }
-            settings.ApplyAndSave();
         }
 
         private void EvaluatePopulation()
@@ -553,21 +544,20 @@ namespace Kobbyist.ProgressionControls
             var currentPopulation =
                 EntityManager.GetComponentData<Population>(city)
                     .m_Population;
-            var result = m_PopulationTracker.Observe(
+            if (!m_PopulationTracker.TryObserve(
                 currentPopulation,
-                m_Configuration);
-
-            if (!result.Accepted)
+                m_Configuration,
+                out var awardedXp))
             {
                 Mod.Log.Warn(
                     "Skipped a population observation because its data was invalid");
                 return;
             }
 
-            if (result.AwardedXp > 0)
+            if (awardedXp > 0)
             {
                 if (!m_PopulationXpBatch.TryAdd(
-                    result.AwardedXp))
+                    awardedXp))
                 {
                     Mod.Log.Error(
                         "Population XP batch overflowed; preserving the previously pending amount");
@@ -593,11 +583,10 @@ namespace Kobbyist.ProgressionControls
             var vanillaMaximumPopulation =
                 EntityManager.GetComponentData<XP>(city)
                     .m_MaximumPopulation;
-            var result = m_PopulationTracker.Rebaseline(
+            if (!m_PopulationTracker.TryRebaseline(
                 currentPopulation,
                 vanillaMaximumPopulation,
-                m_Configuration);
-            if (!result.Accepted)
+                m_Configuration))
             {
                 Mod.Log.Warn(
                     "Progression integration could not re-enable because the active city baseline is invalid");
@@ -609,7 +598,7 @@ namespace Kobbyist.ProgressionControls
                 enabled: true,
                 percentage: m_Configuration.VanillaXpPercentage);
             Mod.Log.Info(
-                $"Progression integration re-enabled at population {currentPopulation}, maximum={result.MaximumPopulation}; disabled-period growth will not award population XP");
+                $"Progression integration re-enabled at population {currentPopulation}, maximum={m_PopulationTracker.MaximumPopulation}; disabled-period growth will not award population XP");
             return true;
         }
 
@@ -746,8 +735,7 @@ namespace Kobbyist.ProgressionControls
         {
             // XPSystem emits one XPMessage per XPGain, so a scheduled
             // window submits at most one population gain.
-            var amount = (int)m_PopulationXpBatch.TakeUpTo(
-                int.MaxValue);
+            var amount = m_PopulationXpBatch.TakeNextInt32Chunk();
             if (amount <= 0)
             {
                 return;
@@ -1022,11 +1010,10 @@ namespace Kobbyist.ProgressionControls
             }
 
             if (cleanup.RemovedIndexedCheckpoints > 0 ||
-                cleanup.RemovedLegacyCheckpoints > 0 ||
                 cleanup.RemovedPendingCheckpoints > 0)
             {
                 Mod.Log.Info(
-                    $"Cleaned progression checkpoints: indexed={cleanup.RemovedIndexedCheckpoints}, legacy={cleanup.RemovedLegacyCheckpoints}, pending={cleanup.RemovedPendingCheckpoints}, retainedLegacy={cleanup.RetainedLegacyCheckpoints}");
+                    $"Cleaned progression checkpoints: indexed={cleanup.RemovedIndexedCheckpoints}, pending={cleanup.RemovedPendingCheckpoints}");
             }
             if (cleanup.ErrorCount > 0)
             {

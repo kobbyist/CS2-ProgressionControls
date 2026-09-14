@@ -107,51 +107,45 @@ namespace Kobbyist.ProgressionControls
                 Milestones = Array.Empty<ManualMilestoneClaimView>(),
             };
 
-        [DataMember(Name = "available", Order = 1)]
-        public bool Available { get; set; }
-
-        [DataMember(Name = "active", Order = 2)]
-        public bool Active { get; set; }
-
-        [DataMember(Name = "heldXp", Order = 3)]
+        [DataMember(Name = "heldXp", Order = 1)]
         public long HeldXp { get; set; }
 
-        [DataMember(Name = "cityXp", Order = 4)]
-        public int CityXp { get; set; }
-
-        [DataMember(Name = "effectiveXp", Order = 5)]
-        public long EffectiveXp { get; set; }
-
-        [DataMember(Name = "claimPending", Order = 6)]
+        [DataMember(Name = "claimPending", Order = 2)]
         public bool ClaimPending { get; set; }
 
-        [DataMember(Name = "dialog", Order = 7)]
+        [DataMember(Name = "dialog", Order = 3)]
         public string Dialog { get; set; }
 
-        [DataMember(Name = "milestones", Order = 8)]
+        [DataMember(Name = "milestones", Order = 4)]
         public ManualMilestoneClaimView[] Milestones
         {
             get;
             set;
         }
 
-        [DataMember(Name = "nextMilestoneIndex", Order = 9)]
+        [DataMember(Name = "nextMilestoneIndex", Order = 5)]
         public int NextMilestoneIndex { get; set; }
 
-        [DataMember(Name = "nextRequiredXp", Order = 10)]
+        [DataMember(Name = "nextRequiredXp", Order = 6)]
         public int NextRequiredXp { get; set; }
 
-        [DataMember(Name = "nextImage", Order = 11)]
+        [DataMember(Name = "nextImage", Order = 7)]
         public string NextImage { get; set; }
 
-        [DataMember(Name = "nextRangeXp", Order = 12)]
+        [DataMember(Name = "nextRangeXp", Order = 8)]
         public long NextRangeXp { get; set; }
 
-        [DataMember(Name = "nextBackgroundColor", Order = 13)]
+        [DataMember(Name = "nextBackgroundColor", Order = 9)]
         public MilestoneCardColorView NextBackgroundColor { get; set; }
 
-        [DataMember(Name = "nextTextColor", Order = 14)]
+        [DataMember(Name = "nextTextColor", Order = 10)]
         public MilestoneCardColorView NextTextColor { get; set; }
+
+        [DataMember(Name = "catalogAvailable", Order = 11)]
+        public bool CatalogAvailable { get; set; }
+
+        [DataMember(Name = "finalMilestoneReached", Order = 12)]
+        public bool FinalMilestoneReached { get; set; }
 
         public static ManualMilestoneClaimsViewState Empty => s_Empty;
     }

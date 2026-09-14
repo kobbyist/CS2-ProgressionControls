@@ -20,6 +20,7 @@ namespace Kobbyist.ProgressionControls
         private PrefabSystem m_PrefabSystem;
         private EntityQuery m_MilestoneLevelQuery;
         private EntityQuery m_MilestoneQuery;
+        private EntityQuery m_LockedMilestoneQuery;
         private ManualMilestoneClaimsDialogKind m_ManualMilestoneClaimsDialog;
         private ManualMilestoneClaimsDecision m_RequestedManualMilestoneClaimsDecision;
         private ManualMilestoneCatalog m_MilestoneCatalog;
@@ -39,8 +40,33 @@ namespace Kobbyist.ProgressionControls
                 World.GetOrCreateSystemManaged<PrefabSystem>();
             m_MilestoneLevelQuery = GetEntityQuery(
                 ComponentType.ReadOnly<MilestoneLevel>());
-            m_MilestoneQuery = GetEntityQuery(
-                ComponentType.ReadOnly<MilestoneData>());
+            m_MilestoneQuery = GetEntityQuery(new EntityQueryDesc
+            {
+                All = new[]
+                {
+                    ComponentType.ReadOnly<PrefabData>(),
+                    ComponentType.ReadOnly<MilestoneData>(),
+                },
+                None = new[]
+                {
+                    ComponentType.ReadOnly<Game.Common.Deleted>(),
+                    ComponentType.ReadOnly<Game.Tools.Temp>(),
+                },
+            });
+            m_LockedMilestoneQuery = GetEntityQuery(new EntityQueryDesc
+            {
+                All = new[]
+                {
+                    ComponentType.ReadOnly<PrefabData>(),
+                    ComponentType.ReadOnly<MilestoneData>(),
+                    ComponentType.ReadOnly<Locked>(),
+                },
+                None = new[]
+                {
+                    ComponentType.ReadOnly<Game.Common.Deleted>(),
+                    ComponentType.ReadOnly<Game.Tools.Temp>(),
+                },
+            });
             ResetMilestoneCatalog();
         }
 
@@ -495,27 +521,21 @@ namespace Kobbyist.ProgressionControls
                     ? long.MaxValue
                     : m_ManualMilestoneClaimBank.HeldXp + cityXp;
             ManualMilestoneRuntimeDefinition nextMilestone = null;
+            var finalMilestoneReached = false;
             if (catalogAvailable)
             {
-                foreach (var definition in m_MilestoneRuntimeDefinitions)
-                {
-                    if (definition.Index > achievedMilestone)
-                    {
-                        nextMilestone = definition;
-                        break;
-                    }
-                }
+                TryGetNextMilestone(
+                    achievedMilestone,
+                    out nextMilestone,
+                    out finalMilestoneReached);
             }
-            var nextRange = MilestoneRangeProgress.Calculate(
-                effectiveXp,
-                nextMilestone?.RequiredXp ?? 0);
+            var nextRequiredXp = nextMilestone?.RequiredXp ?? 0;
+            var nextRangeXp = nextRequiredXp > 0
+                ? Math.Min(Math.Max(0L, effectiveXp), nextRequiredXp)
+                : 0;
             return new ManualMilestoneClaimsViewState
             {
-                Available = true,
-                Active = m_ManualClaimsActive,
                 HeldXp = m_ManualMilestoneClaimBank.HeldXp,
-                CityXp = cityXp,
-                EffectiveXp = effectiveXp,
                 ClaimPending =
                     m_ManualMilestoneClaimBank.IsClaimPending,
                 Dialog = m_ManualMilestoneClaimsDialog
@@ -524,15 +544,16 @@ namespace Kobbyist.ProgressionControls
                 Milestones = milestones,
                 NextMilestoneIndex =
                     nextMilestone?.Index ?? 0,
-                NextRequiredXp =
-                    nextRange.RequiredXp,
+                NextRequiredXp = nextRequiredXp,
                 NextImage =
                     nextMilestone?.Image ?? string.Empty,
-                NextRangeXp = nextRange.CurrentXp,
+                NextRangeXp = nextRangeXp,
                 NextBackgroundColor =
                     nextMilestone?.BackgroundColor ?? default,
                 NextTextColor =
                     nextMilestone?.TextColor ?? default,
+                CatalogAvailable = catalogAvailable,
+                FinalMilestoneReached = finalMilestoneReached,
             };
         }
 
@@ -587,34 +608,26 @@ namespace Kobbyist.ProgressionControls
             out bool finalMilestoneReached)
         {
             finalMilestoneReached = false;
-            if (!TryEnsureMilestoneCatalog() ||
-                !m_MilestoneCatalog.TryGetNext(
-                    achievedMilestone,
-                    out var next,
-                    out finalMilestoneReached))
+            if (!TryEnsureMilestoneCatalog())
             {
                 milestone = null;
                 return false;
             }
 
-            var runtimeIndex = next.Index - 1;
-            milestone = runtimeIndex >= 0 &&
-                runtimeIndex < m_MilestoneRuntimeDefinitions.Length
-                ? m_MilestoneRuntimeDefinitions[runtimeIndex]
-                : null;
-            if (milestone != null &&
-                (milestone.Index != next.Index ||
-                    milestone.RequiredXp != next.RequiredXp))
+            if (!m_MilestoneCatalog.TryGetNext(
+                    achievedMilestone,
+                    out var next,
+                    out var catalogFinalMilestoneReached))
             {
                 milestone = null;
-            }
-            if (milestone != null)
-            {
-                return true;
+                finalMilestoneReached =
+                    catalogFinalMilestoneReached &&
+                    m_LockedMilestoneQuery.IsEmpty;
+                return false;
             }
 
-            finalMilestoneReached = false;
-            return false;
+            milestone = m_MilestoneRuntimeDefinitions[next.Index - 1];
+            return true;
         }
 
         private void ResetMilestoneCatalog()
@@ -670,7 +683,7 @@ namespace Kobbyist.ProgressionControls
                 {
                     var milestoneData = data[index];
                     if (milestoneData.m_Index <= 0 ||
-                        milestoneData.m_XpRequried <= 0)
+                        milestoneData.m_XpRequried < 0)
                     {
                         return false;
                     }

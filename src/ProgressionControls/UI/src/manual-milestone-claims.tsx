@@ -2,21 +2,16 @@ import { bindValue, trigger, useValue } from "cs2/api";
 import { useLocalization } from "cs2/l10n";
 import { Button, Icon, Scrollable } from "cs2/ui";
 import { useEffect, useState } from "react";
-import {
-  CompactModPanel,
-  PanelSection,
-  TopLeftEntryButton,
-} from "./compact-mod-ui";
+import { CompactModPanel, PanelSection } from "./compact-mod-ui";
 import styles from "./manual-milestone-claims.module.scss";
 import progressionControlsIcon from "./progression-controls.svg";
 
 const bindingGroup = "Kobbyist.ProgressionControls";
 const nativeMilestoneIcon = "Media/Game/Icons/Milestone.svg";
-const nativeToolbarIcon = progressionControlsIcon;
 const nativeLockIcon = "Media/Glyphs/Lock.svg";
 const nativeWarningIcon = "Media/Misc/Warning.svg";
 const emptyStateJson =
-  '{"available":false,"active":false,"heldXp":0,"cityXp":0,"effectiveXp":0,"claimPending":false,"dialog":"none","milestones":[],"nextMilestoneIndex":0,"nextRequiredXp":0,"nextImage":"","nextRangeXp":0,"nextBackgroundColor":{"r":0,"g":0,"b":0,"a":0},"nextTextColor":{"r":0,"g":0,"b":0,"a":0}}';
+  '{"heldXp":0,"claimPending":false,"dialog":"none","milestones":[],"nextMilestoneIndex":0,"nextRequiredXp":0,"nextImage":"","nextRangeXp":0,"nextBackgroundColor":{"r":0,"g":0,"b":0,"a":0},"nextTextColor":{"r":0,"g":0,"b":0,"a":0},"catalogAvailable":false,"finalMilestoneReached":false}';
 
 const stateBinding = bindValue<string>(
   bindingGroup,
@@ -44,11 +39,7 @@ interface ManualMilestone {
 }
 
 interface ManualMilestoneClaimsState {
-  available: boolean;
-  active: boolean;
   heldXp: number;
-  cityXp: number;
-  effectiveXp: number;
   claimPending: boolean;
   dialog: "none" | "disable" | "restore";
   milestones: ManualMilestone[];
@@ -58,16 +49,14 @@ interface ManualMilestoneClaimsState {
   nextRangeXp: number;
   nextBackgroundColor: ManualMilestoneClaimsColor;
   nextTextColor: ManualMilestoneClaimsColor;
+  catalogAvailable: boolean;
+  finalMilestoneReached: boolean;
 }
 
 type Translate = (id: string, fallback: string) => string;
 
 const emptyState: ManualMilestoneClaimsState = {
-  available: false,
-  active: false,
   heldXp: 0,
-  cityXp: 0,
-  effectiveXp: 0,
   claimPending: false,
   dialog: "none",
   milestones: [],
@@ -77,6 +66,8 @@ const emptyState: ManualMilestoneClaimsState = {
   nextRangeXp: 0,
   nextBackgroundColor: { r: 0, g: 0, b: 0, a: 0 },
   nextTextColor: { r: 0, g: 0, b: 0, a: 0 },
+  catalogAvailable: false,
+  finalMilestoneReached: false,
 };
 
 let cachedRawState: string | undefined;
@@ -143,15 +134,18 @@ export const ManualMilestoneClaimsToolbarButton = () => {
     ) ?? "Progression Controls";
 
   return (
-    <TopLeftEntryButton
-      icon={nativeToolbarIcon}
-      title={title}
+    <Button
+      variant="floating"
+      src={progressionControlsIcon}
+      tooltipLabel={title}
+      aria-label={title}
       onSelect={requestPanelToggle}
     />
   );
 };
 
 export const ManualMilestoneClaimsOverlay = () => {
+  const available = useValue(availabilityBinding);
   const state = parseState(useValue(stateBinding));
   const [open, setOpen] = useState(false);
   const { translate } = useLocalization();
@@ -181,7 +175,7 @@ export const ManualMilestoneClaimsOverlay = () => {
     }
   }, [state.dialog]);
 
-  if (!state.available || !open) {
+  if (!available || !open) {
     return null;
   }
 
@@ -198,10 +192,17 @@ export const ManualMilestoneClaimsOverlay = () => {
       <div className={styles.panelPosition}>
         <CompactModPanel
           title={t("Title", "Progression Controls")}
-          icon={nativeToolbarIcon}
+          icon={progressionControlsIcon}
           onClose={() => setOpen(false)}
         >
-          <XpLedger heldXp={state.heldXp} t={t} />
+          <div className={styles.xpLedger}>
+            <span className={styles.ledgerLabel}>
+              {t("HeldXp", "Held XP")}
+            </span>
+            <strong className={styles.ledgerValue}>
+              {formatXp(state.heldXp)}
+            </strong>
+          </div>
 
           {state.nextMilestoneIndex > 0 ? (
             <NextMilestoneBanner
@@ -241,9 +242,13 @@ export const ManualMilestoneClaimsOverlay = () => {
                 </Scrollable>
               </PanelSection>
             </>
-          ) : state.nextMilestoneIndex <= 0 ? (
+          ) : state.finalMilestoneReached ? (
             <div className={styles.completeState}>
               {t("Complete", "Every milestone has been reached.")}
+            </div>
+          ) : !state.catalogAvailable ? (
+            <div className={styles.completeState}>
+              {t("MilestoneDataUnavailable", "Milestone data is unavailable.")}
             </div>
           ) : null}
         </CompactModPanel>
@@ -255,19 +260,6 @@ export const ManualMilestoneClaimsOverlay = () => {
     </>
   );
 };
-
-const XpLedger = ({
-  heldXp,
-  t,
-}: {
-  heldXp: number;
-  t: Translate;
-}) => (
-  <div className={styles.xpLedger}>
-    <span className={styles.ledgerLabel}>{t("HeldXp", "Held XP")}</span>
-    <strong className={styles.ledgerValue}>{formatXp(heldXp)}</strong>
-  </div>
-);
 
 const MilestoneIcon = ({
   image,
