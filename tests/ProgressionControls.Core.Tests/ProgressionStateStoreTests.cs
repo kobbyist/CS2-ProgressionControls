@@ -801,6 +801,49 @@ public sealed class ProgressionStateStoreTests
         Assert.IsTrue(unsupportedPaths.All(File.Exists));
     }
 
+    [DataTestMethod]
+    [DataRow(0, false)]
+    [DataRow(0, true)]
+    [DataRow(3, false)]
+    [DataRow(3, true)]
+    [DataRow(4, false)]
+    [DataRow(4, true)]
+    [DataRow(6, false)]
+    [DataRow(6, true)]
+    public void CleanupPreservesUnsupportedPendingCheckpoint(
+        int schemaVersion,
+        bool completionConfirmed)
+    {
+        var store = CreateStore();
+        Assert.IsTrue(store.TryPrepare(
+            Snapshot(frame: 650, pendingPopulationXp: 15),
+            "Save/Deleted",
+            out var preparation,
+            out var prepareError),
+            prepareError);
+        var path = preparation.PendingPath;
+        var originalJson = File.ReadAllText(path);
+        var unsupportedJson = originalJson.Replace(
+            @"""SchemaVersion"":5",
+            $@"""SchemaVersion"":{schemaVersion},""CompletionConfirmed"":{completionConfirmed.ToString().ToLowerInvariant()}");
+        Assert.AreNotEqual(originalJson, unsupportedJson);
+        File.WriteAllText(path, unsupportedJson);
+        File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddDays(-8));
+
+        var current = Snapshot(frame: 700, pendingPopulationXp: 12);
+        PrepareAndCommit(store, current, "Save/Current");
+        var cleanup = store.Cleanup(
+            current,
+            "Save/Current",
+            new[] { "Save/Current" },
+            liveSaveEnumerationTrusted: true);
+
+        Assert.AreEqual(0, cleanup.ErrorCount);
+        Assert.AreEqual(0, cleanup.RemovedPendingCheckpoints);
+        Assert.IsTrue(File.Exists(path));
+        Assert.AreEqual(unsupportedJson, File.ReadAllText(path));
+    }
+
     private ProgressionStateStore CreateStore()
     {
         return new ProgressionStateStore(m_RootPath!);

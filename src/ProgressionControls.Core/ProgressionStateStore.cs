@@ -731,11 +731,20 @@ namespace Kobbyist.ProgressionControls.Core
                     continue;
                 }
 
-                var valid = TryReadStateFileModel(
+                var readable = TryReadStateFileModel(
                     pendingPath,
                     out var model,
                     out var readError,
-                    out _) &&
+                    out _);
+                if (readable &&
+                    model.SchemaVersion != IndexedSchemaVersion &&
+                    model.SchemaVersion != CurrentSchemaVersion)
+                {
+                    // Unsupported formats are outside this version's cleanup ownership.
+                    continue;
+                }
+
+                var valid = readable &&
                     TryCreateSnapshot(
                         model,
                         pendingFile.CityId,
