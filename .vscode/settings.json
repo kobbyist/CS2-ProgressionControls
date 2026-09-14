@@ -1,0 +1,18 @@
+{
+  "biome.enabled": false,
+  "oxc.enable": false,
+  "oxc.enable.oxfmt": false,
+  "oxc.enable.oxlint": false,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.oxc": "never",
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.workingDirectories": ["./src/ProgressionControls/UI"],
+  "prettier.prettierPath": "./src/ProgressionControls/UI/node_modules/prettier",
+  "prettier.requireConfig": true,
+  "[csharp]": { "editor.defaultFormatter": "ms-dotnettools.csharp" },
+  "[powershell]": { "editor.defaultFormatter": "ms-vscode.powershell" },
+  "[xml]": { "editor.defaultFormatter": null, "editor.formatOnSave": false }
+}

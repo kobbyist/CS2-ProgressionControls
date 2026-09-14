@@ -1,5 +1,6 @@
 import { getModule } from "cs2/modding";
-import { Button, FOCUS_DISABLED, Panel } from "cs2/ui";
+import { FOCUS_DISABLED } from "cs2/input";
+import { Button, Panel } from "cs2/ui";
 import { ReactNode } from "react";
 import styles from "./compact-mod-ui.module.scss";
 
@@ -28,14 +29,14 @@ export const CompactModPanel = ({
   children,
 }: CompactModPanelProps) => (
   <Panel
-    className={
-      variant === "dialog" ? styles.dialogPanel : styles.overlayPanel
-    }
+    className={variant === "dialog" ? styles.dialogPanel : styles.overlayPanel}
     contentClassName={styles.panelContent}
     header={
       <div className={styles.header}>
         <div className={styles.titleArea}>
-          {icon ? <img src={icon} className={styles.headerIcon} alt="" /> : null}
+          {icon ? (
+            <img src={icon} className={styles.headerIcon} alt="" />
+          ) : null}
           <div className={styles.title} id={labelledBy}>
             {title}
           </div>

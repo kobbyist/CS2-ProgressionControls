@@ -725,7 +725,7 @@ public sealed class ProgressionStateStoreTests
         Assert.AreEqual(12, restored.PendingPopulationXp);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(0)]
     [DataRow(3)]
     [DataRow(4)]
@@ -801,7 +801,7 @@ public sealed class ProgressionStateStoreTests
         Assert.IsTrue(unsupportedPaths.All(File.Exists));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(0, false)]
     [DataRow(0, true)]
     [DataRow(3, false)]

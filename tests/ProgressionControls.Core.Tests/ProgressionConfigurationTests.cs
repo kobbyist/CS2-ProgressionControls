@@ -5,7 +5,7 @@ namespace ProgressionControls.Core.Tests;
 [TestClass]
 public sealed class ProgressionConfigurationTests
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(ProgressionPreset.PopulationBalanced, 50)]
     [DataRow(ProgressionPreset.PopulationHeavy, 25)]
     [DataRow(ProgressionPreset.PopulationOnly, 0)]
@@ -34,7 +34,7 @@ public sealed class ProgressionConfigurationTests
                 out _));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(0d)]
     [DataRow(0.25d)]
     [DataRow(1.5d)]
@@ -51,7 +51,7 @@ public sealed class ProgressionConfigurationTests
         Assert.AreEqual(ProgressionPreset.Custom, configuration.Preset);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(double.NaN)]
     [DataRow(double.PositiveInfinity)]
     [DataRow(double.NegativeInfinity)]
@@ -83,7 +83,7 @@ public sealed class ProgressionConfigurationTests
             ProgressionConfiguration.MaximumXpPerResident);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(0)]
     [DataRow(100)]
     public void VanillaPercentageBoundariesAreAccepted(int percentage)
@@ -95,7 +95,7 @@ public sealed class ProgressionConfigurationTests
                 out _));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(-1)]
     [DataRow(101)]
     public void InvalidVanillaPercentagesAreRejected(int percentage)

@@ -90,9 +90,7 @@ function parseState(value: string): ManualMilestoneClaimsState {
     cachedParsedState = {
       ...emptyState,
       ...parsed,
-      milestones: Array.isArray(parsed.milestones)
-        ? parsed.milestones
-        : [],
+      milestones: Array.isArray(parsed.milestones) ? parsed.milestones : [],
     };
   } catch {
     cachedParsedState = emptyState;
@@ -180,8 +178,7 @@ export const ManualMilestoneClaimsOverlay = () => {
   }
 
   const t: Translate = (id, fallback) =>
-    translate("Kobbyist.ProgressionControls.UI." + id, fallback) ??
-    fallback;
+    translate("Kobbyist.ProgressionControls.UI." + id, fallback) ?? fallback;
   const milestoneName = (index: number) =>
     translate("Progression.MILESTONE_NAME:" + index, "Milestone " + index) ??
     "Milestone " + index;
@@ -196,9 +193,7 @@ export const ManualMilestoneClaimsOverlay = () => {
           onClose={() => setOpen(false)}
         >
           <div className={styles.xpLedger}>
-            <span className={styles.ledgerLabel}>
-              {t("HeldXp", "Held XP")}
-            </span>
+            <span className={styles.ledgerLabel}>{t("HeldXp", "Held XP")}</span>
             <strong className={styles.ledgerValue}>
               {formatXp(state.heldXp)}
             </strong>
@@ -254,18 +249,12 @@ export const ManualMilestoneClaimsOverlay = () => {
         </CompactModPanel>
       </div>
 
-      {state.dialog !== "none" ? (
-        <DecisionDialog state={state} t={t} />
-      ) : null}
+      {state.dialog !== "none" ? <DecisionDialog state={state} t={t} /> : null}
     </>
   );
 };
 
-const MilestoneIcon = ({
-  image,
-}: {
-  image: string;
-}) => (
+const MilestoneIcon = ({ image }: { image: string }) => (
   <div className={styles.milestoneIcon}>
     {image ? (
       <img src={image} alt="" aria-hidden="true" />
@@ -295,9 +284,7 @@ const MilestoneRow = ({
   return (
     <div
       className={
-        milestone.canClaim
-          ? styles.milestoneRowClaimable
-          : styles.milestoneRow
+        milestone.canClaim ? styles.milestoneRowClaimable : styles.milestoneRow
       }
       role="listitem"
       aria-busy={claiming}
@@ -321,17 +308,11 @@ const MilestoneRow = ({
             trigger(bindingGroup, "claimMilestone", milestone.index)
           }
         >
-          {claiming
-            ? t("Claiming", "Claiming...")
-            : t("Claim", "Claim")}
+          {claiming ? t("Claiming", "Claiming...") : t("Claim", "Claim")}
         </Button>
       ) : (
         <div className={styles.queuedStatus}>
-          <Icon
-            src={nativeLockIcon}
-            tinted
-            className={styles.lockIcon}
-          />
+          <Icon src={nativeLockIcon} tinted className={styles.lockIcon} />
           <span>{t("Queued", "Queued")}</span>
         </div>
       )}
@@ -348,23 +329,13 @@ const NextMilestoneBanner = ({
   milestoneName: string;
   t: Translate;
 }) => {
-  const visibleXp = state.nextRequiredXp > 0
-    ? state.nextRangeXp
-    : 0;
-  const progress = state.nextRequiredXp > 0
-    ? Math.min(
-        100,
-        (visibleXp / state.nextRequiredXp) * 100,
-      )
-    : 0;
-  const backgroundColor = colorToCss(
-    state.nextBackgroundColor,
-    "#b9cdd1",
-  );
-  const textColor = colorToCss(
-    state.nextTextColor,
-    "#101c27",
-  );
+  const visibleXp = state.nextRequiredXp > 0 ? state.nextRangeXp : 0;
+  const progress =
+    state.nextRequiredXp > 0
+      ? Math.min(100, (visibleXp / state.nextRequiredXp) * 100)
+      : 0;
+  const backgroundColor = colorToCss(state.nextBackgroundColor, "#b9cdd1");
+  const textColor = colorToCss(state.nextTextColor, "#101c27");
 
   return (
     <PanelSection title={t("NextMilestone", "Next milestone")}>
@@ -392,10 +363,7 @@ const NextMilestoneBanner = ({
         <div
           className={styles.milestoneRangeTrack}
           role="progressbar"
-          aria-label={t(
-            "XpProgress",
-            "XP progress to the next milestone",
-          )}
+          aria-label={t("XpProgress", "XP progress to the next milestone")}
           aria-valuemin={0}
           aria-valuemax={state.nextRequiredXp}
           aria-valuenow={visibleXp}
@@ -430,10 +398,7 @@ const DecisionDialog = ({
     ? t("RecoveryTitle", "Held XP found")
     : t("DisableTitle", "Turn off manual milestone claims?");
   const body = restoring
-    ? t(
-        "RecoveryBody",
-        "is stored by Progression Controls for this city.",
-      )
+    ? t("RecoveryBody", "is stored by Progression Controls for this city.")
     : t(
         "DisableBody",
         "is held outside the city save. Choose what happens before turning this off.",
@@ -447,10 +412,7 @@ const DecisionDialog = ({
         labelledBy="progression-controls-dialog-title"
         describedBy="progression-controls-dialog-body"
       >
-        <p
-          className={styles.dialogBody}
-          id="progression-controls-dialog-body"
-        >
+        <p className={styles.dialogBody} id="progression-controls-dialog-body">
           <strong>{formatXp(state.heldXp)} XP</strong> {body}
         </p>
 
@@ -466,10 +428,7 @@ const DecisionDialog = ({
         <div className={styles.dialogActions}>
           {restoring ? (
             <>
-              <Button
-                variant="primary"
-                onSelect={() => resolve("Restore")}
-              >
+              <Button variant="primary" onSelect={() => resolve("Restore")}>
                 {t("Restore", "Restore manual claims")}
               </Button>
               <Button
@@ -479,10 +438,7 @@ const DecisionDialog = ({
               >
                 {t("Discard", "Discard permanently")}
               </Button>
-              <Button
-                variant="default"
-                onSelect={() => resolve("Later")}
-              >
+              <Button variant="default" onSelect={() => resolve("Later")}>
                 {t("Later", "Decide later")}
               </Button>
             </>
@@ -493,10 +449,7 @@ const DecisionDialog = ({
                 disabled={state.claimPending}
                 onSelect={() => resolve("Release")}
               >
-                {t(
-                  "Release",
-                  "Release to vanilla and turn off",
-                )}
+                {t("Release", "Release to vanilla and turn off")}
               </Button>
               <Button
                 variant="default"
@@ -506,10 +459,7 @@ const DecisionDialog = ({
               >
                 {t("Discard", "Discard permanently")}
               </Button>
-              <Button
-                variant="default"
-                onSelect={() => resolve("Cancel")}
-              >
+              <Button variant="default" onSelect={() => resolve("Cancel")}>
                 {t("Cancel", "Cancel")}
               </Button>
             </>
@@ -517,13 +467,8 @@ const DecisionDialog = ({
         </div>
 
         <div className={styles.discardWarning}>
-          <Icon
-            src={nativeWarningIcon}
-            className={styles.warningIcon}
-          />
-          <span>
-            {t("DiscardWarning", "Discarding cannot be undone.")}
-          </span>
+          <Icon src={nativeWarningIcon} className={styles.warningIcon} />
+          <span>{t("DiscardWarning", "Discarding cannot be undone.")}</span>
         </div>
       </CompactModPanel>
     </div>
