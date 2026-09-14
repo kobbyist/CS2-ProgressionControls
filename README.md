@@ -18,6 +18,9 @@ foundation of milestone XP without replacing the game's milestones or rewards.
 - Batches population XP into a configurable maximum number of awards and
   notifications per in-game day.
 - Applies settings changes prospectively without recalculating existing XP.
+- Optionally holds earned XP below the next milestone until you claim it.
+- Shows every currently claimable milestone in order, with only the next claim
+  enabled.
 
 Population decline never removes XP. If population falls and later recovers,
 population XP resumes only after the previous record is exceeded.
@@ -66,12 +69,29 @@ Turning off **Enable custom progression** leaves future queued XP unscaled and
 makes the mod dormant. Re-enabling establishes a safe population baseline and
 does not grant retroactive XP.
 
+**Manual milestone claims** is a separate option and is off by default. While
+enabled, city XP stops one point below the next vanilla threshold and excess XP
+is held in the matching Progression Controls checkpoint. Open the in-game
+Progression Controls button to claim earned milestones one at a time. The game
+still grants its own rewards and unlocks.
+
+Turning manual claims off with held XP asks whether to release it to vanilla
+progression, discard it permanently, or cancel. Turn manual claims off and make
+that choice before disabling or removing the mod.
+
+The [manual milestone claims design](docs/design/manual-milestone-claims.md)
+records the transaction, recovery, and game-integration rules.
+
 ## Save safety
 
 Progression Controls does not add required components to the city save. XP and
-milestones already earned become normal game state. A city remains loadable
-after disabling or removing the mod, and future progression returns to vanilla
-behavior.
+milestones already written to the city remain normal game state. A city remains
+loadable after disabling or removing the mod, and future progression returns to
+vanilla behavior.
+
+Held XP from manual milestone claims is external. Before removing the mod, use
+the manual-claims disable prompt to release or discard it. Reinstalling the mod
+can offer recovery only while the matching checkpoint still exists.
 
 Minimal population-record, fractional-XP, and pending population-XP batch state
 is stored outside the city save and keyed to the exact save checkpoint.
@@ -80,10 +100,10 @@ the mod keeps the checkpoint for that save name and retires older checkpoints
 for overwritten saves. When the game save list can be read safely, checkpoints
 for deleted saves are retired as well.
 
-Existing checkpoints from earlier mod versions do not contain a save name. The
-new retention policy keeps the newest 16 of these legacy checkpoints per city
-and removes older ones after a successful save. Loading a checkpoint that is no
-longer available establishes a safe population baseline and does not grant
+Checkpoints written by public version 0.1.1 remain readable and are replaced by
+the current format after the next successful save. Checkpoints from 0.1.0 and
+unpublished development formats are ignored and left untouched. Loading without
+a supported checkpoint establishes a safe population baseline and does not grant
 retroactive XP.
 
 ## License

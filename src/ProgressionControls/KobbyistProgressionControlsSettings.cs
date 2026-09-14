@@ -49,6 +49,18 @@ namespace Kobbyist.ProgressionControls
         public bool EnableCustomProgression { get; set; }
 
         [SettingsUISection(kSection, kGeneralGroup)]
+        [SettingsUIDisableByCondition(
+            typeof(KobbyistProgressionControlsSettings),
+            nameof(IsManualMilestoneClaimsDisabled))]
+        public bool ManualMilestoneClaims { get; set; }
+
+        public static bool IsManualMilestoneClaimsDisabled()
+        {
+            return Mod.Settings == null ||
+                !Mod.Settings.EnableCustomProgression;
+        }
+
+        [SettingsUISection(kSection, kGeneralGroup)]
         public ProgressionPreset Preset
         {
             get => m_Preset;
@@ -110,6 +122,7 @@ namespace Kobbyist.ProgressionControls
         public override void SetDefaults()
         {
             EnableCustomProgression = true;
+            ManualMilestoneClaims = false;
             Preset = ProgressionPreset.PopulationHeavy;
             PopulationEvaluationCadence =
                 PopulationEvaluationCadence.Responsive;
@@ -187,25 +200,10 @@ namespace Kobbyist.ProgressionControls
                 return false;
             }
 
-            var rate = (float)configuration.XpPerResident;
-            var changed =
-                m_XpPerResident != rate ||
-                AppliedPreset != preset ||
-                AppliedXpPerResident != rate ||
-                AppliedVanillaXpPercentage !=
-                    configuration.VanillaXpPercentage ||
-                VanillaXpPercentage !=
-                    configuration.VanillaXpPercentage;
-
-            m_Preset = preset;
-            AppliedPreset = preset;
-            m_XpPerResident = rate;
-            VanillaXpPercentage =
-                configuration.VanillaXpPercentage;
-            AppliedXpPerResident = rate;
-            AppliedVanillaXpPercentage =
-                configuration.VanillaXpPercentage;
-            return changed;
+            return ApplyResolvedRules(new ProgressionSettingsState(
+                preset,
+                (double)configuration.XpPerResident,
+                configuration.VanillaXpPercentage));
         }
 
         internal bool ApplyResolvedRules(

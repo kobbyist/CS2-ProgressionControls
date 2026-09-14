@@ -26,6 +26,9 @@
     <Reference Include="Colossal.Localization">
       <Private>false</Private>
     </Reference>
+    <Reference Include="Colossal.UI.Binding">
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Colossal.PSI.Common">
       <Private>false</Private>
     </Reference>
@@ -61,6 +64,20 @@
     <None Include="$(ModTargetsFile)" Link="Properties\Mod.targets" />
   </ItemGroup>
 
+  <Target
+    Name="BuildUI"
+    BeforeTargets="DeployWIP"
+    Condition="'$(ModPublisherCommand)' != 'Update'">
+    <Exec
+      WorkingDirectory="$(MSBuildProjectDirectory)/UI"
+      Command="npm run build" />
+    <ItemGroup>
+      <UIBundle Include="$(MSBuildProjectDirectory)/UI/build/**/*" />
+    </ItemGroup>
+    <Copy
+      SourceFiles="@(UIBundle)"
+      DestinationFiles="@(UIBundle->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
   <Target Name="DeployLicense" AfterTargets="DeployWIP">
     <ItemGroup>
       <LicenseFile Include="$(MSBuildProjectDirectory)\..\..\LICENSE" />

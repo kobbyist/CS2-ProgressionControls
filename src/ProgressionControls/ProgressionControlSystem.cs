@@ -10,6 +10,7 @@ using Game.Assets;
 using Game.City;
 using Game.PSI;
 using Game.SceneFlow;
+using Game.Serialization;
 using Game.Simulation;
 using Kobbyist.ProgressionControls.Core;
 using Unity.Collections;
@@ -38,13 +39,13 @@ namespace Kobbyist.ProgressionControls
             new VanillaXpScaler();
 
         private CitySystem m_CitySystem;
+        private LoadGameSystem m_LoadGameSystem;
         private SimulationSystem m_SimulationSystem;
         private XPSystem m_XPSystem;
         private ProgressionConfiguration m_Configuration;
         private PopulationProgressionTracker m_PopulationTracker;
         private ProgressionStateStore m_StateStore;
-        private ProgressionStateSnapshot m_PendingSaveSnapshot;
-        private string m_PendingSaveName;
+        private ProgressionStatePreparation m_PendingSavePreparation;
         private GameMode m_GameMode;
         private Guid m_CityId;
         private int m_PopulationEvaluationInterval;
@@ -54,6 +55,7 @@ namespace Kobbyist.ProgressionControls
         private uint m_InitializationStartedFrame;
         private uint m_NextPopulationEvaluationFrame;
         private uint m_NextPopulationXpAwardFrame;
+        private string m_InitializationDelayReason;
         private bool m_HasActiveCity;
         private bool m_InitializationDelayLogged;
         private bool m_HasPopulationEvaluationCadence;
@@ -71,10 +73,13 @@ namespace Kobbyist.ProgressionControls
 
             m_CitySystem =
                 World.GetOrCreateSystemManaged<CitySystem>();
+            m_LoadGameSystem =
+                World.GetOrCreateSystemManaged<LoadGameSystem>();
             m_SimulationSystem =
                 World.GetOrCreateSystemManaged<SimulationSystem>();
             m_XPSystem =
                 World.GetOrCreateSystemManaged<XPSystem>();
+            CreateManualMilestoneClaims();
             m_StateStore = new ProgressionStateStore(
                 Path.Combine(
                     EnvPath.kUserDataPath,
@@ -142,17 +147,29 @@ namespace Kobbyist.ProgressionControls
             }
 
             var settings = Mod.Settings;
+            var manualProcessingRequired =
+                UpdateManualMilestoneClaims(settings);
             var customProgressionEnabled =
                 settings.EnableCustomProgression;
+            var currentFrame =
+                m_SimulationSystem.frameIndex;
             if (!customProgressionEnabled)
             {
+                m_VanillaXpScaler.Configure(
+                    enabled: false,
+                    percentage: 100);
+                if (manualProcessingRequired)
+                {
+                    ProcessXpQueue(
+                        currentFrame,
+                        allowPopulationAward: false);
+                    return;
+                }
+
                 if (m_LastCustomProgressionEnabled)
                 {
                     FlushPendingPopulationXp();
                     m_LastCustomProgressionEnabled = false;
-                    m_VanillaXpScaler.Configure(
-                        enabled: false,
-                        percentage: 100);
                     m_PendingVanillaXp.Clear();
                     Mod.Log.Info(
                         "Progression integration disabled; population observation and XP interception are dormant");
@@ -163,8 +180,6 @@ namespace Kobbyist.ProgressionControls
 
             var configurationChanged =
                 RefreshConfigurationFromSettings(settings);
-            var currentFrame =
-                m_SimulationSystem.frameIndex;
             var evaluationRequired =
                 ConfigurePopulationEvaluationCadence(
                     settings.PopulationEvaluationCadence);
@@ -207,7 +222,9 @@ namespace Kobbyist.ProgressionControls
                 enabled: true,
                 percentage: m_Configuration.VanillaXpPercentage);
 
-            ProcessXpQueue(currentFrame);
+            ProcessXpQueue(
+                currentFrame,
+                allowPopulationAward: true);
         }
 
         private bool TryInitializeActiveCity()
@@ -246,16 +263,37 @@ namespace Kobbyist.ProgressionControls
                 settings.EnableCustomProgression;
             var simulationFrame = m_SimulationSystem.frameIndex;
 
+            var hasLoadedSaveName = TryResolveLoadedSaveName(
+                out var loadedSaveName,
+                out var loadedSaveDescriptorAvailable,
+                out var loadedSaveNameError);
+            // A valid load descriptor belongs to one exact save checkpoint.
+            // Wait for its metadata instead of establishing a fresh baseline
+            // that could discard mod-owned state from that checkpoint.
+            if (loadedSaveNameError != null ||
+                (loadedSaveDescriptorAvailable && !hasLoadedSaveName))
+            {
+                m_InitializationDelayReason =
+                    loadedSaveNameError ??
+                    "The loaded save identity is not ready";
+                return false;
+            }
+            m_InitializationDelayReason = null;
+
             ProgressionStateSnapshot persisted = null;
-            if (!m_StateStore.TryLoad(
+            if (hasLoadedSaveName)
+            {
+                m_StateStore.TryLoad(
                     m_CityId,
                     simulationFrame,
+                    loadedSaveName,
                     out persisted,
-                    out var loadError) &&
-                loadError != null)
-            {
-                Mod.Log.Warn(
-                    $"Ignored external progression state: {loadError}");
+                    out var loadError);
+                if (loadError != null)
+                {
+                    Mod.Log.Warn(
+                        $"Ignored external progression state: {loadError}");
+                }
             }
 
             if (persisted != null &&
@@ -290,7 +328,7 @@ namespace Kobbyist.ProgressionControls
                 }
 
                 Mod.Log.Info(
-                    $"Restored progression state for city {m_CityId:N} at frame {simulationFrame}");
+                    $"Restored progression state for city {m_CityId:N} from checkpoint frame {persisted.SimulationFrame} at load frame {simulationFrame}");
             }
             else
             {
@@ -314,6 +352,11 @@ namespace Kobbyist.ProgressionControls
                 Mod.Log.Info(
                     $"Established progression baseline at population {baseline}");
             }
+
+            InitializeManualMilestoneClaims(
+                persisted,
+                baseGameXp.m_XP,
+                settings);
 
             m_LastCustomProgressionEnabled =
                 customProgressionEnabled;
@@ -352,8 +395,7 @@ namespace Kobbyist.ProgressionControls
             m_HasActiveCity = false;
             m_Configuration = null;
             m_PopulationTracker = null;
-            m_PendingSaveSnapshot = null;
-            m_PendingSaveName = null;
+            m_PendingSavePreparation = null;
             m_CityId = Guid.Empty;
             m_LastSettingsState = null;
             m_PopulationEvaluationInterval = 0;
@@ -364,12 +406,15 @@ namespace Kobbyist.ProgressionControls
             m_HasPopulationXpAwardCadence = false;
             m_InitializationStartedFrame = 0;
             m_InitializationDelayLogged = false;
+            m_InitializationDelayReason = null;
             m_InitializationPending = false;
             m_VanillaXpScaler.Configure(
                 enabled: false,
                 percentage: 100);
             m_PopulationXpBatch.Clear();
             m_PendingVanillaXp.Clear();
+            ResetManualMilestoneClaims();
+            ResetMilestoneCatalog();
         }
 
         private ProgressionConfiguration ResolveInitialConfiguration(
@@ -480,18 +525,11 @@ namespace Kobbyist.ProgressionControls
             ProgressionSettingsState requested,
             ProgressionSettingsState normalized)
         {
-            if (requested.Equals(normalized))
+            var changed = settings.ApplyResolvedRules(normalized);
+            if (changed || !requested.Equals(normalized))
             {
-                if (!settings.ApplyResolvedRules(normalized))
-                {
-                    return;
-                }
+                settings.ApplyAndSave();
             }
-            else
-            {
-                settings.ApplyResolvedRules(normalized);
-            }
-            settings.ApplyAndSave();
         }
 
         private void EvaluatePopulation()
@@ -506,21 +544,20 @@ namespace Kobbyist.ProgressionControls
             var currentPopulation =
                 EntityManager.GetComponentData<Population>(city)
                     .m_Population;
-            var result = m_PopulationTracker.Observe(
+            if (!m_PopulationTracker.TryObserve(
                 currentPopulation,
-                m_Configuration);
-
-            if (!result.Accepted)
+                m_Configuration,
+                out var awardedXp))
             {
                 Mod.Log.Warn(
                     "Skipped a population observation because its data was invalid");
                 return;
             }
 
-            if (result.AwardedXp > 0)
+            if (awardedXp > 0)
             {
                 if (!m_PopulationXpBatch.TryAdd(
-                    result.AwardedXp))
+                    awardedXp))
                 {
                     Mod.Log.Error(
                         "Population XP batch overflowed; preserving the previously pending amount");
@@ -546,11 +583,10 @@ namespace Kobbyist.ProgressionControls
             var vanillaMaximumPopulation =
                 EntityManager.GetComponentData<XP>(city)
                     .m_MaximumPopulation;
-            var result = m_PopulationTracker.Rebaseline(
+            if (!m_PopulationTracker.TryRebaseline(
                 currentPopulation,
                 vanillaMaximumPopulation,
-                m_Configuration);
-            if (!result.Accepted)
+                m_Configuration))
             {
                 Mod.Log.Warn(
                     "Progression integration could not re-enable because the active city baseline is invalid");
@@ -562,18 +598,43 @@ namespace Kobbyist.ProgressionControls
                 enabled: true,
                 percentage: m_Configuration.VanillaXpPercentage);
             Mod.Log.Info(
-                $"Progression integration re-enabled at population {currentPopulation}, maximum={result.MaximumPopulation}; disabled-period growth will not award population XP");
+                $"Progression integration re-enabled at population {currentPopulation}, maximum={m_PopulationTracker.MaximumPopulation}; disabled-period growth will not award population XP");
             return true;
         }
 
-        private void ProcessXpQueue(uint currentFrame)
+        private void ProcessXpQueue(
+            uint currentFrame,
+            bool allowPopulationAward)
         {
-            if (!TryGetActiveCity(out var city))
+            var populationAwardDue = allowPopulationAward &&
+                IsPopulationXpAwardDue(currentFrame);
+            if (!m_VanillaXpScaler.TransformsPositiveXp &&
+                !m_ManualClaimsActive &&
+                m_RequestedManualMilestone <= 0 &&
+                !populationAwardDue)
+            {
+                return;
+            }
+
+            if (!TryGetActiveCity(out var city) ||
+                !EntityManager.HasComponent<XP>(city))
             {
                 m_PopulationXpBatch.Clear();
                 return;
             }
 
+            var projectedCityXp =
+                (long)EntityManager.GetComponentData<XP>(city).m_XP;
+            var nextRequiredXp = 0;
+            var finalMilestoneReached = false;
+            if (m_ManualClaimsActive &&
+                TryGetNextMilestone(
+                    GetAchievedMilestone(),
+                    out var nextMilestone,
+                    out finalMilestoneReached))
+            {
+                nextRequiredXp = nextMilestone.RequiredXp;
+            }
             var queue =
                 m_XPSystem.GetQueue(out JobHandle queueWriters);
             queueWriters.Complete();
@@ -585,8 +646,19 @@ namespace Kobbyist.ProgressionControls
                 {
                     gain.amount =
                         m_VanillaXpScaler.Scale(gain.amount);
+                    gain.amount = RouteManualPositiveXp(
+                        gain.amount,
+                        projectedCityXp,
+                        nextRequiredXp,
+                        finalMilestoneReached);
                 }
 
+                if (gain.amount == 0)
+                {
+                    continue;
+                }
+
+                projectedCityXp += gain.amount;
                 m_PendingVanillaXp.Add(gain);
             }
 
@@ -595,13 +667,23 @@ namespace Kobbyist.ProgressionControls
                 queue.Enqueue(gain);
             }
 
-            if (IsPopulationXpAwardDue(currentFrame))
+            if (populationAwardDue)
             {
-                EnqueueNextPopulationXpAward(queue, city);
+                EnqueueNextPopulationXpAward(
+                    queue,
+                    city,
+                    ref projectedCityXp,
+                    nextRequiredXp,
+                    finalMilestoneReached);
                 m_NextPopulationXpAwardFrame =
                     currentFrame +
                     (uint)m_PopulationXpAwardInterval;
             }
+
+            TryEnqueueRequestedManualClaim(
+                queue,
+                city,
+                ref projectedCityXp);
         }
 
         private void FlushPendingPopulationXp()
@@ -611,29 +693,59 @@ namespace Kobbyist.ProgressionControls
                 return;
             }
 
-            if (!TryGetActiveCity(out var city))
+            if (!TryGetActiveCity(out var city) ||
+                !EntityManager.HasComponent<XP>(city))
             {
                 m_PopulationXpBatch.Clear();
                 return;
             }
 
+            var projectedCityXp =
+                (long)EntityManager.GetComponentData<XP>(city).m_XP;
+            var nextRequiredXp = 0;
+            var finalMilestoneReached = false;
+            if (m_ManualClaimsActive &&
+                TryGetNextMilestone(
+                    GetAchievedMilestone(),
+                    out var nextMilestone,
+                    out finalMilestoneReached))
+            {
+                nextRequiredXp = nextMilestone.RequiredXp;
+            }
             var queue =
                 m_XPSystem.GetQueue(out JobHandle queueWriters);
             queueWriters.Complete();
             while (m_PopulationXpBatch.PendingXp > 0)
             {
-                EnqueueNextPopulationXpAward(queue, city);
+                EnqueueNextPopulationXpAward(
+                    queue,
+                    city,
+                    ref projectedCityXp,
+                    nextRequiredXp,
+                    finalMilestoneReached);
             }
         }
 
         private void EnqueueNextPopulationXpAward(
             NativeQueue<XPGain> queue,
-            Entity city)
+            Entity city,
+            ref long projectedCityXp,
+            int nextRequiredXp,
+            bool finalMilestoneReached)
         {
             // XPSystem emits one XPMessage per XPGain, so a scheduled
             // window submits at most one population gain.
-            var amount = (int)m_PopulationXpBatch.TakeUpTo(
-                int.MaxValue);
+            var amount = m_PopulationXpBatch.TakeNextInt32Chunk();
+            if (amount <= 0)
+            {
+                return;
+            }
+
+            amount = RouteManualPositiveXp(
+                amount,
+                projectedCityXp,
+                nextRequiredXp,
+                finalMilestoneReached);
             if (amount <= 0)
             {
                 return;
@@ -646,8 +758,8 @@ namespace Kobbyist.ProgressionControls
                     amount = amount,
                     reason = XPReason.Population,
                 });
+            projectedCityXp += amount;
         }
-
         private bool TryGetActiveCity(out Entity city)
         {
             city = Entity.Null;
@@ -775,8 +887,12 @@ namespace Kobbyist.ProgressionControls
             }
 
             m_InitializationDelayLogged = true;
+            var reason = string.IsNullOrWhiteSpace(
+                m_InitializationDelayReason)
+                ? "The active city session is not ready"
+                : m_InitializationDelayReason;
             Mod.Log.Warn(
-                "Progression integration is waiting for the active city session and will remain fail-open until it becomes available");
+                $"Progression integration is waiting and will remain fail-open: {reason}");
         }
 
         private void HandleGameSaveLoad(
@@ -787,47 +903,60 @@ namespace Kobbyist.ProgressionControls
         {
             if (start)
             {
-                m_PendingSaveName = saveName;
-                CapturePendingSaveSnapshot();
+                PrepareProgressionState(saveName);
                 return;
             }
 
-            var pending = m_PendingSaveSnapshot;
-            var pendingSaveName = m_PendingSaveName;
-            m_PendingSaveSnapshot = null;
-            m_PendingSaveName = null;
-            if (!success ||
-                pending == null ||
-                string.IsNullOrWhiteSpace(pendingSaveName))
+            var preparation = m_PendingSavePreparation;
+            m_PendingSavePreparation = null;
+            if (preparation == null)
             {
                 return;
             }
 
+            if (!success)
+            {
+                DiscardPreparedProgressionState(preparation);
+                return;
+            }
+
             if (!string.Equals(
-                pendingSaveName,
+                preparation.SaveName,
                 saveName,
                 StringComparison.Ordinal))
             {
                 Mod.Log.Warn(
                     "Skipped external progression state because the save callback identity changed");
+                DiscardPreparedProgressionState(preparation);
                 return;
             }
 
-            if (m_StateStore.TrySave(
-                pending,
-                pendingSaveName,
-                out var saveError))
+            if (m_StateStore.TryCommit(
+                preparation,
+                out var commitError))
             {
                 Mod.Log.Info(
-                    $"Saved external progression state for frame {pending.SimulationFrame}");
+                    $"Committed external progression state for frame {preparation.Snapshot.SimulationFrame}");
                 CleanupProgressionState(
-                    pending,
-                    pendingSaveName);
+                    preparation.Snapshot,
+                    preparation.SaveName);
             }
             else
             {
                 Mod.Log.Error(
-                    $"Failed to save external progression state: {saveError}");
+                    $"Failed to commit external progression state; the durable preparation remains available for recovery: {commitError}");
+            }
+        }
+
+        private void DiscardPreparedProgressionState(
+            ProgressionStatePreparation preparation)
+        {
+            if (!m_StateStore.TryDiscard(
+                preparation,
+                out var discardError))
+            {
+                Mod.Log.Warn(
+                    $"Could not discard a progression checkpoint prepared for a failed save: {discardError}");
             }
         }
 
@@ -881,10 +1010,10 @@ namespace Kobbyist.ProgressionControls
             }
 
             if (cleanup.RemovedIndexedCheckpoints > 0 ||
-                cleanup.RemovedLegacyCheckpoints > 0)
+                cleanup.RemovedPendingCheckpoints > 0)
             {
                 Mod.Log.Info(
-                    $"Cleaned progression checkpoints: indexed={cleanup.RemovedIndexedCheckpoints}, legacy={cleanup.RemovedLegacyCheckpoints}, retainedLegacy={cleanup.RetainedLegacyCheckpoints}");
+                    $"Cleaned progression checkpoints: indexed={cleanup.RemovedIndexedCheckpoints}, pending={cleanup.RemovedPendingCheckpoints}");
             }
             if (cleanup.ErrorCount > 0)
             {
@@ -893,36 +1022,245 @@ namespace Kobbyist.ProgressionControls
             }
         }
 
-        private void CapturePendingSaveSnapshot()
+        private bool TryResolveLoadedSaveName(
+            out string saveName,
+            out bool loadedSaveDescriptorAvailable,
+            out string error)
+        {
+            saveName = null;
+            loadedSaveDescriptorAvailable = false;
+            error = null;
+            try
+            {
+                if (m_LoadGameSystem == null)
+                {
+                    error = "The load system is unavailable";
+                    return false;
+                }
+
+                var loadedDescriptor = m_LoadGameSystem.dataDescriptor;
+                if (loadedDescriptor == AsyncReadDescriptor.Invalid)
+                {
+                    return false;
+                }
+                loadedSaveDescriptorAvailable = true;
+
+                var database = AssetDatabase.global;
+                if (database == null)
+                {
+                    error = "The global asset database is unavailable";
+                    return false;
+                }
+
+                var matches = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var metadata in database
+                    .AllAssets()
+                    .OfType<SaveGameMetadata>())
+                {
+                    if (metadata == null ||
+                        !metadata.isValidSaveGame ||
+                        string.IsNullOrWhiteSpace(metadata.name))
+                    {
+                        continue;
+                    }
+
+                    var saveInfo = metadata.target;
+                    if (saveInfo == null ||
+                        saveInfo.sessionGuid != m_CityId ||
+                        saveInfo.saveGameData == null ||
+                        saveInfo.saveGameData.GetAsyncReadDescriptor() !=
+                            loadedDescriptor)
+                    {
+                        continue;
+                    }
+
+                    matches.Add(metadata.name);
+                }
+
+                if (matches.Count == 1)
+                {
+                    saveName = matches.Single();
+                    return true;
+                }
+
+                error = matches.Count == 0
+                    ? "No save metadata owns the loaded data descriptor"
+                    : "More than one save metadata record owns the loaded data descriptor";
+                return false;
+            }
+            catch (Exception exception)
+            {
+                error = exception.Message;
+                return false;
+            }
+        }
+
+        private void PrepareProgressionState(string saveName)
+        {
+            m_PendingSavePreparation = null;
+            var snapshot = CaptureProgressionStateSnapshot();
+            if (snapshot == null ||
+                string.IsNullOrWhiteSpace(saveName))
+            {
+                return;
+            }
+
+            if (m_StateStore.TryPrepare(
+                snapshot,
+                saveName,
+                out var preparation,
+                out var prepareError))
+            {
+                m_PendingSavePreparation = preparation;
+                Mod.Log.Info(
+                    $"Prepared durable external progression state for frame {snapshot.SimulationFrame}");
+            }
+            else
+            {
+                Mod.Log.Error(
+                    $"Failed to prepare external progression state before the game save: {prepareError}");
+                if (TryReleaseProgressionStateToVanilla(
+                    snapshot,
+                    out var failSafeError))
+                {
+                    Mod.Log.Warn(
+                        "Released external progression state into the city XP component so the save remains self-contained");
+                    if (failSafeError != null)
+                    {
+                        Mod.Log.Warn(
+                            $"The fail-safe release reached vanilla limits: {failSafeError}");
+                    }
+                }
+                else
+                {
+                    Mod.Log.Error(
+                        $"Could not make the city save self-contained after checkpoint preparation failed: {failSafeError}");
+                }
+            }
+        }
+
+        private bool TryReleaseProgressionStateToVanilla(
+            ProgressionStateSnapshot snapshot,
+            out string error)
+        {
+            error = null;
+            try
+            {
+                if (snapshot == null ||
+                    !snapshot.IsValid ||
+                    m_Configuration == null ||
+                    m_PopulationTracker == null ||
+                    !TryGetActiveCity(out var city) ||
+                    !EntityManager.HasComponent<XP>(city) ||
+                    !EntityManager.HasComponent<Population>(city))
+                {
+                    error = "The active city progression state is unavailable";
+                    return false;
+                }
+
+                var cityXp = EntityManager.GetComponentData<XP>(city);
+                var currentPopulation =
+                    EntityManager.GetComponentData<Population>(city)
+                        .m_Population;
+                if (currentPopulation < 0)
+                {
+                    error = "The active city population is invalid";
+                    return false;
+                }
+
+                var baselineMaximum = Math.Max(
+                    m_PopulationTracker.MaximumPopulation,
+                    Math.Max(
+                        currentPopulation,
+                        snapshot.PopulationState.MaximumPopulation));
+                var baselineState = new PopulationProgressionState(
+                    baselineMaximum,
+                    fractionalXp: 0m);
+                if (!PopulationProgressionTracker.TryRestore(
+                    baselineState,
+                    m_Configuration,
+                    out var rebaselinedTracker))
+                {
+                    error = "The population tracker rejected the fail-safe baseline";
+                    return false;
+                }
+
+                var requiredXp = snapshot.RequiredVanillaFailSafeXp;
+                if (snapshot.PendingMilestoneClaim.IsPending &&
+                    cityXp.m_XP <
+                        snapshot.PendingMilestoneClaim.Threshold)
+                {
+                    requiredXp +=
+                        snapshot.PendingMilestoneClaim.ReleasedXp;
+                }
+
+                var availableXp =
+                    (decimal)int.MaxValue - cityXp.m_XP;
+                if (!VanillaXpCapacity.TryAdd(
+                    cityXp.m_XP,
+                    requiredXp,
+                    out var updatedXp))
+                {
+                    error =
+                        $"Vanilla XP can hold only {availableXp} of {requiredXp} XP; external progression state was retained";
+                    return false;
+                }
+
+                cityXp.m_XP = updatedXp;
+
+                cityXp.m_MaximumPopulation = Math.Max(
+                    cityXp.m_MaximumPopulation,
+                    baselineMaximum);
+
+                // Local 1.6.0f1 IL confirms XPSystem applies gains by adding
+                // directly to m_XP. The save callback runs before the game
+                // serializes this component.
+                EntityManager.SetComponentData(city, cityXp);
+
+                m_PopulationTracker = rebaselinedTracker;
+                m_PopulationXpBatch.Clear();
+                m_VanillaXpScaler.ClearRemainder();
+                m_PendingVanillaXp.Clear();
+                ResetManualMilestoneClaims();
+                return true;
+            }
+            catch (Exception exception)
+            {
+                error = exception.Message;
+                return false;
+            }
+        }
+
+        private ProgressionStateSnapshot
+            CaptureProgressionStateSnapshot()
         {
             if (!m_HasActiveCity ||
                 m_PopulationTracker == null ||
                 Mod.Settings == null ||
-                !Mod.Settings.EnableCustomProgression ||
+                (!Mod.Settings.EnableCustomProgression &&
+                    m_ManualMilestoneClaimBank.HeldXp == 0 &&
+                    !m_ManualMilestoneClaimBank.IsClaimPending) ||
                 m_CityId == Guid.Empty ||
                 GameManager.instance.isGameLoading)
             {
-                m_PendingSaveSnapshot = null;
-                m_PendingSaveName = null;
-                return;
+                return null;
             }
 
             var populationState =
                 m_PopulationTracker.CaptureState();
             if (populationState == null)
             {
-                m_PendingSaveSnapshot = null;
-                m_PendingSaveName = null;
-                return;
+                return null;
             }
 
-            m_PendingSaveSnapshot =
-                new ProgressionStateSnapshot(
-                    m_CityId,
-                    m_SimulationSystem.frameIndex,
-                    populationState,
-                    m_VanillaXpScaler.RemainderHundredths,
-                    m_PopulationXpBatch.PendingXp);
+            return new ProgressionStateSnapshot(
+                m_CityId,
+                m_SimulationSystem.frameIndex,
+                populationState,
+                m_VanillaXpScaler.RemainderHundredths,
+                m_PopulationXpBatch.PendingXp,
+                m_ManualMilestoneClaimBank.HeldXp,
+                m_ManualMilestoneClaimBank.PendingClaim);
         }
     }
 }

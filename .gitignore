@@ -5,3 +5,6 @@ Library/
 *.user
 *.suo
 artifacts/
+.agents/memory.md
+src/ProgressionControls/UI/node_modules/
+src/ProgressionControls/UI/build/

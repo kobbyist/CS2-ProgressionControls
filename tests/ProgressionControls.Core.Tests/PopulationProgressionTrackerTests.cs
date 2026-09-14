@@ -9,14 +9,13 @@ public sealed class PopulationProgressionTrackerTests
     public void FirstObservationEstablishesBaseline()
     {
         var tracker = new PopulationProgressionTracker();
-        var result = tracker.Observe(
-            100,
-            Configuration(0.5d));
 
-        Assert.IsTrue(result.Accepted);
-        Assert.IsTrue(result.EstablishedBaseline);
-        Assert.AreEqual(0L, result.AwardedXp);
-        Assert.AreEqual(100, result.MaximumPopulation);
+        Assert.IsTrue(tracker.TryObserve(
+            100,
+            Configuration(0.5d),
+            out var awardedXp));
+        Assert.AreEqual(0L, awardedXp);
+        Assert.AreEqual(100, tracker.MaximumPopulation);
     }
 
     [TestMethod]
@@ -24,11 +23,12 @@ public sealed class PopulationProgressionTrackerTests
     {
         var tracker = Baseline(100, 0.5d);
 
-        var result = tracker.Observe(110, Configuration(0.5d));
-
-        Assert.AreEqual(10, result.NewRecordDelta);
-        Assert.AreEqual(5L, result.AwardedXp);
-        Assert.AreEqual(110, result.MaximumPopulation);
+        Assert.IsTrue(tracker.TryObserve(
+            110,
+            Configuration(0.5d),
+            out var awardedXp));
+        Assert.AreEqual(5L, awardedXp);
+        Assert.AreEqual(110, tracker.MaximumPopulation);
     }
 
     [TestMethod]
@@ -36,16 +36,26 @@ public sealed class PopulationProgressionTrackerTests
     {
         var tracker = Baseline(100, 1d);
 
-        var decline = tracker.Observe(80, Configuration(1d));
-        var recovery = tracker.Observe(99, Configuration(1d));
-        var newRecord = tracker.Observe(103, Configuration(1d));
+        Assert.IsTrue(tracker.TryObserve(
+            80,
+            Configuration(1d),
+            out var declineXp));
+        Assert.AreEqual(0L, declineXp);
+        Assert.AreEqual(100, tracker.MaximumPopulation);
 
-        Assert.AreEqual(0L, decline.AwardedXp);
-        Assert.AreEqual(20, decline.PopulationToResume);
-        Assert.AreEqual(0L, recovery.AwardedXp);
-        Assert.AreEqual(1, recovery.PopulationToResume);
-        Assert.AreEqual(3L, newRecord.AwardedXp);
-        Assert.AreEqual(3, newRecord.NewRecordDelta);
+        Assert.IsTrue(tracker.TryObserve(
+            99,
+            Configuration(1d),
+            out var recoveryXp));
+        Assert.AreEqual(0L, recoveryXp);
+        Assert.AreEqual(100, tracker.MaximumPopulation);
+
+        Assert.IsTrue(tracker.TryObserve(
+            103,
+            Configuration(1d),
+            out var newRecordXp));
+        Assert.AreEqual(3L, newRecordXp);
+        Assert.AreEqual(103, tracker.MaximumPopulation);
     }
 
     [TestMethod]
@@ -53,68 +63,66 @@ public sealed class PopulationProgressionTrackerTests
     {
         var tracker = Baseline(100, 0d);
 
-        var result = tracker.Observe(
+        Assert.IsTrue(tracker.TryObserve(
             200,
-            Configuration(0d));
-
-        Assert.AreEqual(0L, result.AwardedXp);
-        Assert.AreEqual(100, result.NewRecordDelta);
-        Assert.AreEqual(200, result.MaximumPopulation);
+            Configuration(0d),
+            out var awardedXp));
+        Assert.AreEqual(0L, awardedXp);
+        Assert.AreEqual(200, tracker.MaximumPopulation);
     }
 
     [TestMethod]
     public void RepeatedGrowthCarriesFractionalXp()
     {
         var tracker = Baseline(100, 0.25d);
-        var awards = new[]
+        var awards = new long[4];
+        for (var index = 0; index < awards.Length; index++)
         {
-            tracker.Observe(101, Configuration(0.25d)).AwardedXp,
-            tracker.Observe(102, Configuration(0.25d)).AwardedXp,
-            tracker.Observe(103, Configuration(0.25d)).AwardedXp,
-            tracker.Observe(104, Configuration(0.25d)).AwardedXp,
-        };
+            Assert.IsTrue(tracker.TryObserve(
+                101 + index,
+                Configuration(0.25d),
+                out awards[index]));
+        }
 
         CollectionAssert.AreEqual(
             new long[] { 0, 0, 0, 1 },
             awards);
-        Assert.AreEqual(0m, tracker.FractionalXp);
+        Assert.AreEqual(0m, FractionalXp(tracker));
     }
 
     [TestMethod]
     public void RebaselineUsesHighestKnownRecordAndClearsFraction()
     {
         var tracker = Baseline(100, 0.25d);
-        tracker.Observe(101, Configuration(0.25d));
-        Assert.AreEqual(0.25m, tracker.FractionalXp);
+        Assert.IsTrue(tracker.TryObserve(
+            101,
+            Configuration(0.25d),
+            out _));
+        Assert.AreEqual(0.25m, FractionalXp(tracker));
 
-        var result = tracker.Rebaseline(
+        Assert.IsTrue(tracker.TryRebaseline(
             currentPopulation: 90,
             knownMaximumPopulation: 120,
-            configuration: Configuration(1d));
+            configuration: Configuration(1d)));
+        Assert.AreEqual(120, tracker.MaximumPopulation);
+        Assert.AreEqual(0m, FractionalXp(tracker));
 
-        Assert.IsTrue(result.Accepted);
-        Assert.IsTrue(result.EstablishedBaseline);
-        Assert.AreEqual(0L, result.AwardedXp);
-        Assert.AreEqual(120, result.MaximumPopulation);
-        Assert.AreEqual(30, result.PopulationToResume);
-        Assert.AreEqual(0m, tracker.FractionalXp);
-
-        var preserved = tracker.Rebaseline(
+        Assert.IsTrue(tracker.TryRebaseline(
             currentPopulation: 100,
             knownMaximumPopulation: 110,
-            configuration: Configuration(1d));
+            configuration: Configuration(1d)));
+        Assert.AreEqual(120, tracker.MaximumPopulation);
 
-        Assert.AreEqual(120, preserved.MaximumPopulation);
-
-        var belowRecord = tracker.Observe(
+        Assert.IsTrue(tracker.TryObserve(
             119,
-            Configuration(1d));
-        var newRecord = tracker.Observe(
+            Configuration(1d),
+            out var belowRecordXp));
+        Assert.AreEqual(0L, belowRecordXp);
+        Assert.IsTrue(tracker.TryObserve(
             121,
-            Configuration(1d));
-
-        Assert.AreEqual(0L, belowRecord.AwardedXp);
-        Assert.AreEqual(1L, newRecord.AwardedXp);
+            Configuration(1d),
+            out var newRecordXp));
+        Assert.AreEqual(1L, newRecordXp);
     }
 
     [TestMethod]
@@ -122,80 +130,77 @@ public sealed class PopulationProgressionTrackerTests
     {
         var tracker = Baseline(100, 1d);
 
-        var result = tracker.Rebaseline(
+        Assert.IsFalse(tracker.TryRebaseline(
             currentPopulation: 101,
             knownMaximumPopulation: -1,
-            configuration: Configuration(1d));
-
-        Assert.IsFalse(result.Accepted);
+            configuration: Configuration(1d)));
         Assert.AreEqual(100, tracker.MaximumPopulation);
-        Assert.AreEqual(0m, tracker.FractionalXp);
+        Assert.AreEqual(0m, FractionalXp(tracker));
     }
 
     [TestMethod]
     public void RateChangeIsProspectiveAndClearsOldFraction()
     {
         var tracker = Baseline(100, 0.25d);
-        tracker.Observe(101, Configuration(0.25d));
-        Assert.AreEqual(0.25m, tracker.FractionalXp);
+        Assert.IsTrue(tracker.TryObserve(
+            101,
+            Configuration(0.25d),
+            out _));
+        Assert.AreEqual(0.25m, FractionalXp(tracker));
 
-        var reconfigured = tracker.Observe(
+        Assert.IsTrue(tracker.TryObserve(
             103,
-            Configuration(0.5d));
+            Configuration(0.5d),
+            out var reconfiguredXp));
+        Assert.AreEqual(0L, reconfiguredXp);
+        Assert.AreEqual(0m, FractionalXp(tracker));
 
-        Assert.IsTrue(reconfigured.EstablishedBaseline);
-        Assert.AreEqual(0m, tracker.FractionalXp);
-        Assert.AreEqual(0L, reconfigured.AwardedXp);
-
-        var futureGrowth = tracker.Observe(
+        Assert.IsTrue(tracker.TryObserve(
             104,
-            Configuration(0.5d));
-
-        Assert.AreEqual(0L, futureGrowth.AwardedXp);
-        Assert.AreEqual(0.5m, tracker.FractionalXp);
+            Configuration(0.5d),
+            out var futureGrowthXp));
+        Assert.AreEqual(0L, futureGrowthXp);
+        Assert.AreEqual(0.5m, FractionalXp(tracker));
     }
 
     [TestMethod]
     public void ValidStateRestoresFractionAcrossReload()
     {
         var original = Baseline(100, 0.25d);
-        original.Observe(103, Configuration(0.25d));
-        var state = original.CaptureState();
+        Assert.IsTrue(original.TryObserve(
+            103,
+            Configuration(0.25d),
+            out _));
 
-        Assert.IsTrue(
-            PopulationProgressionTracker.TryRestore(
-                state,
-                Configuration(0.25d),
-                out var restored));
-
-        var result = restored.Observe(
+        Assert.IsTrue(PopulationProgressionTracker.TryRestore(
+            original.CaptureState(),
+            Configuration(0.25d),
+            out var restored));
+        Assert.IsTrue(restored.TryObserve(
             104,
-            Configuration(0.25d));
-
-        Assert.AreEqual(1L, result.AwardedXp);
-        Assert.AreEqual(0m, restored.FractionalXp);
+            Configuration(0.25d),
+            out var awardedXp));
+        Assert.AreEqual(1L, awardedXp);
+        Assert.AreEqual(0m, FractionalXp(restored));
     }
 
     [TestMethod]
     public void InvalidStateAndPopulationAreRejected()
     {
-        Assert.IsFalse(
-            PopulationProgressionTracker.TryRestore(
-                new PopulationProgressionState(-1, 0m),
-                Configuration(1d),
-                out _));
-        Assert.IsFalse(
-            PopulationProgressionTracker.TryRestore(
-                new PopulationProgressionState(100, 1m),
-                Configuration(1d),
-                out _));
+        Assert.IsFalse(PopulationProgressionTracker.TryRestore(
+            new PopulationProgressionState(-1, 0m),
+            Configuration(1d),
+            out _));
+        Assert.IsFalse(PopulationProgressionTracker.TryRestore(
+            new PopulationProgressionState(100, 1m),
+            Configuration(1d),
+            out _));
 
         var tracker = Baseline(100, 1d);
-        var rejected = tracker.Observe(
+        Assert.IsFalse(tracker.TryObserve(
             -1,
-            Configuration(1d));
-
-        Assert.IsFalse(rejected.Accepted);
+            Configuration(1d),
+            out _));
         Assert.AreEqual(100, tracker.MaximumPopulation);
     }
 
@@ -204,12 +209,12 @@ public sealed class PopulationProgressionTrackerTests
     {
         var tracker = Baseline(0, 2d);
 
-        var result = tracker.Observe(
+        Assert.IsTrue(tracker.TryObserve(
             int.MaxValue,
-            Configuration(2d));
-
-        Assert.AreEqual(4294967294L, result.AwardedXp);
-        Assert.AreEqual(int.MaxValue, result.NewRecordDelta);
+            Configuration(2d),
+            out var awardedXp));
+        Assert.AreEqual(4294967294L, awardedXp);
+        Assert.AreEqual(int.MaxValue, tracker.MaximumPopulation);
     }
 
     private static PopulationProgressionTracker Baseline(
@@ -217,19 +222,25 @@ public sealed class PopulationProgressionTrackerTests
         double rate)
     {
         var tracker = new PopulationProgressionTracker();
-        tracker.Observe(
+        Assert.IsTrue(tracker.TryObserve(
             population,
-            Configuration(rate));
+            Configuration(rate),
+            out _));
         return tracker;
+    }
+
+    private static decimal FractionalXp(
+        PopulationProgressionTracker tracker)
+    {
+        return tracker.CaptureState()!.FractionalXp;
     }
 
     private static ProgressionConfiguration Configuration(double rate)
     {
-        Assert.IsTrue(
-            ProgressionConfiguration.TryCreateCustom(
-                rate,
-                vanillaXpPercentage: 25,
-                out var configuration));
+        Assert.IsTrue(ProgressionConfiguration.TryCreateCustom(
+            rate,
+            vanillaXpPercentage: 25,
+            out var configuration));
         return configuration;
     }
 }

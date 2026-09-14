@@ -13,22 +13,21 @@ public sealed class PopulationXpBatchTests
         Assert.IsTrue(batch.TryAdd(3));
         Assert.IsTrue(batch.TryAdd(7));
         Assert.AreEqual(10L, batch.PendingXp);
-        Assert.AreEqual(10L, batch.TakeUpTo(long.MaxValue));
+        Assert.AreEqual(10, batch.TakeNextInt32Chunk());
         Assert.AreEqual(0L, batch.PendingXp);
     }
 
     [TestMethod]
-    public void TakeUpToRetainsTheRemainder()
+    public void LargeAwardsAreTakenInInt32Chunks()
     {
         var batch = new PopulationXpBatch();
 
-        Assert.IsTrue(batch.TryAdd(12));
-        Assert.AreEqual(5L, batch.TakeUpTo(5));
+        Assert.IsTrue(batch.TryAdd((long)int.MaxValue + 7));
+        Assert.AreEqual(int.MaxValue, batch.TakeNextInt32Chunk());
         Assert.AreEqual(7L, batch.PendingXp);
-        Assert.AreEqual(7L, batch.TakeUpTo(10));
+        Assert.AreEqual(7, batch.TakeNextInt32Chunk());
         Assert.AreEqual(0L, batch.PendingXp);
-        Assert.AreEqual(0L, batch.TakeUpTo(0));
-        Assert.AreEqual(0L, batch.TakeUpTo(-1));
+        Assert.AreEqual(0, batch.TakeNextInt32Chunk());
     }
 
     [TestMethod]

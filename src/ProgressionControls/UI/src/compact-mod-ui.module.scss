@@ -1,0 +1,99 @@
+.overlayPanel,
+.dialogPanel {
+  width: 320rem;
+  overflow: visible;
+  color: rgba(254, 254, 254, 0.92);
+}
+
+.overlayPanel {
+  max-height: 620rem;
+}
+
+.dialogPanel {
+  width: 340rem;
+}
+
+.panelContent {
+  padding: 0 0 4rem;
+}
+
+.dialogPanel .panelContent {
+  padding: 12rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 36rem;
+  padding: 0 5rem 0 8rem;
+}
+
+.titleArea {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.headerIcon {
+  width: 20rem;
+  height: 20rem;
+  flex: 0 0 20rem;
+  margin-right: 7rem;
+  object-fit: contain;
+}
+
+.title {
+  flex: 1;
+  overflow: hidden;
+  color: #54d7ff;
+  font-size: var(--fontSizeS);
+  font-weight: 700;
+  letter-spacing: 0.7rem;
+  line-height: 1;
+  text-align: left;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.closeButton {
+  width: 22rem;
+  min-width: 22rem;
+  height: 22rem;
+  min-height: 22rem;
+  flex: 0 0 22rem;
+  margin-left: 6rem;
+}
+
+.closeIcon {
+  width: 16rem;
+  height: 16rem;
+  filter: brightness(0) invert(1) opacity(0.88);
+}
+
+.section {
+  display: block;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  min-height: 29rem;
+  padding: 6rem 9rem 5rem;
+  border-top: 1rem solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1rem solid rgba(255, 255, 255, 0.08);
+  background-color: rgba(0, 0, 0, 0.1);
+  color: rgba(254, 254, 254, 0.76);
+  font-size: var(--fontSizeXS);
+  font-weight: 600;
+  letter-spacing: 0.35rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.sectionHeader > span:first-child {
+  flex: 1;
+}

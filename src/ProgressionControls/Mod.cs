@@ -69,7 +69,7 @@ namespace Kobbyist.ProgressionControls
                 settings.RegisterInOptionsUI();
 
                 Log.Info(
-                    $"Loaded settings: enabled={settings.EnableCustomProgression}, preset={settings.Preset}");
+                    $"Loaded settings: enabled={settings.EnableCustomProgression}, manualClaims={settings.ManualMilestoneClaims}, preset={settings.Preset}");
 
                 // This is the system's only registration. Running immediately
                 // before XPSystem lets us transform queued gains, then append
@@ -78,6 +78,8 @@ namespace Kobbyist.ProgressionControls
                     ProgressionControlSystem,
                     XPSystem>(
                     SystemUpdatePhase.ModificationEnd);
+                updateSystem.UpdateAt<ManualMilestoneClaimsUISystem>(
+                    SystemUpdatePhase.UIUpdate);
             }
             catch (Exception exception)
             {

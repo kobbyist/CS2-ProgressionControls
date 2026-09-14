@@ -29,14 +29,11 @@ namespace Kobbyist.ProgressionControls.Core
             return true;
         }
 
-        public long TakeUpTo(long maximumXp)
+        public int TakeNextInt32Chunk()
         {
-            if (maximumXp <= 0)
-            {
-                return 0;
-            }
-
-            var takenXp = System.Math.Min(m_PendingXp, maximumXp);
+            var takenXp = (int)System.Math.Min(
+                m_PendingXp,
+                int.MaxValue);
             m_PendingXp -= takenXp;
             return takenXp;
         }

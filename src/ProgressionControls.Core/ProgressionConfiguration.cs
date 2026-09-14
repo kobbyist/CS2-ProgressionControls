@@ -93,26 +93,19 @@ namespace Kobbyist.ProgressionControls.Core
                 return false;
             }
 
-            try
-            {
-                var rate = (decimal)xpPerResident;
-                if (xpPerResident > 0d && rate == 0m)
-                {
-                    return false;
-                }
-
-                if (!IsValidXpPerResident(rate))
-                {
-                    return false;
-                }
-
-                validatedRate = rate;
-                return true;
-            }
-            catch (OverflowException)
+            var rate = (decimal)xpPerResident;
+            if (xpPerResident > 0d && rate == 0m)
             {
                 return false;
             }
+
+            if (!IsValidXpPerResident(rate))
+            {
+                return false;
+            }
+
+            validatedRate = rate;
+            return true;
         }
 
         public static bool IsValidXpPerResident(decimal xpPerResident)

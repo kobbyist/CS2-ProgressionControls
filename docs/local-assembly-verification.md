@@ -7,7 +7,8 @@ This versioned report records evidence for a specific game build, not a
 workstation configuration. Installation paths are redacted. Regenerate and
 commit the report whenever the supported game build changes.
 
-- Generated at: `2026-07-23T14:21:32.9100802+00:00`
+- Metadata generated at: `2026-07-23T14:21:32.9100802+00:00`
+- Behavioral notes updated through: `2026-08-30`
 - Managed directory: `(redacted; pass -IncludeManagedPath to include it)`
 - Reported CS2 game version: `1.6.0f1`
 - Cities2.exe product version: `2022.3.71f1 (c9bf13b0b844)`
@@ -114,13 +115,26 @@ Static metadata and IL inspection confirms:
   identifier.
 - `Game.Simulation.SimulationSystem.frameIndex` is a serialized `System.UInt32`.
 - `Game.SceneFlow.GameManager.onGameSaveLoad` supplies
-  `(saveName, previewUri, start, success)`, and `isGameLoading` is available to
-  distinguish load callbacks.
+  `(saveName, previewUri, start, success)` for saves. Local call-site inspection
+  finds its invocations only in the save state machine.
 - `GameManager` converts `saveName` to an asset data path and uses that path for
   both `SaveGameData` and `SaveGameMetadata` assets.
-- The completion callback runs after the package save operation and reports its
-  success result. This gives the mod a boundary for writing and pruning external
-  state only after a completed save.
+- Local 1.6.0f1 IL for `GameManager.<Save>d__87.MoveNext` invokes the start
+  callback with `start=true` before `WaitForGPUFrame` and before
+  `SaveSimulationData`. A mod callback can therefore flush a provisional
+  checkpoint before the game begins serializing the city.
+- After the start callback, the same state machine writes the current session
+  GUID and `DateTime.Now` to `SaveInfo.sessionGuid` and
+  `SaveInfo.lastModified` before serialization. `SaveGameMetadata.target`
+  publicly exposes that `SaveInfo`.
+- Because the in-memory modification time is assigned before the package
+  operation, it is not completion proof. The sidecar marks a pending record as
+  completed and flushes that marker only after the success callback. Promotion
+  then moves the marked record to its committed path. A marked record remains
+  recoverable after restart if promotion fails; an unmarked record is never
+  inferred to be successful from save metadata timestamps.
+- The same state machine invokes the completion callback only after the package
+  operation finishes and supplies the final success result.
 - `Colossal.IO.AssetDatabase.AssetDatabase.AllAssets()` is public and returns
   `IEnumerable<IAssetData>`.
 - `Game.Assets.SaveGameMetadata` is public and inherits the public asset `name`
@@ -128,22 +142,39 @@ Static metadata and IL inspection confirms:
   save identity supplied by the save callback, while `path` is the physical asset
   source and is not a compatible checkpoint identity. The live metadata names can
   therefore identify checkpoints whose associated saves no longer exist.
+- `Game.Serialization.LoadGameSystem.dataDescriptor` is public and returns the
+  `AsyncReadDescriptor` passed to `GameManager.LoadSimulationData`.
+  `SaveInfo.saveGameData` and `AssetData.GetAsyncReadDescriptor()` are public.
+  After load, matching those descriptors identifies the exact logical
+  `SaveGameMetadata.name` without private access or patching.
 - `Game.GameSystemBase` exposes `OnGamePreload(Purpose, GameMode)`,
   `OnGameLoaded(Context)`, and `OnDestroy()`.
 
 A city session identifier is therefore stable across ordinary loads but is not
 enough to distinguish separate save checkpoints. Production external state is
-keyed by `{sessionGuid}/{simulationFrame}.json`, captured when saving starts,
-and written only after the save succeeds. Schema version 2 records the exact
-`saveName` in each new checkpoint. Successful saves then retain the current
-checkpoint for an overwritten save name and, when live save enumeration is
-trusted and includes the current save, remove indexed checkpoints for deleted
-saves.
+keyed by `{sessionGuid}/{simulationFrame}.{sha256(saveName)}.json`. Schema 5
+stores the exact logical save name inside the checkpoint as a collision check.
+Separate saves retain separate snapshots even when divergent branches reach the
+same simulation frame. A pending checkpoint is captured and flushed before
+serialization, durably marked after success, and then promoted. Successful
+saves retain the current checkpoint for an overwritten save name. When live
+save enumeration is trusted and includes the current save, cleanup removes
+committed and confirmed-pending checkpoints for deleted saves. Unconfirmed
+pending records older than seven days are also removed.
 
-Legacy schema checkpoints remain loadable. Because they predate save-name
-indexing, their cleanup uses a deterministic fallback: retain the newest 16 per
-city session by last-write time, then simulation frame, then path. Cleanup is
-best-effort and is isolated from the completed game-save result.
+Runtime evidence from the `29-August-16-37-42` save confirms the frame can
+advance between those boundaries: its completed checkpoint records frame
+8,086,231, while its serialized `SaveGameData` contains frame 8,087,469. The
+loader therefore permits a bounded drift of at most 4,096 frames, but only for
+the same city session and exact logical save name. Exact matches remain
+preferred. Future checkpoints and checkpoints more than 4,096 frames older are
+not eligible.
+
+Only schema 2 and schema 5 checkpoints are loadable. Schema 2 was published in
+version 0.1.1 and remains discoverable through its frame-only filename. Schema 0
+from version 0.1.0 and unpublished schemas 3 and 4 are ignored and left
+untouched. Cleanup processes only supported checkpoints and remains isolated
+from the completed game-save result.
 
 ### Data path and evaluation cadence
 
@@ -158,7 +189,7 @@ best-effort and is isolated from the completed game-save result.
   every 64 frames. The 16,384/day maximum runs every 16 frames and therefore
   never samples faster than the vanilla population aggregate can update.
 - Changing cadence affects only observation latency and batch size. It does not
-  reset the population record, fractional XP, or total earned XP.
+  reset the population record, fractional XP, or total population XP earned.
 
 ### Options UI slider metadata
 
@@ -301,6 +332,9 @@ Local 1.6.0f1 metadata and IL remain authoritative for the implementation:
   - `System.Int32 m_MaximumIncome`
   - `System.Int32 m_MaximumPopulation`
   - `System.Int32 m_XP`
+- Local 1.6.0f1 IL for `XPSystem.XPQueueProcessJob.Execute` applies an `XPGain`
+  by adding its amount directly to `m_XP`. The emergency save fallback writes
+  the same persisted field before `SaveSimulationData`.
 
 ### `Game.City.MilestoneReachedEvent`
 
@@ -310,3 +344,54 @@ Local 1.6.0f1 metadata and IL remain authoritative for the implementation:
 - Declared fields:
   - `System.Int32 m_Index`
   - `Unity.Entities.Entity m_Milestone`
+
+### Manual milestone claims boundaries
+
+Local metadata confirms the remaining game-facing types used by manual
+milestone claims:
+
+- `Game.Simulation.MilestoneSystem` is a `GameSystemBase`. It declares the
+  milestone-data, milestone-level, and city-XP queries plus the next-milestone,
+  next-threshold, reached-event, and unlock-event state used by vanilla
+  progression.
+- `Game.City.MilestoneLevel.m_AchievedMilestone` is the achieved milestone
+  index read by the adapter.
+- `Game.Prefabs.MilestoneData.m_IsVictory` marks the terminal milestone.
+  `MilestoneUISystem.GetVictoryMilestone` scans the milestone query for that
+  flag. Manual claims use it as positive evidence before releasing final
+  surplus XP.
+- `MilestoneUISystem` builds its display catalog from entities with
+  `PrefabData` and `MilestoneData`, excluding `Deleted` and `Temp`. Its
+  `IsMaxMilestoneReached` result also requires that the equivalent query with
+  `Locked` is empty. Manual claims mirror both query shapes and require the
+  catalog's final marker and vanilla's locked-query result before reporting
+  terminal completion or releasing final surplus XP.
+- `Game.Prefabs.MilestonePrefab` exposes the milestone index, cumulative XP
+  threshold, image, background color, accent color, and text color.
+- `Game.UI.InGame.MilestoneUISystem` is a `UISystemBase`. Its declared bindings
+  include achieved milestone, next-milestone XP, total XP, milestone details,
+  unlock details, and XP-message events.
+- `SystemUpdatePhase.UIUpdate` and `UpdateSystem.UpdateAt<T>` support the
+  standalone UI system registration used by the mod.
+- `ValueBinding<string>` and `TriggerBinding<T>` accept optional writer and
+  reader arguments, matching the implemented value and request bindings.
+
+Mono.Cecil inspection of this `Game.dll` established the behavior required by
+the adapter:
+
+- `MilestoneSystem.OnCreate` queries `MilestoneLevel`, `XP`, and
+  `MilestoneData`.
+- `MilestoneData.m_XpRequried` is the cumulative threshold for the achieved and
+  next milestone.
+- `MilestoneSystem.OnUpdate` compares city XP with the next threshold and
+  increments `MilestoneLevel.m_AchievedMilestone` by one.
+- The private `NextMilestone(int)` path creates the normal milestone-reached
+  event and unlock work. Progression Controls can therefore change XP while
+  leaving vanilla rewards and unlocks intact.
+- `MilestoneSystem.TryGetMilestone` is private. The adapter uses the same
+  read-only `MilestoneData` query shape instead of reflection.
+- `PrefabSystem.GetPrefab<T>(Entity)` is public. The panel can read the native
+  milestone image, background color, and text color without patching the
+  vanilla milestone screen.
+
+No installed game code was executed during this inspection.
