@@ -27,11 +27,11 @@ population XP resumes only after the previous record is exceeded.
 
 ## Presets
 
-| Preset | Population progression | Vanilla XP retained |
-| --- | --- | ---: |
-| Population Balanced | 1.5 XP per new record resident | 50% |
-| Population Heavy | 1.5 XP per new record resident | 25% |
-| Population Only | 1.5 XP per new record resident | 0% |
+| Preset              | Population progression         | Vanilla XP retained |
+| ------------------- | ------------------------------ | ------------------: |
+| Population Balanced | 1.5 XP per new record resident |                 50% |
+| Population Heavy    | 1.5 XP per new record resident |                 25% |
+| Population Only     | 1.5 XP per new record resident |                  0% |
 
 Population Heavy is the default. Editing an advanced XP rule changes the preset
 to Custom.

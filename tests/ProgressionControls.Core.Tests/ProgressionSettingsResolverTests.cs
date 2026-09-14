@@ -199,7 +199,7 @@ public sealed class ProgressionSettingsResolverTests
         Assert.AreEqual(40, secondNormalized.VanillaXpPercentage);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(-0.25d)]
     [DataRow(10.25d)]
     [DataRow(1.1d)]

@@ -5,7 +5,7 @@ namespace ProgressionControls.Core.Tests;
 [TestClass]
 public sealed class EvaluationIntervalTests
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(1, 262144)]
     [DataRow(4, 65536)]
     [DataRow(16, 16384)]
@@ -27,7 +27,7 @@ public sealed class EvaluationIntervalTests
         Assert.AreEqual(expectedInterval, interval);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(0)]
     [DataRow(-1)]
     [DataRow(3)]

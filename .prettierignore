@@ -1,0 +1,7 @@
+**/node_modules/
+**/bin/
+**/obj/
+**/build/
+artifacts/
+.agents/memory.md
+**/package-lock.json

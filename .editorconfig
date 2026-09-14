@@ -2,16 +2,27 @@ root = true
 
 [*]
 charset = utf-8
+end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
-
-[*.cs]
-indent_style = space
-indent_size = 4
-
-[*.{csproj,xml,pubxml}]
 indent_style = space
 indent_size = 2
+
+[*.{cs,ps1}]
+indent_size = 4
+
+[*.cs]
+# API shape and concrete collection types are design choices, not build failures.
+dotnet_diagnostic.CA1822.severity = suggestion
+dotnet_diagnostic.CA1859.severity = suggestion
+
+[src/ProgressionControls/Mod.cs]
+# The CS2 entry point is not a cross-language consumer API.
+dotnet_diagnostic.CA1716.severity = none
+
+[tests/**/*.cs]
+# Keep each test's inputs local; shared mutable arrays undermine isolation.
+dotnet_diagnostic.CA1861.severity = none
 
 [*.md]
 trim_trailing_whitespace = false

@@ -3,7 +3,7 @@ using Game.UI;
 
 namespace Kobbyist.ProgressionControls
 {
-    internal partial class ManualMilestoneClaimsUISystem : UISystemBase
+    internal sealed partial class ManualMilestoneClaimsUISystem : UISystemBase
     {
         internal const string BindingGroup =
             "Kobbyist.ProgressionControls";

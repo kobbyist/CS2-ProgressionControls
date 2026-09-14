@@ -449,7 +449,7 @@ namespace Kobbyist.ProgressionControls
                 m_ManualMilestoneClaimBank.HeldXp,
                 claimPending: false,
                 claimsActive: m_ManualClaimsActive);
-            var first = queueEntries.FirstOrDefault();
+            var first = queueEntries.Count > 0 ? queueEntries[0] : null;
             if (first == null ||
                 !first.CanClaim ||
                 first.Index != requestedIndex ||

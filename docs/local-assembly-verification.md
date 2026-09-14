@@ -15,17 +15,17 @@ commit the report whenever the supported game build changes.
 
 ## Assemblies
 
-| File | Assembly version | File version | SHA-256 |
-| --- | --- | --- | --- |
-| Game.dll | `0.0.0.0` | `0.0.0.0` | `721e7e17bf74299aa2b988c1bd07e90874bb8bc72d263229500c4bf639e7e4ee` |
-| Unity.Entities.dll | `0.0.0.0` | `0.0.0.0` | `2cbf58ed7edcb6f697e8f8134443789a17c0cec918364fdec01d184b76c2136b` |
-| Unity.Collections.dll | `0.0.0.0` | `0.0.0.0` | `146bfbd089ff31652efc34a586d1d5f405e22655f7da7c1b3c168093fffd2f04` |
-| UnityEngine.CoreModule.dll | `0.0.0.0` | `0.0.0.0` | `ecc287942d2dd74b3d04dc181471b5beff11e9ac450a31e1d7a131f0b66a9bfd` |
-| Colossal.Core.dll | `0.0.0.0` | `0.0.0.0` | `c92d6f214c2edb66419b75bb663b06078f93066c819bfd02005886581338e2f2` |
-| Colossal.Logging.dll | `0.0.0.0` | `0.0.0.0` | `b076d59d6427cd90acf8b1ab731ee35a7612667e3a822d3211bcfa5c15021743` |
-| Colossal.Localization.dll | `0.0.0.0` | `0.0.0.0` | `54979aa458c25e5da40e40bcc25f9f4195207bb8e019660240892979c0557846` |
-| Colossal.PSI.Common.dll | `0.0.0.0` | `0.0.0.0` | `12463209f920d430ba8ab3d8921a1cf3605925d5bda3d2b6255642b0b055b061` |
-| Colossal.UI.Binding.dll | `0.0.0.0` | `0.0.0.0` | `9d27b3c0ae8fa0c1cefc50fe1926503c52f1b9d4d9dfe6e24f7fb4aee2446d2b` |
+| File                       | Assembly version | File version | SHA-256                                                            |
+| -------------------------- | ---------------- | ------------ | ------------------------------------------------------------------ |
+| Game.dll                   | `0.0.0.0`        | `0.0.0.0`    | `721e7e17bf74299aa2b988c1bd07e90874bb8bc72d263229500c4bf639e7e4ee` |
+| Unity.Entities.dll         | `0.0.0.0`        | `0.0.0.0`    | `2cbf58ed7edcb6f697e8f8134443789a17c0cec918364fdec01d184b76c2136b` |
+| Unity.Collections.dll      | `0.0.0.0`        | `0.0.0.0`    | `146bfbd089ff31652efc34a586d1d5f405e22655f7da7c1b3c168093fffd2f04` |
+| UnityEngine.CoreModule.dll | `0.0.0.0`        | `0.0.0.0`    | `ecc287942d2dd74b3d04dc181471b5beff11e9ac450a31e1d7a131f0b66a9bfd` |
+| Colossal.Core.dll          | `0.0.0.0`        | `0.0.0.0`    | `c92d6f214c2edb66419b75bb663b06078f93066c819bfd02005886581338e2f2` |
+| Colossal.Logging.dll       | `0.0.0.0`        | `0.0.0.0`    | `b076d59d6427cd90acf8b1ab731ee35a7612667e3a822d3211bcfa5c15021743` |
+| Colossal.Localization.dll  | `0.0.0.0`        | `0.0.0.0`    | `54979aa458c25e5da40e40bcc25f9f4195207bb8e019660240892979c0557846` |
+| Colossal.PSI.Common.dll    | `0.0.0.0`        | `0.0.0.0`    | `12463209f920d430ba8ab3d8921a1cf3605925d5bda3d2b6255642b0b055b061` |
+| Colossal.UI.Binding.dll    | `0.0.0.0`        | `0.0.0.0`    | `9d27b3c0ae8fa0c1cefc50fe1926503c52f1b9d4d9dfe6e24f7fb4aee2446d2b` |
 
 ## API boundaries
 
@@ -395,3 +395,42 @@ the adapter:
   vanilla milestone screen.
 
 No installed game code was executed during this inspection.
+
+## UI declaration verification, 2026-09-14
+
+The runtime log reports `1.6.0f1 (419.d6c6) [6216.19404]`. Static inspection of
+the installed `Cities2_Data/Content/Game/UI/index.js` supports the authored
+declaration subset used by the linting baseline. Bundle SHA-256:
+`AE8A9054B526C1EC2F0A3C84CB86713BF5A6F0536301BCC386BFD25A16923A55`.
+
+- `window["cs2/ui"]` exports Button, Icon, Panel, and Scrollable. It does not
+  export `FOCUS_DISABLED`. That value is exported by `window["cs2/input"]`;
+  the mod imports it there and externalizes that module in webpack.
+- The bundled React implementation reports `18.3.1`; the renderer also
+  identifies the `18.3.1` release line. The dependency review retains React 18
+  and matching typings because webpack resolves React and ReactDOM to the
+  game's supplied instances.
+- The focus-key implementation constructs the disabled key as a FocusSymbol
+  with a string `debugName`, numeric `r`, and `toString` method.
+- The public Button wrapper chooses the `flat`, `primary`, `round`, `menu`,
+  `default`, `icon`, `floating`, or `text` theme. It forwards props to the
+  underlying native button, which reads `focusKey`, `tooltipLabel`, `onClick`,
+  and `onSelect`, and forwards remaining HTML attributes. The local declaration
+  covers the button form used here, not every native variant.
+- Icon reads `src`, `tinted`, `className`, and `children`; a string tint becomes
+  a background color. Panel forwards its props to the native panel, including
+  `header`, `contentClassName`, and HTML attributes. Scrollable reads boolean
+  `vertical`/`horizontal`, `className`, and `children`.
+- `cs2/l10n.useLocalization` resolves to `useCachedLocalization` in
+  `game-ui/common/localization/localization.tsx`. Its `translate` property is
+  an arrow function closing over the localization context. Destructuring it
+  does not lose a receiver; the declaration uses a function-valued property.
+
+Public discovery found the FocusSymbol/disabled-key pattern in
+[CS2MultiplayerMod declarations](https://github.com/Rollocraft/CS2MultiplayerMod/blob/0fa5dedf9af9bcae2d8565a9138bc7ea4c2355d1/CS2MultiplayerMod/UI/types/bindings.d.ts),
+last changed by that commit on 2026-07-07. GitHub reports its license as
+`NOASSERTION`; no source was copied or executed. Public/generated declarations
+were discovery leads only; the installed bundle governs these signatures.
+
+The declarations are original, limited contracts for the mod's current usage.
+This check did not execute the game bundle or replace in-game UI acceptance.

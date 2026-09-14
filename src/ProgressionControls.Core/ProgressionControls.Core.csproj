@@ -4,8 +4,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>Kobbyist.ProgressionControls.Core</RootNamespace>
     <AssemblyName>Kobbyist.ProgressionControls.Core</AssemblyName>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>12.0</LangVersion>
   </PropertyGroup>
 
 </Project>
-
