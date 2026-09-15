@@ -10,6 +10,16 @@ using UnityEngine;
 
 namespace Kobbyist.ProgressionControls
 {
+    internal enum ManualMilestoneClaimsDecision
+    {
+        None,
+        Release,
+        Discard,
+        Cancel,
+        Restore,
+        Later,
+    }
+
     public partial class ProgressionControlSystem
     {
         private const uint MilestoneCatalogRetryInterval = 64;

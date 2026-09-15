@@ -1,102 +1,32 @@
-import { bindValue, trigger, useValue } from "cs2/api";
+import { useValue } from "cs2/api";
 import { useLocalization } from "cs2/l10n";
 import { Button, Icon, Scrollable } from "cs2/ui";
 import { useEffect, useState } from "react";
-import { CompactModPanel, PanelSection } from "./compact-mod-ui";
+import { CompactModPanel, PanelSection } from "../compact-mod-ui";
+import {
+  availabilityBinding,
+  parseState,
+  requestMilestoneClaim,
+  resolveManualMilestoneClaims,
+  setManualMilestoneClaimsPanelOpen,
+  stateBinding,
+  type ManualMilestone,
+  type ManualMilestoneClaimsColor,
+  type ManualMilestoneClaimsState,
+} from "./bindings";
 import styles from "./manual-milestone-claims.module.scss";
-import progressionControlsIcon from "./progression-controls.svg";
+import progressionControlsIcon from "../progression-controls.svg";
 
-const bindingGroup = "Kobbyist.ProgressionControls";
 const nativeMilestoneIcon = "Media/Game/Icons/Milestone.svg";
 const nativeLockIcon = "Media/Glyphs/Lock.svg";
 const nativeWarningIcon = "Media/Misc/Warning.svg";
-const emptyStateJson =
-  '{"heldXp":0,"claimPending":false,"dialog":"none","milestones":[],"nextMilestoneIndex":0,"nextRequiredXp":0,"nextImage":"","nextRangeXp":0,"nextBackgroundColor":{"r":0,"g":0,"b":0,"a":0},"nextTextColor":{"r":0,"g":0,"b":0,"a":0},"catalogAvailable":false,"finalMilestoneReached":false}';
-
-const stateBinding = bindValue<string>(
-  bindingGroup,
-  "manualMilestoneClaimsState",
-  emptyStateJson,
-);
-const availabilityBinding = bindValue<boolean>(
-  bindingGroup,
-  "manualMilestoneClaimsAvailable",
-  false,
-);
-
-interface ManualMilestoneClaimsColor {
-  r: number;
-  g: number;
-  b: number;
-  a: number;
-}
-
-interface ManualMilestone {
-  index: number;
-  requiredXp: number;
-  canClaim: boolean;
-  image: string;
-}
-
-interface ManualMilestoneClaimsState {
-  heldXp: number;
-  claimPending: boolean;
-  dialog: "none" | "disable" | "restore";
-  milestones: ManualMilestone[];
-  nextMilestoneIndex: number;
-  nextRequiredXp: number;
-  nextImage: string;
-  nextRangeXp: number;
-  nextBackgroundColor: ManualMilestoneClaimsColor;
-  nextTextColor: ManualMilestoneClaimsColor;
-  catalogAvailable: boolean;
-  finalMilestoneReached: boolean;
-}
 
 type Translate = (id: string, fallback: string) => string;
-
-const emptyState: ManualMilestoneClaimsState = {
-  heldXp: 0,
-  claimPending: false,
-  dialog: "none",
-  milestones: [],
-  nextMilestoneIndex: 0,
-  nextRequiredXp: 0,
-  nextImage: "",
-  nextRangeXp: 0,
-  nextBackgroundColor: { r: 0, g: 0, b: 0, a: 0 },
-  nextTextColor: { r: 0, g: 0, b: 0, a: 0 },
-  catalogAvailable: false,
-  finalMilestoneReached: false,
-};
-
-let cachedRawState: string | undefined;
-let cachedParsedState = emptyState;
 
 const toggleListeners = new Set<() => void>();
 
 function requestPanelToggle() {
   toggleListeners.forEach((listener) => listener());
-}
-
-function parseState(value: string): ManualMilestoneClaimsState {
-  if (value === cachedRawState) {
-    return cachedParsedState;
-  }
-
-  cachedRawState = value;
-  try {
-    const parsed = JSON.parse(value) as Partial<ManualMilestoneClaimsState>;
-    cachedParsedState = {
-      ...emptyState,
-      ...parsed,
-      milestones: Array.isArray(parsed.milestones) ? parsed.milestones : [],
-    };
-  } catch {
-    cachedParsedState = emptyState;
-  }
-
-  return cachedParsedState;
 }
 
 function formatXp(value: number) {
@@ -157,12 +87,12 @@ export const ManualMilestoneClaimsOverlay = () => {
   }, []);
 
   useEffect(() => {
-    trigger(bindingGroup, "setManualMilestoneClaimsPanelOpen", open);
+    setManualMilestoneClaimsPanelOpen(open);
   }, [open]);
 
   useEffect(
     () => () => {
-      trigger(bindingGroup, "setManualMilestoneClaimsPanelOpen", false);
+      setManualMilestoneClaimsPanelOpen(false);
     },
     [],
   );
@@ -304,9 +234,7 @@ const MilestoneRow = ({
           variant="primary"
           className={styles.claimButton}
           disabled={claimPending}
-          onSelect={() =>
-            trigger(bindingGroup, "claimMilestone", milestone.index)
-          }
+          onSelect={() => requestMilestoneClaim(milestone.index)}
         >
           {claiming ? t("Claiming", "Claiming...") : t("Claim", "Claim")}
         </Button>
@@ -392,8 +320,6 @@ const DecisionDialog = ({
   t: Translate;
 }) => {
   const restoring = state.dialog === "restore";
-  const resolve = (decision: string) =>
-    trigger(bindingGroup, "resolveManualMilestoneClaims", decision);
   const title = restoring
     ? t("RecoveryTitle", "Held XP found")
     : t("DisableTitle", "Turn off manual milestone claims?");
@@ -428,17 +354,23 @@ const DecisionDialog = ({
         <div className={styles.dialogActions}>
           {restoring ? (
             <>
-              <Button variant="primary" onSelect={() => resolve("Restore")}>
+              <Button
+                variant="primary"
+                onSelect={() => resolveManualMilestoneClaims("Restore")}
+              >
                 {t("Restore", "Restore manual claims")}
               </Button>
               <Button
                 variant="default"
                 className={styles.dangerButton}
-                onSelect={() => resolve("Discard")}
+                onSelect={() => resolveManualMilestoneClaims("Discard")}
               >
                 {t("Discard", "Discard permanently")}
               </Button>
-              <Button variant="default" onSelect={() => resolve("Later")}>
+              <Button
+                variant="default"
+                onSelect={() => resolveManualMilestoneClaims("Later")}
+              >
                 {t("Later", "Decide later")}
               </Button>
             </>
@@ -447,7 +379,7 @@ const DecisionDialog = ({
               <Button
                 variant="primary"
                 disabled={state.claimPending}
-                onSelect={() => resolve("Release")}
+                onSelect={() => resolveManualMilestoneClaims("Release")}
               >
                 {t("Release", "Release to vanilla and turn off")}
               </Button>
@@ -455,11 +387,14 @@ const DecisionDialog = ({
                 variant="default"
                 className={styles.dangerButton}
                 disabled={state.claimPending}
-                onSelect={() => resolve("Discard")}
+                onSelect={() => resolveManualMilestoneClaims("Discard")}
               >
                 {t("Discard", "Discard permanently")}
               </Button>
-              <Button variant="default" onSelect={() => resolve("Cancel")}>
+              <Button
+                variant="default"
+                onSelect={() => resolveManualMilestoneClaims("Cancel")}
+              >
                 {t("Cancel", "Cancel")}
               </Button>
             </>

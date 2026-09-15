@@ -13,16 +13,6 @@ namespace Kobbyist.ProgressionControls
         Restore,
     }
 
-    internal enum ManualMilestoneClaimsDecision
-    {
-        None,
-        Release,
-        Discard,
-        Cancel,
-        Restore,
-        Later,
-    }
-
     internal readonly struct ManualMilestoneClaimsViewKey :
         IEquatable<ManualMilestoneClaimsViewKey>
     {
