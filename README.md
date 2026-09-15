@@ -106,6 +106,16 @@ unpublished development formats are ignored and left untouched. Loading without
 a supported checkpoint establishes a safe population baseline and does not grant
 retroactive XP.
 
+## Development
+
+- [Development and repository layout](docs/development.md) covers setup, module
+  responsibilities, formatting, tests, and local builds.
+- [Paradox Mods packaging](docs/paradox-packaging.md) covers staging and publishing.
+- [Manual milestone claims design](docs/design/manual-milestone-claims.md) defines
+  claim, recovery, and persistence behavior.
+- [Local assembly verification](docs/local-assembly-verification.md) records the
+  installed game APIs and UI declarations used by the mod.
+
 ## License
 
 [MIT](./LICENSE), copyright 2026 kobbyist

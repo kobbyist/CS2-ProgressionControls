@@ -3,7 +3,7 @@ using Kobbyist.ProgressionControls.Core;
 namespace ProgressionControls.Core.Tests;
 
 [TestClass]
-public sealed class ManualMilestoneQueueTests
+public sealed class ManualMilestoneCatalogTests
 {
     private static readonly ManualMilestoneDefinition[] Milestones =
     {

@@ -1,5 +1,38 @@
 # Development
 
+## Repository layout
+
+| Location                                                  | Responsibility                                                                                                              |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `src/ProgressionControls.Core/`                           | Game-independent configuration, population tracking, and XP calculations.                                                   |
+| `src/ProgressionControls.Core/ManualMilestones/`          | Held-XP banking, pending claims, and milestone catalog rules.                                                               |
+| `src/ProgressionControls.Core/Persistence/`               | Checkpoint snapshots, filesystem storage, and retention.                                                                    |
+| `src/ProgressionControls/`                                | Mod startup, settings, localization, and the simulation adapter. Both `ProgressionControlSystem` partials stay together.    |
+| `src/ProgressionControls/Bindings/`                       | C# UI binding registration, publication state, and JSON serialization.                                                      |
+| `src/ProgressionControls/UI/src/`                         | UI registration, compact panel components, and the mod glyph.                                                               |
+| `src/ProgressionControls/UI/src/manual-milestone-claims/` | Manual-claims rendering and styles. `bindings.ts` owns binding names, transport types, state parsing, and request wrappers. |
+| `src/ProgressionControls/UI/types/`                       | Authored declarations for assets and the verified CS2 API subset.                                                           |
+| `src/ProgressionControls/Properties/`                     | Publishing metadata, profiles, thumbnail, and screenshots.                                                                  |
+| `tests/ProgressionControls.Core.Tests/`                   | Core tests, with matching `ManualMilestones/` and `Persistence/` groups. Persistence tests also exercise temporary files.   |
+| `scripts/`                                                | Repository verification and offline packaging commands.                                                                     |
+| `docs/`                                                   | Development, design, packaging, dependency, and assembly-verification guidance.                                             |
+| `artifacts/`                                              | Ignored validation output and staging bundles.                                                                              |
+
+The game project references Core. Keep game and Unity dependencies in the game
+project, and keep progression calculations independent of filesystem operations.
+Core includes persistence so checkpoints can be tested without a game installation.
+Its folders describe responsibilities within the existing assembly.
+
+C# namespaces and assembly names remain stable across these folders. In particular,
+moving source files must not change the published settings identity. Manual-mode
+and recovery decisions still live with the simulation partial; extracting their
+policy is a separate follow-up after the current correctness checks are settled.
+
+The UI package stays inside the game project because its build target produces
+and copies that package's bundle. Keep UI-specific tooling beside `package.json`
+and repository-wide configuration at the root. Build output, dependencies, and
+`.agents/memory.md` remain ignored.
+
 ## Prerequisites
 
 - Cities: Skylines II Modding Toolchain

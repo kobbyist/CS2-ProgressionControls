@@ -2,7 +2,7 @@ import { ModRegistrar } from "cs2/modding";
 import {
   ManualMilestoneClaimsOverlay,
   ManualMilestoneClaimsToolbarButton,
-} from "./manual-milestone-claims";
+} from "./manual-milestone-claims/manual-milestone-claims";
 
 export const hasCSS = true;
 
