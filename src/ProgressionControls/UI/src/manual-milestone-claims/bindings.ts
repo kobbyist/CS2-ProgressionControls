@@ -1,19 +1,6 @@
 import { bindValue, trigger } from "cs2/api";
 
 const bindingGroup = "Kobbyist.ProgressionControls";
-const emptyStateJson =
-  '{"heldXp":0,"claimPending":false,"dialog":"none","milestones":[],"nextMilestoneIndex":0,"nextRequiredXp":0,"nextImage":"","nextRangeXp":0,"nextBackgroundColor":{"r":0,"g":0,"b":0,"a":0},"nextTextColor":{"r":0,"g":0,"b":0,"a":0},"catalogAvailable":false,"finalMilestoneReached":false}';
-
-export const stateBinding = bindValue<string>(
-  bindingGroup,
-  "manualMilestoneClaimsState",
-  emptyStateJson,
-);
-export const availabilityBinding = bindValue<boolean>(
-  bindingGroup,
-  "manualMilestoneClaimsAvailable",
-  false,
-);
 
 export interface ManualMilestoneClaimsColor {
   r: number;
@@ -36,7 +23,7 @@ export interface ManualMilestoneClaimsState {
   milestones: ManualMilestone[];
   nextMilestoneIndex: number;
   nextRequiredXp: number;
-  nextImage: string;
+  nextImage: string | null;
   nextRangeXp: number;
   nextBackgroundColor: ManualMilestoneClaimsColor;
   nextTextColor: ManualMilestoneClaimsColor;
@@ -61,6 +48,17 @@ const emptyState: ManualMilestoneClaimsState = {
   catalogAvailable: false,
   finalMilestoneReached: false,
 };
+
+export const stateBinding = bindValue<string>(
+  bindingGroup,
+  "manualMilestoneClaimsState",
+  JSON.stringify(emptyState),
+);
+export const availabilityBinding = bindValue<boolean>(
+  bindingGroup,
+  "manualMilestoneClaimsAvailable",
+  false,
+);
 
 let cachedRawState: string | undefined;
 let cachedParsedState = emptyState;
